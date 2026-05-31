@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  body {
+    /* stone-50 ≈ #FAFAF9 — warm off-white, Notion-like base */
+    @apply bg-stone-50 text-gray-900 antialiased;
+    font-family: var(--font-prompt), "Prompt", system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  /* ── Buttons ──────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           rounded-xl text-sm font-semibold text-white
+           active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed
+           transition-all duration-150;
+    background-color: #0B6E65;
+  }
+  .btn-primary:hover:not(:disabled) { background-color: #095E57; }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           rounded-xl border text-sm font-medium text-gray-700
+           bg-white hover:bg-stone-50 active:bg-stone-100 active:scale-[0.97]
+           disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150;
+    border-color: #E0DFDC;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           rounded-xl bg-red-600 text-sm font-semibold text-white
+           hover:bg-red-700 active:bg-red-800 active:scale-[0.97]
+           disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150;
+  }
+  /* kept for admin pages that still use the gradient accent */
+  .btn-mint {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+           rounded-xl text-sm font-semibold text-white
+           active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150;
+    background: linear-gradient(135deg, #00BFA5, #0069B4);
+  }
+
+  /* ── Cards ────────────────────────────────────── */
+  .card {
+    @apply bg-white rounded-2xl border;
+    border-color: #EBEBEA;
+  }
+  .card-mint {
+    @apply bg-white rounded-2xl border border-teal-100;
+  }
+
+  /* ── Inputs ───────────────────────────────────── */
+  .input {
+    @apply w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-gray-900
+           placeholder-gray-400 transition-all duration-150
+           focus:outline-none focus:border-transparent;
+    border-color: #E0DFDC;
+    box-shadow: none;
+  }
+  .input:focus {
+    box-shadow: 0 0 0 3px rgba(11, 110, 101, 0.12);
+  }
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  /* ── Legacy menu-card (admin pages) ──────────── */
+  .menu-card {
+    @apply card p-4 cursor-pointer select-none
+           active:scale-[0.97] hover:shadow-sm transition-all duration-150;
+  }
+  .menu-icon {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center mb-3 flex-shrink-0
+           bg-stone-100 text-gray-500;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .pb-safe {
+    padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+  }
+}
