@@ -337,7 +337,7 @@ export default function FlashCardDeckPage() {
     } finally {
       setSaving(false);
     }
-  }, [user, cards, index, saving, go]);
+  }, [user, cards, index, saving, go, deck]);
 
   const doShuffle = useCallback(() => {
     setCards((c) => shuffleCards(c));
