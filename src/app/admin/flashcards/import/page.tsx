@@ -92,7 +92,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const wb    = XLSX.read(e.target?.result, { type: "binary" });
+        const wb    = XLSX.read(e.target?.result, { type: "array" });
         const ws    = wb.Sheets[wb.SheetNames[0]];
         const rows  = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" });
         resolve(rows.map((r, i) => parseRow(r, i + 2)));
@@ -101,7 +101,7 @@ function parseFile(file: File): Promise<ParsedRow[]> {
       }
     };
     reader.onerror = reject;
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   });
 }
 
