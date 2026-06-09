@@ -44,13 +44,14 @@
       ]
     },
 
-    // ── User Flash Card Progress ───────────────────────────────────────────────
-    // getFCProgress(): cardId in [...ids]
+    // ── MOPH Focus ────────────────────────────────────────────────────────────
+    // getPublishedMOPHFocus(): isPublished + publishedDate DESC
     {
-      "collectionGroup": "fcProgress",
+      "collectionGroup": "mophFocus",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "cardId", "order": "ASCENDING" }
+        { "fieldPath": "isPublished",   "order": "ASCENDING"  },
+        { "fieldPath": "publishedDate", "order": "DESCENDING" }
       ]
     }
 

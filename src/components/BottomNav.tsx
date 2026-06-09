@@ -8,9 +8,10 @@ const ACCENT = "#0B6E65";
 const MUTED  = "#9CA3AF";
 
 function active(pathname: string, href: string): boolean {
-  if (href === "/")          return pathname === "/" || pathname.startsWith("/exam");
-  if (href === "/flashcard") return pathname.startsWith("/flashcard");
-  if (href === "/dashboard") return pathname.startsWith("/dashboard");
+  if (href === "/")            return pathname === "/" || pathname.startsWith("/exam");
+  if (href === "/flashcard")   return pathname.startsWith("/flashcard");
+  if (href === "/dashboard")   return pathname.startsWith("/dashboard");
+  if (href === "/moph-focus")  return pathname.startsWith("/moph-focus");
   return pathname === href || pathname.startsWith(href + "/");
 }
 
@@ -56,15 +57,14 @@ export default function BottomNav() {
       ),
     },
     {
-      label: "ข่าวสาร",
-      href:  "/news",
+      label: "MOPH Focus",
+      href:  "/moph-focus",
       icon:  (a: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" stroke={a ? ACCENT : MUTED}
           strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={SZ}>
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="8" y1="13" x2="16" y2="13" />
-          <line x1="8" y1="17" x2="12" y2="17" />
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
       ),
     },
