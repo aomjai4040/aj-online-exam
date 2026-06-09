@@ -34,7 +34,7 @@ export default function Navbar() {
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
           </div>
-          <span className="font-bold text-[17px] text-gray-900 tracking-tight">
+          <span className="font-bold text-[14px] text-gray-900 tracking-tight">
             AJ <span style={{ color: "#0B6E65" }}>ExamOnline</span>
           </span>
         </Link>
@@ -45,18 +45,18 @@ export default function Navbar() {
             /* Admin nav */
             <>
               <Link href="/admin"
-                className="text-[16px] text-gray-700 hover:text-gray-900 px-2 py-1 transition-colors">
+                className="text-[13px] text-gray-500 hover:text-gray-900 px-2 py-1 transition-colors">
                 Dashboard
               </Link>
               <Link href="/admin/exams"
-                className="text-[16px] text-gray-700 hover:text-gray-900 px-2 py-1 transition-colors">
+                className="text-[13px] text-gray-500 hover:text-gray-900 px-2 py-1 transition-colors">
                 จัดการข้อสอบ
               </Link>
               <Link href="/admin/codes"
-                className="text-[16px] text-gray-700 hover:text-gray-900 px-2 py-1 transition-colors">
+                className="text-[13px] text-gray-500 hover:text-gray-900 px-2 py-1 transition-colors">
                 Codes
               </Link>
-              <Link href="/" className="btn-secondary text-[18px] px-3 py-1.5 rounded-lg">
+              <Link href="/" className="btn-secondary text-[12px] px-3 py-1.5 rounded-lg">
                 ← นักเรียน
               </Link>
             </>
@@ -64,7 +64,7 @@ export default function Navbar() {
             /* Student nav */
             <>
               <Link href="/"
-                className="hidden sm:flex items-center gap-1 text-[16px] text-gray-700
+                className="hidden sm:flex items-center gap-1 text-[13px] text-gray-500
                            hover:text-gray-900 px-2 py-1 transition-colors">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
@@ -93,7 +93,7 @@ export default function Navbar() {
                       />
                     ) : (
                       <div
-                        className="w-full h-full flex items-center justify-center text-white text-[16px] font-bold"
+                        className="w-full h-full flex items-center justify-center text-white text-[13px] font-bold"
                         style={{ backgroundColor: "#0B6E65" }}
                       >
                         {(user.displayName ?? user.email ?? "?")[0].toUpperCase()}
@@ -112,22 +112,22 @@ export default function Navbar() {
                         style={{ border: "1px solid #EBEBEA" }}
                       >
                         <div className="px-4 py-2.5 border-b" style={{ borderColor: "#F3F2F0" }}>
-                          <p className="text-[16px] font-semibold text-gray-900 truncate">
+                          <p className="text-[13px] font-semibold text-gray-900 truncate">
                             {user.displayName ?? "ผู้ใช้"}
                           </p>
-                          <p className="text-[17px] truncate" style={{ color: "#4A5568" }}>
+                          <p className="text-[11px] truncate" style={{ color: "#A8A8A6" }}>
                             {user.email}
                           </p>
                         </div>
                         <Link
                           href="/dashboard"
                           onClick={() => setMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-[16px] text-gray-700
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-gray-700
                                      hover:bg-stone-50 transition-colors"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
-                            className="w-4 h-4 text-gray-600">
+                            className="w-4 h-4 text-gray-400">
                             <rect x="3" y="3" width="7" height="7" rx="1" />
                             <rect x="14" y="3" width="7" height="7" rx="1" />
                             <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -138,12 +138,12 @@ export default function Navbar() {
                         <Link
                           href="/exams"
                           onClick={() => setMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-[16px] text-gray-700
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-gray-700
                                      hover:bg-stone-50 transition-colors"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
-                            className="w-4 h-4 text-gray-600">
+                            className="w-4 h-4 text-gray-400">
                             <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
                             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
                           </svg>
@@ -152,12 +152,12 @@ export default function Navbar() {
                         <Link
                           href="/activate"
                           onClick={() => setMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-[16px] text-gray-700
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-gray-700
                                      hover:bg-stone-50 transition-colors"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
-                            className="w-4 h-4 text-gray-600">
+                            className="w-4 h-4 text-gray-400">
                             <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
                           </svg>
                           กรอก Activation Code
@@ -165,7 +165,7 @@ export default function Navbar() {
                         <hr style={{ borderColor: "#F3F2F0" }} />
                         <button
                           onClick={() => { setMenuOpen(false); signOut(); }}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[16px]
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px]
                                      text-red-500 hover:bg-red-50 transition-colors"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -185,7 +185,7 @@ export default function Navbar() {
                 /* Not logged in: Sign-in button */
                 <button
                   onClick={signInWithGoogle}
-                  className="flex items-center gap-1.5 text-[18px] font-semibold px-3 py-1.5
+                  className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5
                              rounded-xl border transition-all hover:shadow-sm active:scale-[0.97]"
                   style={{ borderColor: "#E0DFDC", color: "#374151" }}
                 >

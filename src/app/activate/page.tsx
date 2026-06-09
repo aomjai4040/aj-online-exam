@@ -37,7 +37,7 @@ function SuccessView({ courseName }: { courseName: string }) {
       </div>
 
       <h1 className="text-[22px] font-bold text-gray-900 mb-2">เปิดใช้งานสำเร็จ!</h1>
-      <p className="text-[17px] leading-relaxed mb-1" style={{ color: "#4A5568" }}>
+      <p className="text-[14px] leading-relaxed mb-1" style={{ color: "#A8A8A6" }}>
         คุณได้รับสิทธิ์เข้าถึงคอร์ส
       </p>
       <p className="text-[16px] font-bold mb-8" style={{ color: "#0B6E65" }}>
@@ -47,14 +47,14 @@ function SuccessView({ courseName }: { courseName: string }) {
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <button
           onClick={() => router.push("/dashboard")}
-          className="w-full py-3 rounded-2xl font-semibold text-[17px] text-white"
+          className="w-full py-3 rounded-2xl font-semibold text-[14px] text-white"
           style={{ backgroundColor: "#0B6E65" }}
         >
           ไปที่ Dashboard
         </button>
         <Link
           href="/exams"
-          className="w-full py-3 rounded-2xl font-semibold text-[17px] text-center border"
+          className="w-full py-3 rounded-2xl font-semibold text-[14px] text-center border"
           style={{ borderColor: "#E0DFDC", color: "#374151" }}
         >
           ดูคลังข้อสอบ
@@ -95,7 +95,7 @@ export default function ActivatePage() {
   if (guard !== "allowed") return <AccessGuardSpinner />;
 
   return (
-    <div className="min-h-screen pb-28 flex flex-col" style={{ backgroundColor: "#A8D5BF" }}>
+    <div className="min-h-screen bg-stone-50 pb-28 flex flex-col">
 
       {/* Main */}
       <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
@@ -116,14 +116,14 @@ export default function ActivatePage() {
             </div>
 
             <h1 className="text-[24px] font-bold text-gray-900 mb-1">กรอก Activation Code</h1>
-            <p className="text-[16px] leading-relaxed mb-8" style={{ color: "#4A5568" }}>
+            <p className="text-[13px] leading-relaxed mb-8" style={{ color: "#A8A8A6" }}>
               ใส่ Code ที่ได้รับเพื่อเปิดใช้งานคอร์สของคุณ
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Code input */}
               <div>
-                <label className="block text-[18px] font-semibold text-gray-600 mb-2">
+                <label className="block text-[12.5px] font-semibold text-gray-600 mb-2">
                   Activation Code
                 </label>
                 <input
@@ -173,7 +173,7 @@ export default function ActivatePage() {
                       <line x1="12" y1="8" x2="12" y2="12" />
                       <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    <p className="text-[16px] font-medium" style={{ color: "#DC2626" }}>
+                    <p className="text-[13px] font-medium" style={{ color: "#DC2626" }}>
                       {ERROR_MSG[error]}
                     </p>
                   </div>
@@ -184,7 +184,7 @@ export default function ActivatePage() {
               <button
                 type="submit"
                 disabled={status === "loading" || !code.trim()}
-                className="w-full py-4 rounded-2xl font-bold text-[18px] text-white
+                className="w-full py-4 rounded-2xl font-bold text-[15px] text-white
                            transition-all disabled:opacity-50 active:scale-[0.98]"
                 style={{ backgroundColor: "#0B6E65" }}
               >
@@ -199,15 +199,15 @@ export default function ActivatePage() {
 
             {/* Help */}
             <div className="mt-8 p-4 rounded-2xl" style={{ backgroundColor: "#F5F5F3" }}>
-              <p className="text-[18px] font-semibold text-gray-700 mb-1.5">ไม่มี Code?</p>
-              <p className="text-[18px] leading-relaxed" style={{ color: "#4A5568" }}>
+              <p className="text-[12px] font-semibold text-gray-700 mb-1.5">ไม่มี Code?</p>
+              <p className="text-[12px] leading-relaxed" style={{ color: "#A8A8A6" }}>
                 Code จะได้รับหลังจากสมัครคอร์สกับ AJ ExamOnline
                 ติดต่อสอบถามได้ที่ Line หรือ Facebook
               </p>
             </div>
 
             <div className="mt-4 text-center">
-              <Link href="/dashboard" className="text-[18px] font-medium" style={{ color: "#4A5568" }}>
+              <Link href="/dashboard" className="text-[12.5px] font-medium" style={{ color: "#A8A8A6" }}>
                 ← กลับไป Dashboard
               </Link>
             </div>

@@ -80,12 +80,12 @@ export default function ResultPage() {
     return (
       <div className="text-center py-24 px-6">
         <p className="text-[17px] font-semibold text-gray-800 mb-2">ไม่พบผลการสอบ</p>
-        <p className="text-[16px] mb-8" style={{ color: "#4A5568" }}>
+        <p className="text-[13px] mb-8" style={{ color: "#A8A8A6" }}>
           ผลการสอบอาจหมดอายุหรือ URL ไม่ถูกต้อง
         </p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[16px] font-medium text-white transition-opacity hover:opacity-90"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-medium text-white transition-opacity hover:opacity-90"
           style={{ backgroundColor: "#0B6E65" }}
         >
           ← กลับหน้าหลัก
@@ -108,13 +108,13 @@ export default function ResultPage() {
             border: `1px solid ${g.border}`,
           }}
         >
-          <p className="text-[17px] font-semibold tracking-[0.1em] uppercase mb-0.5" style={{ color: "#4A5568" }}>
+          <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-0.5" style={{ color: "#A8A8A6" }}>
             ผลการสอบ
           </p>
           <h1 className="text-[17px] font-bold text-gray-900 mb-0.5 leading-snug">
             {result.studentName}
           </h1>
-          <p className="text-[18px] mb-6" style={{ color: "#4A5568" }}>
+          <p className="text-[12px] mb-6" style={{ color: "#A8A8A6" }}>
             {result.examTitle}
           </p>
 
@@ -123,12 +123,12 @@ export default function ResultPage() {
             <span className="text-[64px] font-extrabold leading-none" style={{ color: g.color }}>
               {result.score}
             </span>
-            <span className="text-[22px] font-medium text-gray-600 mb-2">
+            <span className="text-[22px] font-medium text-gray-400 mb-2">
               /{result.totalQuestions}
             </span>
           </div>
 
-          <div className="text-[18px] font-semibold mb-6" style={{ color: g.color }}>
+          <div className="text-[15px] font-semibold mb-6" style={{ color: g.color }}>
             {result.percentage}% · {g.label}
           </div>
 
@@ -139,26 +139,26 @@ export default function ResultPage() {
           >
             <div className="text-center">
               <div className="text-[17px] font-bold text-gray-900">{result.score}</div>
-              <div className="text-[17px] mt-0.5" style={{ color: "#4A5568" }}>ตอบถูก</div>
+              <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>ตอบถูก</div>
             </div>
             <div className="text-center">
               <div className="text-[17px] font-bold text-gray-900">
                 {result.totalQuestions - result.score}
               </div>
-              <div className="text-[17px] mt-0.5" style={{ color: "#4A5568" }}>ตอบผิด</div>
+              <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>ตอบผิด</div>
             </div>
             <div className="text-center">
               <div className="text-[17px] font-bold text-gray-900">
                 {formatTime(result.timeSpent)}
               </div>
-              <div className="text-[17px] mt-0.5" style={{ color: "#4A5568" }}>เวลาที่ใช้</div>
+              <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>เวลาที่ใช้</div>
             </div>
           </div>
         </div>
 
         {/* ── Answer review ────────────────────────────────────────────────── */}
         <div>
-          <h2 className="text-[18px] font-bold text-gray-900 mb-3">
+          <h2 className="text-[15px] font-bold text-gray-900 mb-3">
             เฉลยและคำอธิบาย
           </h2>
 
@@ -187,15 +187,15 @@ export default function ResultPage() {
                   <div className="flex items-start gap-3 mb-3">
                     {/* Status badge */}
                     <span
-                      className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-[17px] font-bold text-white"
+                      className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold text-white"
                       style={{
                         backgroundColor: isSkipped ? "#9CA3AF" : isCorrect ? "#22C55E" : "#EF4444",
                       }}
                     >
                       {isSkipped ? "–" : isCorrect ? "✓" : "✗"}
                     </span>
-                    <p className="text-[16px] font-medium text-gray-900 leading-relaxed">
-                      <span className="mr-1" style={{ color: "#4A5568" }}>ข้อ {qi + 1}.</span>
+                    <p className="text-[13px] font-medium text-gray-900 leading-relaxed">
+                      <span className="mr-1" style={{ color: "#A8A8A6" }}>ข้อ {qi + 1}.</span>
                       {q.text}
                     </p>
                   </div>
@@ -210,7 +210,7 @@ export default function ResultPage() {
                       return (
                         <div
                           key={oi}
-                          className="flex items-start gap-2 px-3 py-2 rounded-lg text-[16px]"
+                          className="flex items-start gap-2 px-3 py-2 rounded-lg text-[13px]"
                           style={{
                             backgroundColor: isAnswer
                               ? "#EBF5F3"
@@ -232,7 +232,7 @@ export default function ResultPage() {
                           <span className="flex-1">{opt}</span>
                           {isAnswer && (
                             <span
-                              className="flex-shrink-0 text-[17px] font-semibold"
+                              className="flex-shrink-0 text-[11px] font-semibold"
                               style={{ color: "#0B6E65" }}
                             >
                               เฉลย
@@ -246,7 +246,7 @@ export default function ResultPage() {
                   {/* Explanation */}
                   {q.explanation && (
                     <div
-                      className="mt-3 ml-9 p-3 rounded-lg text-[18px] leading-relaxed"
+                      className="mt-3 ml-9 p-3 rounded-lg text-[12px] leading-relaxed"
                       style={{
                         backgroundColor: "#FFFBEB",
                         border: "1px solid #FDE68A",
@@ -267,7 +267,7 @@ export default function ResultPage() {
         <div className="flex gap-3 pt-2 pb-4">
           <Link
             href="/"
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[17px] font-medium transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[14px] font-medium transition-colors"
             style={{
               border: "1px solid #E0DFDC",
               color: "#6B7280",
@@ -278,7 +278,7 @@ export default function ResultPage() {
           </Link>
           <Link
             href={`/exam/${result.examId}`}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[17px] font-medium text-white transition-opacity hover:opacity-90"
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[14px] font-medium text-white transition-opacity hover:opacity-90"
             style={{ backgroundColor: "#0B6E65" }}
           >
             ทำอีกครั้ง ↺

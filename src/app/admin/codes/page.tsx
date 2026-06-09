@@ -79,7 +79,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
           <h2 className="text-[16px] font-bold text-gray-900">สร้าง Activation Code</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-700">
+              strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-500">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
@@ -88,11 +88,11 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {/* Code */}
           <div>
-            <label className="block text-[18px] font-semibold text-gray-600 mb-1.5">
+            <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
               Code <span className="text-red-500">*</span>
             </label>
             <input
-              className="w-full border rounded-xl px-3 py-2.5 text-[16px] font-mono uppercase
+              className="w-full border rounded-xl px-3 py-2.5 text-[13px] font-mono uppercase
                          focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20 focus:border-[#0B6E65]"
               style={{ borderColor: "#E0DFDC" }}
               placeholder="เช่น SAXA2025"
@@ -104,27 +104,27 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
 
           {/* Course ID */}
           <div>
-            <label className="block text-[18px] font-semibold text-gray-600 mb-1.5">
+            <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
               Course ID <span className="text-red-500">*</span>
             </label>
             <input
-              className="w-full border rounded-xl px-3 py-2.5 text-[16px] font-mono
+              className="w-full border rounded-xl px-3 py-2.5 text-[13px] font-mono
                          focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20 focus:border-[#0B6E65]"
               style={{ borderColor: "#E0DFDC" }}
               placeholder="เช่น course-saxa-2025"
               value={form.courseId}
               onChange={(e) => set("courseId", e.target.value)}
             />
-            <p className="text-[17px] mt-1" style={{ color: "#4A5568" }}>ใช้อ้างอิงภายใน ไม่แสดงต่อผู้ใช้</p>
+            <p className="text-[11px] mt-1" style={{ color: "#A8A8A6" }}>ใช้อ้างอิงภายใน ไม่แสดงต่อผู้ใช้</p>
           </div>
 
           {/* Course name */}
           <div>
-            <label className="block text-[18px] font-semibold text-gray-600 mb-1.5">
+            <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
               ชื่อคอร์ส <span className="text-red-500">*</span>
             </label>
             <input
-              className="w-full border rounded-xl px-3 py-2.5 text-[16px]
+              className="w-full border rounded-xl px-3 py-2.5 text-[13px]
                          focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20 focus:border-[#0B6E65]"
               style={{ borderColor: "#E0DFDC" }}
               placeholder="เช่น คอร์สติวสอบ สป.สธ. รุ่น 2025"
@@ -136,37 +136,37 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
           {/* Max uses + expiry */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[18px] font-semibold text-gray-600 mb-1.5">
+              <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
                 จำนวนใช้ได้สูงสุด
               </label>
               <input
                 type="number" min="0"
-                className="w-full border rounded-xl px-3 py-2.5 text-[16px]
+                className="w-full border rounded-xl px-3 py-2.5 text-[13px]
                            focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20 focus:border-[#0B6E65]"
                 style={{ borderColor: "#E0DFDC" }}
                 value={form.maxUses}
                 onChange={(e) => set("maxUses", e.target.value)}
               />
-              <p className="text-[17px] mt-1" style={{ color: "#4A5568" }}>0 = ไม่จำกัด</p>
+              <p className="text-[11px] mt-1" style={{ color: "#A8A8A6" }}>0 = ไม่จำกัด</p>
             </div>
             <div>
-              <label className="block text-[18px] font-semibold text-gray-600 mb-1.5">
+              <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
                 วันหมดอายุ
               </label>
               <input
                 type="date"
-                className="w-full border rounded-xl px-3 py-2.5 text-[16px]
+                className="w-full border rounded-xl px-3 py-2.5 text-[13px]
                            focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20 focus:border-[#0B6E65]"
                 style={{ borderColor: "#E0DFDC" }}
                 value={form.expiresAt}
                 onChange={(e) => set("expiresAt", e.target.value)}
               />
-              <p className="text-[17px] mt-1" style={{ color: "#4A5568" }}>เว้นว่าง = ไม่มีวันหมดอายุ</p>
+              <p className="text-[11px] mt-1" style={{ color: "#A8A8A6" }}>เว้นว่าง = ไม่มีวันหมดอายุ</p>
             </div>
           </div>
 
           {error && (
-            <div className="rounded-xl px-4 py-3 text-[16px] font-medium"
+            <div className="rounded-xl px-4 py-3 text-[13px] font-medium"
               style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
               {error}
             </div>
@@ -175,14 +175,14 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
           <div className="flex gap-2.5 pt-1">
             <button
               type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl text-[16px] font-semibold border transition-colors"
+              className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold border transition-colors"
               style={{ borderColor: "#E0DFDC", color: "#6B7280" }}
             >
               ยกเลิก
             </button>
             <button
               type="submit" disabled={saving}
-              className="flex-1 py-2.5 rounded-xl text-[16px] font-semibold text-white
+              className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white
                          transition-colors disabled:opacity-60"
               style={{ backgroundColor: "#0B6E65" }}
             >
@@ -239,12 +239,12 @@ function UsersModal({ code, onClose }: UsersModalProps) {
         <div className="px-6 py-4 flex items-center justify-between shrink-0"
           style={{ borderBottom: "1px solid #EBEBEA" }}>
           <div>
-            <p className="text-[18px] font-bold text-gray-900">ผู้ใช้ Code</p>
+            <p className="text-[15px] font-bold text-gray-900">ผู้ใช้ Code</p>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[16px] font-mono font-bold" style={{ color: "#0B6E65" }}>
+              <span className="text-[13px] font-mono font-bold" style={{ color: "#0B6E65" }}>
                 {code.code}
               </span>
-              <span className="text-[17px] px-2 py-0.5 rounded-full font-medium"
+              <span className="text-[11px] px-2 py-0.5 rounded-full font-medium"
                 style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
                 {code.usedCount} คน
               </span>
@@ -255,7 +255,7 @@ function UsersModal({ code, onClose }: UsersModalProps) {
             className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-600">
+              strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-400">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
@@ -267,15 +267,15 @@ function UsersModal({ code, onClose }: UsersModalProps) {
             className="grid grid-cols-[1fr_auto_auto] gap-4 px-6 py-2.5 shrink-0"
             style={{ borderBottom: "1px solid #F3F2F0", backgroundColor: "#FAFAF9" }}
           >
-            <span className="text-[17px] font-bold uppercase tracking-wider" style={{ color: "#4A5568" }}>
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#A8A8A6" }}>
               อีเมล
             </span>
-            <span className="text-[17px] font-bold uppercase tracking-wider text-right w-28"
-              style={{ color: "#4A5568" }}>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-right w-28"
+              style={{ color: "#A8A8A6" }}>
               วันที่ Activate
             </span>
-            <span className="text-[17px] font-bold uppercase tracking-wider text-right w-20"
-              style={{ color: "#4A5568" }}>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-right w-20"
+              style={{ color: "#A8A8A6" }}>
               ใช้งานแล้ว
             </span>
           </div>
@@ -296,8 +296,8 @@ function UsersModal({ code, onClose }: UsersModalProps) {
           ) : rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-6">
               <div className="text-4xl mb-3">👤</div>
-              <p className="text-[17px] font-semibold text-gray-700 mb-1">ยังไม่มีผู้ใช้</p>
-              <p className="text-[16px]" style={{ color: "#4A5568" }}>
+              <p className="text-[14px] font-semibold text-gray-700 mb-1">ยังไม่มีผู้ใช้</p>
+              <p className="text-[13px]" style={{ color: "#A8A8A6" }}>
                 Code นี้ยังไม่ถูกนำไปใช้งาน
               </p>
             </div>
@@ -312,20 +312,20 @@ function UsersModal({ code, onClose }: UsersModalProps) {
                   {/* Email + index */}
                   <div className="flex items-center gap-3 min-w-0">
                     <span
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[17px]
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-[11px]
                                  font-bold flex-shrink-0"
                       style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
                     >
                       {idx + 1}
                     </span>
-                    <span className="text-[16px] text-gray-900 font-medium truncate">
+                    <span className="text-[13px] text-gray-900 font-medium truncate">
                       {u.email}
                     </span>
                   </div>
 
                   {/* Activate date */}
                   <div className="flex items-center gap-1.5 w-28 justify-end flex-shrink-0">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#5A6478"
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
                       strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
                       className="w-3.5 h-3.5 flex-shrink-0">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -333,7 +333,7 @@ function UsersModal({ code, onClose }: UsersModalProps) {
                       <line x1="8"  y1="2" x2="8"  y2="6" />
                       <line x1="3"  y1="10" x2="21" y2="10" />
                     </svg>
-                    <span className="text-[18px]" style={{ color: "#6B7280" }}>
+                    <span className="text-[12px]" style={{ color: "#6B7280" }}>
                       {fmt(u.activatedAt)}
                     </span>
                   </div>
@@ -345,12 +345,12 @@ function UsersModal({ code, onClose }: UsersModalProps) {
                     ) : (
                       <div className="flex items-center gap-1.5">
                         <span
-                          className="text-[17px] font-bold"
-                          style={{ color: u.totalAttempts > 0 ? "#0B6E65" : "#5A6478" }}
+                          className="text-[14px] font-bold"
+                          style={{ color: u.totalAttempts > 0 ? "#0B6E65" : "#C4C4C0" }}
                         >
                           {u.totalAttempts}
                         </span>
-                        <span className="text-[17px]" style={{ color: "#4A5568" }}>ครั้ง</span>
+                        <span className="text-[11px]" style={{ color: "#A8A8A6" }}>ครั้ง</span>
                       </div>
                     )}
                   </div>
@@ -366,10 +366,10 @@ function UsersModal({ code, onClose }: UsersModalProps) {
             className="px-6 py-3 flex items-center justify-between shrink-0"
             style={{ borderTop: "1px solid #F3F2F0", backgroundColor: "#FAFAF9" }}
           >
-            <p className="text-[18px]" style={{ color: "#4A5568" }}>
+            <p className="text-[12px]" style={{ color: "#A8A8A6" }}>
               คอร์ส: <span className="font-medium text-gray-700">{code.courseName}</span>
             </p>
-            <p className="text-[18px]" style={{ color: "#4A5568" }}>
+            <p className="text-[12px]" style={{ color: "#A8A8A6" }}>
               รวมใช้งาน{" "}
               <span className="font-bold" style={{ color: "#0B6E65" }}>
                 {rows.reduce((s, r) => s + (r.totalAttempts ?? 0), 0)}
@@ -417,7 +417,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       title="คัดลอก Code"
-      className="flex items-center gap-1.5 text-[17px] font-semibold px-3 py-1.5
+      className="flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5
                  rounded-lg transition-all duration-150"
       style={
         copied
@@ -478,12 +478,12 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
               </p>
               <CopyButton text={code.code} />
             </div>
-            <p className="text-[18px] mt-0.5 truncate" style={{ color: "#4A5568" }}>
+            <p className="text-[12px] mt-0.5 truncate" style={{ color: "#A8A8A6" }}>
               {code.courseName}
             </p>
           </div>
           <span
-            className="text-[17px] font-bold px-2.5 py-[5px] rounded-full flex-shrink-0"
+            className="text-[11px] font-bold px-2.5 py-[5px] rounded-full flex-shrink-0"
             style={{ backgroundColor: statusBg, color: statusColor }}
           >
             {statusLabel}
@@ -496,21 +496,21 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
             <p className="text-[18px] font-extrabold text-gray-900 leading-none">
               {code.usedCount}
             </p>
-            <p className="text-[16px] mt-0.5" style={{ color: "#4A5568" }}>
+            <p className="text-[10px] mt-0.5" style={{ color: "#A8A8A6" }}>
               {code.maxUses > 0 ? `จาก ${code.maxUses}` : "ครั้ง"}
             </p>
           </div>
           <div className="rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: "#F5F5F3" }}>
-            <p className="text-[16px] font-bold text-gray-900 leading-tight">
+            <p className="text-[13px] font-bold text-gray-900 leading-tight">
               {code.maxUses > 0 ? code.maxUses : "∞"}
             </p>
-            <p className="text-[16px] mt-0.5" style={{ color: "#4A5568" }}>สูงสุด</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "#A8A8A6" }}>สูงสุด</p>
           </div>
           <div className="rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: "#F5F5F3" }}>
-            <p className="text-[16px] font-bold text-gray-900 leading-tight truncate">
+            <p className="text-[13px] font-bold text-gray-900 leading-tight truncate">
               {fmt(code.expiresAt)}
             </p>
-            <p className="text-[16px] mt-0.5" style={{ color: "#4A5568" }}>หมดอายุ</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "#A8A8A6" }}>หมดอายุ</p>
           </div>
         </div>
 
@@ -531,14 +531,14 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[17px]" style={{ color: "#5A6478" }}>
+          <p className="text-[11px]" style={{ color: "#C4C4C0" }}>
             สร้าง {fmtCreated(code.createdAt)}
           </p>
           <div className="flex items-center gap-2">
             {/* View users */}
             <button
               onClick={() => onViewUsers(code)}
-              className="text-[17px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              className="text-[11.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
               style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
             >
               ดูผู้ใช้ ({code.usedCount})
@@ -546,7 +546,7 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
             {/* Toggle */}
             <button
               onClick={() => onToggle(code.id, code.status === "active" ? "inactive" : "active")}
-              className="text-[17px] font-semibold px-3 py-1.5 rounded-lg border transition-colors"
+              className="text-[11.5px] font-semibold px-3 py-1.5 rounded-lg border transition-colors"
               style={{ borderColor: "#E0DFDC", color: "#6B7280" }}
             >
               {code.status === "active" ? "ปิด" : "เปิด"}
@@ -554,7 +554,7 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
             {/* Delete */}
             <button
               onClick={() => onDelete(code.id, code.code)}
-              className="text-[17px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              className="text-[11.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
               style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
             >
               ลบ
@@ -613,9 +613,9 @@ export default function CodesPage() {
       <div className="sticky top-14 z-30 bg-white" style={{ borderBottom: "1px solid #EBEBEA", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
         <div className="max-w-4xl mx-auto px-5 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="text-[18px] font-bold text-gray-900">Activation Codes</h1>
+            <h1 className="text-[15px] font-bold text-gray-900">Activation Codes</h1>
             {!loading && (
-              <span className="text-[17px] font-medium px-2 py-0.5 rounded-full"
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
                 {codes.length} รายการ
               </span>
@@ -623,7 +623,7 @@ export default function CodesPage() {
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 text-[18px] font-semibold px-4 py-1.5 rounded-xl
+            className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-xl
                        text-white transition-colors"
             style={{ backgroundColor: "#0B6E65" }}
           >
@@ -648,7 +648,7 @@ export default function CodesPage() {
               <div key={item.label} className="bg-white rounded-2xl p-4 text-center"
                 style={{ border: "1px solid #EBEBEA" }}>
                 <div className="text-[28px] font-extrabold" style={{ color: item.color }}>{item.value}</div>
-                <div className="text-[17px] font-semibold text-gray-700 mt-0.5">{item.label}</div>
+                <div className="text-[11px] font-semibold text-gray-500 mt-0.5">{item.label}</div>
               </div>
             ))}
           </div>
@@ -661,7 +661,7 @@ export default function CodesPage() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className="text-[18px] font-semibold px-3.5 py-[6px] rounded-full transition-all"
+                className="text-[12px] font-semibold px-3.5 py-[6px] rounded-full transition-all"
                 style={{
                   backgroundColor: filter === f ? "#111110" : "white",
                   color:           filter === f ? "white"   : "#6B6B6A",
@@ -687,13 +687,13 @@ export default function CodesPage() {
         ) : codes.length === 0 ? (
           <div className="bg-white rounded-2xl p-14 text-center" style={{ border: "1px solid #EBEBEA" }}>
             <div className="text-4xl mb-3">🔑</div>
-            <p className="text-[18px] font-semibold text-gray-800 mb-1">ยังไม่มี Activation Code</p>
-            <p className="text-[16px] mb-6" style={{ color: "#4A5568" }}>
+            <p className="text-[15px] font-semibold text-gray-800 mb-1">ยังไม่มี Activation Code</p>
+            <p className="text-[13px] mb-6" style={{ color: "#A8A8A6" }}>
               สร้าง Code เพื่อให้นักเรียนเปิดใช้งานคอร์ส
             </p>
             <button
               onClick={() => setShowCreate(true)}
-              className="text-[16px] font-semibold px-5 py-2.5 rounded-xl text-white"
+              className="text-[13px] font-semibold px-5 py-2.5 rounded-xl text-white"
               style={{ backgroundColor: "#0B6E65" }}
             >
               + สร้าง Code แรก
@@ -701,8 +701,8 @@ export default function CodesPage() {
           </div>
         ) : displayed.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-[17px] font-semibold text-gray-700 mb-1">ไม่พบรายการ</p>
-            <button onClick={() => setFilter("all")} className="text-[16px]" style={{ color: "#0B6E65" }}>
+            <p className="text-[14px] font-semibold text-gray-700 mb-1">ไม่พบรายการ</p>
+            <button onClick={() => setFilter("all")} className="text-[13px]" style={{ color: "#0B6E65" }}>
               ดูทั้งหมด
             </button>
           </div>

@@ -97,9 +97,9 @@ function KPICard({
       <div className="text-[28px] font-extrabold leading-none mb-1" style={{ color }}>
         {value}
       </div>
-      <div className="text-[18px] font-semibold text-gray-700">{label}</div>
+      <div className="text-[12px] font-semibold text-gray-500">{label}</div>
       {sub && (
-        <div className="text-[17px] mt-0.5" style={{ color: "#4A5568" }}>{sub}</div>
+        <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>{sub}</div>
       )}
     </div>
   );
@@ -114,18 +114,18 @@ function DailyChart({ data }: { data: DayData[] }) {
     <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
             ผู้สอบรายวัน (7 วัน)
           </p>
           <p className="text-[20px] font-extrabold text-gray-900 mt-0.5">{weekSum}</p>
-          <p className="text-[17px]" style={{ color: "#4A5568" }}>ครั้งในสัปดาห์นี้</p>
+          <p className="text-[11px]" style={{ color: "#A8A8A6" }}>ครั้งในสัปดาห์นี้</p>
         </div>
         {/* Tiny legend */}
         <div className="flex items-center gap-1.5 mt-1">
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#0B6E65" }} />
-          <span className="text-[17px]" style={{ color: "#4A5568" }}>วันนี้</span>
+          <span className="text-[11px]" style={{ color: "#A8A8A6" }}>วันนี้</span>
           <span className="w-3 h-3 rounded-sm ml-2" style={{ backgroundColor: "#C3E5DE" }} />
-          <span className="text-[17px]" style={{ color: "#4A5568" }}>ก่อนหน้า</span>
+          <span className="text-[11px]" style={{ color: "#A8A8A6" }}>ก่อนหน้า</span>
         </div>
       </div>
 
@@ -136,7 +136,7 @@ function DailyChart({ data }: { data: DayData[] }) {
           return (
             <div key={d.key} className="flex-1 flex flex-col items-center gap-1">
               {d.count > 0 && (
-                <span className="text-[16px] font-bold" style={{ color: "#0B6E65" }}>
+                <span className="text-[10px] font-bold" style={{ color: "#0B6E65" }}>
                   {d.count}
                 </span>
               )}
@@ -150,8 +150,8 @@ function DailyChart({ data }: { data: DayData[] }) {
                 />
               </div>
               <span
-                className="text-[16px] font-medium"
-                style={{ color: isToday ? "#0B6E65" : "#4A5568" }}
+                className="text-[10px] font-medium"
+                style={{ color: isToday ? "#0B6E65" : "#A8A8A6" }}
               >
                 {d.day}
               </span>
@@ -167,11 +167,11 @@ function SubjectChart({ data }: { data: [string, number][] }) {
   const peak = data[0]?.[1] ?? 1;
   return (
     <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-      <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest mb-4">
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
         วิชาที่นิยมทำ
       </p>
       {data.length === 0 ? (
-        <p className="text-[16px] text-center py-4" style={{ color: "#4A5568" }}>
+        <p className="text-[13px] text-center py-4" style={{ color: "#A8A8A6" }}>
           ยังไม่มีข้อมูล
         </p>
       ) : (
@@ -185,8 +185,8 @@ function SubjectChart({ data }: { data: [string, number][] }) {
             return (
               <div key={subj}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[16px] font-medium text-gray-700">{subj}</span>
-                  <span className="text-[18px] font-bold" style={{ color }}>
+                  <span className="text-[13px] font-medium text-gray-700">{subj}</span>
+                  <span className="text-[12px] font-bold" style={{ color }}>
                     {cnt} ครั้ง
                   </span>
                 </div>
@@ -220,12 +220,12 @@ function ExamStatCard({ stat }: { stat: ExamStat }) {
         {/* Title row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[17px] font-bold text-gray-900 leading-snug truncate">
+            <p className="text-[14px] font-bold text-gray-900 leading-snug truncate">
               {stat.examTitle}
             </p>
             {stat.subject !== "—" && (
               <span
-                className="inline-block text-[17px] font-semibold px-2 py-0.5 rounded-full mt-1"
+                className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mt-1"
                 style={{ backgroundColor: `${color}15`, color }}
               >
                 {stat.subject}
@@ -236,7 +236,7 @@ function ExamStatCard({ stat }: { stat: ExamStat }) {
             <div className="text-[24px] font-extrabold leading-none" style={{ color: gradeColor }}>
               {stat.avgScore}%
             </div>
-            <div className="text-[16px] mt-0.5" style={{ color: "#4A5568" }}>คะแนนเฉลี่ย</div>
+            <div className="text-[10px] mt-0.5" style={{ color: "#A8A8A6" }}>คะแนนเฉลี่ย</div>
           </div>
         </div>
 
@@ -252,8 +252,8 @@ function ExamStatCard({ stat }: { stat: ExamStat }) {
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center justify-between text-[18px]">
-          <div className="flex items-center gap-3" style={{ color: "#4A5568" }}>
+        <div className="flex items-center justify-between text-[12px]">
+          <div className="flex items-center gap-3" style={{ color: "#A8A8A6" }}>
             <span>
               <span className="font-semibold text-gray-700">{stat.attempts}</span> คนสอบ
             </span>
@@ -271,8 +271,8 @@ function ExamStatCard({ stat }: { stat: ExamStat }) {
           {!isMock && (
             <Link
               href={`/admin/exams/${stat.examId}/edit`}
-              className="text-[17px] font-medium transition-colors"
-              style={{ color: "#4A5568" }}
+              className="text-[11px] font-medium transition-colors"
+              style={{ color: "#A8A8A6" }}
             >
               แก้ไข →
             </Link>
@@ -296,7 +296,7 @@ function MissedQCard({ q, rank }: { q: MissedQ; rank: number }) {
       <div className="px-5 py-4 flex items-start gap-3.5">
         {/* Rank badge */}
         <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[16px] font-extrabold
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-extrabold
                      text-white flex-shrink-0 mt-0.5"
           style={{ backgroundColor: accent }}
         >
@@ -305,20 +305,20 @@ function MissedQCard({ q, rank }: { q: MissedQ; rank: number }) {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <p className="text-[16px] font-medium text-gray-900 leading-relaxed line-clamp-2 mb-2">
-            <span className="font-bold" style={{ color: "#4A5568" }}>ข้อ {q.questionNum}. </span>
+          <p className="text-[13px] font-medium text-gray-900 leading-relaxed line-clamp-2 mb-2">
+            <span className="font-bold" style={{ color: "#A8A8A6" }}>ข้อ {q.questionNum}. </span>
             {q.questionText}
           </p>
           <div className="flex flex-wrap items-center gap-1.5">
             {q.subject !== "—" && (
               <span
-                className="text-[17px] font-semibold px-2 py-0.5 rounded-full"
+                className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: `${color}15`, color }}
               >
                 {q.subject}
               </span>
             )}
-            <span className="text-[17px]" style={{ color: "#4A5568" }}>
+            <span className="text-[11px]" style={{ color: "#A8A8A6" }}>
               {q.examTitle.length > 25 ? q.examTitle.slice(0, 25) + "…" : q.examTitle}
             </span>
           </div>
@@ -329,8 +329,8 @@ function MissedQCard({ q, rank }: { q: MissedQ; rank: number }) {
           <div className="text-[22px] font-extrabold leading-none" style={{ color: accent }}>
             {q.missRate}%
           </div>
-          <div className="text-[16px] mt-0.5" style={{ color: "#4A5568" }}>ตอบผิด</div>
-          <div className="text-[17px] mt-0.5 font-medium" style={{ color: "#4A5568" }}>
+          <div className="text-[10px] mt-0.5" style={{ color: "#A8A8A6" }}>ตอบผิด</div>
+          <div className="text-[11px] mt-0.5 font-medium" style={{ color: "#A8A8A6" }}>
             {q.missCount}/{q.totalAttempts}
           </div>
         </div>
@@ -437,6 +437,7 @@ export default function AdminDashboard() {
       }
       const top3 = Object.entries(countMap)
         .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
         .map(([id]) => id);
 
       const qMap: Record<string, Question[]> = {};
@@ -530,24 +531,21 @@ export default function AdminDashboard() {
         }
       }
 
-      // Top-2 missed questions for this exam
-      const ranked = missCount
-        .map((cnt, i) => ({ i, cnt }))
-        .sort((a, b) => b.cnt - a.cnt)
-        .slice(0, 2);
-
-      for (const { i: idx, cnt } of ranked) {
-        if (cnt === 0) continue;
-        missedQs.push({
-          questionNum:   idx + 1,
-          questionText:  qs[idx].text,
-          examTitle:     examsMap[examId]?.title ?? rawStats[examId]?.examTitle ?? "—",
-          subject:       examsMap[examId]?.subject ?? "—",
-          missCount:     cnt,
-          totalAttempts: examResults.length,
-          missRate:      Math.round((cnt / examResults.length) * 100),
-        });
+      // Top-missed question for this exam
+      let maxIdx = 0;
+      for (let i = 1; i < missCount.length; i++) {
+        if (missCount[i] > missCount[maxIdx]) maxIdx = i;
       }
+
+      missedQs.push({
+        questionNum:   maxIdx + 1,
+        questionText:  qs[maxIdx].text,
+        examTitle:     examsMap[examId]?.title ?? rawStats[examId]?.examTitle ?? "—",
+        subject:       examsMap[examId]?.subject ?? "—",
+        missCount:     missCount[maxIdx],
+        totalAttempts: examResults.length,
+        missRate:      Math.round((missCount[maxIdx] / examResults.length) * 100),
+      });
     }
     missedQs.sort((a, b) => b.missRate - a.missRate);
 
@@ -573,9 +571,9 @@ export default function AdminDashboard() {
       >
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-[18px] font-bold text-gray-900">Dashboard</h1>
+            <h1 className="text-[15px] font-bold text-gray-900">Dashboard</h1>
             {loadedAt && !loading && (
-              <span className="text-[17px] hidden sm:block" style={{ color: "#5A6478" }}>
+              <span className="text-[11px] hidden sm:block" style={{ color: "#C4C4C0" }}>
                 อัปเดต {loadedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
@@ -585,7 +583,7 @@ export default function AdminDashboard() {
             <button
               onClick={load}
               disabled={loading}
-              className="flex items-center gap-1.5 text-[18px] font-semibold px-3 py-1.5 rounded-lg
+              className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg
                          transition-colors disabled:opacity-50"
               style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
             >
@@ -603,8 +601,8 @@ export default function AdminDashboard() {
             {/* Sign out */}
             <button
               onClick={handleSignOut}
-              className="text-[18px] font-medium px-3 py-1.5 rounded-lg transition-colors"
-              style={{ color: "#4A5568", backgroundColor: "#F5F5F3" }}
+              className="text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors"
+              style={{ color: "#A8A8A6", backgroundColor: "#F5F5F3" }}
             >
               ออกจากระบบ
             </button>
@@ -670,10 +668,10 @@ export default function AdminDashboard() {
                 style={{ border: "1px solid #EBEBEA" }}
               >
                 <div className="text-4xl mb-3">📋</div>
-                <p className="text-[18px] font-semibold text-gray-800 mb-1">
+                <p className="text-[15px] font-semibold text-gray-800 mb-1">
                   ยังไม่มีข้อมูลการสอบ
                 </p>
-                <p className="text-[16px] mb-6" style={{ color: "#4A5568" }}>
+                <p className="text-[13px] mb-6" style={{ color: "#A8A8A6" }}>
                   เมื่อนักเรียนเริ่มทำข้อสอบ สถิติจะปรากฏที่นี่
                 </p>
                 <div className="flex justify-center gap-3 flex-wrap">
@@ -694,10 +692,10 @@ export default function AdminDashboard() {
             {analytics.examStats.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest">
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
                     ผลรายชุดข้อสอบ
                   </p>
-                  <span className="text-[17px]" style={{ color: "#4A5568" }}>
+                  <span className="text-[11px]" style={{ color: "#A8A8A6" }}>
                     {analytics.examStats.length} ชุด
                   </span>
                 </div>
@@ -713,11 +711,11 @@ export default function AdminDashboard() {
             {analytics.missedQs.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest">
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
                     ข้อที่ตอบผิดมากที่สุด
                   </p>
                   <span
-                    className="text-[17px] font-medium px-2 py-0.5 rounded-full"
+                    className="text-[11px] font-medium px-2 py-0.5 rounded-full"
                     style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
                   >
                     จุดอ่อนของนักเรียน
@@ -736,7 +734,7 @@ export default function AdminDashboard() {
               className="bg-white rounded-2xl p-5"
               style={{ border: "1px solid #EBEBEA" }}
             >
-              <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest mb-4">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
                 การดำเนินการ
               </p>
               <div className="flex flex-wrap gap-2.5">
@@ -751,9 +749,6 @@ export default function AdminDashboard() {
                 </Link>
                 <Link href="/admin/seed" className="btn-secondary text-sm">
                   📥 Seed ข้อสอบ
-                </Link>
-                <Link href="/admin/flashcards/import" className="btn-secondary text-sm">
-                  🃏 Import Flash Card
                 </Link>
                 <Link href="/exams" className="btn-secondary text-sm">
                   ดูหน้านักเรียน ↗

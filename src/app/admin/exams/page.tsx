@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAllExams, deleteExam, togglePublish } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
-import { getSubjectLabel } from "@/lib/types";
 
 export default function AdminExamsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -35,16 +34,9 @@ export default function AdminExamsPage() {
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">จัดการข้อสอบ</h1>
-        <div className="flex items-center gap-2">
-          <Link href="/admin/exams/import"
-            className="px-4 py-2 rounded-xl text-[15px] font-semibold border transition-colors"
-            style={{ borderColor: "#0B6E65", color: "#0B6E65" }}>
-            📥 Import CSV
-          </Link>
-          <Link href="/admin/exams/new" className="btn-primary">
-            + สร้างข้อสอบใหม่
-          </Link>
-        </div>
+        <Link href="/admin/exams/new" className="btn-primary">
+          + สร้างข้อสอบใหม่
+        </Link>
       </div>
 
       {loading ? (
@@ -53,7 +45,7 @@ export default function AdminExamsPage() {
             style={{ borderColor: "#C3E5DE", borderTopColor: "#0B6E65" }} />
         </div>
       ) : exams.length === 0 ? (
-        <div className="text-center py-20 text-gray-600">
+        <div className="text-center py-20 text-gray-400">
           <div className="text-5xl mb-3">📭</div>
           <p>ยังไม่มีชุดข้อสอบในระบบ</p>
           <Link href="/admin/exams/new" className="btn-primary mt-4 inline-block">
@@ -67,23 +59,17 @@ export default function AdminExamsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-semibold text-gray-900 truncate">{exam.title}</p>
-                  {exam.subject && (
-                    <span className="text-[13px] font-mono px-1.5 py-0.5 rounded"
-                      style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
-                      {exam.subject}
-                    </span>
-                  )}
                   <span
                     className={`badge text-xs ${
                       exam.isPublished
                         ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
+                        : "bg-gray-100 text-gray-500"
                     }`}
                   >
                     {exam.isPublished ? "เผยแพร่แล้ว" : "ฉบับร่าง"}
                   </span>
                 </div>
-                <p className="text-sm text-gray-700 mt-0.5">
+                <p className="text-sm text-gray-500 mt-0.5">
                   {exam.subject} · {exam.questionCount} ข้อ
                   {exam.timeLimit > 0 ? ` · ${exam.timeLimit} นาที` : ""}
                 </p>
