@@ -118,7 +118,7 @@ function LoginInner() {
           <h1 style={{ fontSize:22, fontWeight:700, color:"#111110", margin:0 }}>
             AJ <span style={{ color:"#0B6E65" }}>ExamOnline</span>
           </h1>
-          <p style={{ fontSize:13, color:"#A8A8A6", marginTop:6, textAlign:"center" }}>
+          <p style={{ fontSize:13, color:"#4A5568", marginTop:6, textAlign:"center" }}>
             เข้าสู่ระบบเพื่อเริ่มทำข้อสอบ
           </p>
         </div>
@@ -160,7 +160,7 @@ function LoginInner() {
         {/* Divider */}
         <div style={{ display:"flex", alignItems:"center", gap:12, margin:"18px 0" }}>
           <div style={{ flex:1, height:1, backgroundColor:"#F3F2F0" }} />
-          <span style={{ fontSize:11, color:"#C4C4C0" }}>หรือ</span>
+          <span style={{ fontSize:11, color:"#5A6478" }}>หรือ</span>
           <div style={{ flex:1, height:1, backgroundColor:"#F3F2F0" }} />
         </div>
 
@@ -181,13 +181,13 @@ function LoginInner() {
           <span style={{ pointerEvents:"none" }}>กรอกรหัสเปิดใช้งานคอร์ส</span>
         </button>
 
-        <p style={{ fontSize:11.5, color:"#A8A8A6", textAlign:"center", marginTop:10 }}>
+        <p style={{ fontSize:11.5, color:"#4A5568", textAlign:"center", marginTop:10 }}>
           ต้อง login ก่อน จึงกรอก Activation Code ได้
         </p>
       </div>
 
       <Link href="/"
-        style={{ marginTop:24, fontSize:12.5, fontWeight:500, color:"#A8A8A6", textDecoration:"none" }}>
+        style={{ marginTop:24, fontSize:12.5, fontWeight:500, color:"#4A5568", textDecoration:"none" }}>
         ← กลับหน้าหลัก
       </Link>
 

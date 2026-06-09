@@ -80,8 +80,8 @@ function KPICard({
       <div className="text-[22px] font-extrabold leading-none mb-0.5" style={{ color }}>
         {value}
       </div>
-      <div className="text-[11px] font-semibold text-gray-500">{label}</div>
-      {sub && <div className="text-[10.5px] mt-0.5" style={{ color: "#A8A8A6" }}>{sub}</div>}
+      <div className="text-[17px] font-semibold text-gray-700">{label}</div>
+      {sub && <div className="text-[16px] mt-0.5" style={{ color: "#4A5568" }}>{sub}</div>}
     </div>
   );
 }
@@ -117,13 +117,13 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
         {/* Header: subject chip + pass/fail */}
         <div className="flex items-center justify-between gap-2 mb-2.5">
           <span
-            className="text-[11px] font-bold px-2 py-[4px] rounded-full"
+            className="text-[17px] font-bold px-2 py-[4px] rounded-full"
             style={{ backgroundColor: chipBg, color }}
           >
             {s.subject}
           </span>
           <span
-            className="text-[11px] font-bold px-2.5 py-[4px] rounded-full"
+            className="text-[17px] font-bold px-2.5 py-[4px] rounded-full"
             style={
               isPassing
                 ? { backgroundColor: "#EBF5F3", color: "#0B6E65" }
@@ -135,7 +135,7 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
         </div>
 
         {/* Title */}
-        <h3 className="font-bold text-[14px] text-gray-900 leading-snug line-clamp-2 mb-3">
+        <h3 className="font-bold text-[17px] text-gray-900 leading-snug line-clamp-2 mb-3">
           {s.examTitle}
         </h3>
 
@@ -157,11 +157,11 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
                 {s.percentage}%
               </span>
               {improved && (
-                <span className="text-[11px]" title="ต่ำกว่าคะแนนสูงสุด">↘</span>
+                <span className="text-[17px]" title="ต่ำกว่าคะแนนสูงสุด">↘</span>
               )}
             </div>
-            <span className="text-[10px]" style={{ color: "#A8A8A6" }}>ล่าสุด</span>
-            <span className="text-[10px]" style={{ color: "#C4C4C0" }}>
+            <span className="text-[16px]" style={{ color: "#4A5568" }}>ล่าสุด</span>
+            <span className="text-[16px]" style={{ color: "#5A6478" }}>
               {s.score}/{s.totalQuestions} ข้อ
             </span>
           </div>
@@ -172,7 +172,7 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
             style={{ borderRight: "1px solid #F3F2F0" }}
           >
             <div className="flex items-center gap-1 mb-0.5">
-              {isNewBest && <span className="text-[13px] leading-none">🏆</span>}
+              {isNewBest && <span className="text-[16px] leading-none">🏆</span>}
               <span
                 className="text-[20px] font-extrabold leading-none"
                 style={{ color: gradeColor(best) }}
@@ -180,11 +180,11 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
                 {best}%
               </span>
             </div>
-            <span className="text-[10px]" style={{ color: "#A8A8A6" }}>สูงสุด</span>
+            <span className="text-[16px]" style={{ color: "#4A5568" }}>สูงสุด</span>
             {best >= 60 ? (
-              <span className="text-[10px]" style={{ color: "#0B6E65" }}>ผ่านแล้ว</span>
+              <span className="text-[16px]" style={{ color: "#0B6E65" }}>ผ่านแล้ว</span>
             ) : (
-              <span className="text-[10px]" style={{ color: "#DC2626" }}>ยังไม่ผ่าน</span>
+              <span className="text-[16px]" style={{ color: "#DC2626" }}>ยังไม่ผ่าน</span>
             )}
           </div>
 
@@ -193,13 +193,13 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
             <span className="text-[20px] font-extrabold leading-none text-gray-900 mb-0.5">
               {attempts}
             </span>
-            <span className="text-[10px]" style={{ color: "#A8A8A6" }}>ครั้งที่สอบ</span>
+            <span className="text-[16px]" style={{ color: "#4A5568" }}>ครั้งที่สอบ</span>
             {attempts >= 5 ? (
-              <span className="text-[10px]" style={{ color: "#F97316" }}>ขยันมาก!</span>
+              <span className="text-[16px]" style={{ color: "#F97316" }}>ขยันมาก!</span>
             ) : attempts >= 2 ? (
-              <span className="text-[10px]" style={{ color: "#A8A8A6" }}>ทบทวนแล้ว</span>
+              <span className="text-[16px]" style={{ color: "#4A5568" }}>ทบทวนแล้ว</span>
             ) : (
-              <span className="text-[10px]" style={{ color: "#A8A8A6" }}>ครั้งแรก</span>
+              <span className="text-[16px]" style={{ color: "#4A5568" }}>ครั้งแรก</span>
             )}
           </div>
         </div>
@@ -208,8 +208,8 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
         <div className="flex items-center justify-between">
           {/* Date */}
           <div
-            className="flex items-center gap-1.5 text-[12px]"
-            style={{ color: "#A8A8A6" }}
+            className="flex items-center gap-1.5 text-[18px]"
+            style={{ color: "#4A5568" }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
@@ -225,7 +225,7 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
           {/* Retry button */}
           <Link
             href={`/exam/${s.examId}`}
-            className="flex items-center gap-1.5 text-[12px] font-semibold
+            className="flex items-center gap-1.5 text-[18px] font-semibold
                        px-3.5 py-2 rounded-xl transition-all
                        hover:opacity-80 active:scale-[0.96]"
             style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
@@ -248,7 +248,7 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
 
 function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
   return (
-    <div className="min-h-screen bg-stone-50 pb-28 flex flex-col">
+    <div className="min-h-screen pb-28 flex flex-col" style={{ backgroundColor: "#A8D5BF" }}>
       <div className="flex-1 flex flex-col items-center justify-center px-5 py-16 text-center">
         {/* Icon */}
         <div
@@ -263,7 +263,7 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
         </div>
 
         <h1 className="text-[20px] font-bold text-gray-900 mb-2">Dashboard ของคุณ</h1>
-        <p className="text-[13px] leading-relaxed mb-6 max-w-xs" style={{ color: "#A8A8A6" }}>
+        <p className="text-[16px] leading-relaxed mb-6 max-w-xs" style={{ color: "#4A5568" }}>
           เข้าสู่ระบบเพื่อดูสถิติ คะแนน ประวัติการสอบ
           และติดตามพัฒนาการของคุณ
         </p>
@@ -273,14 +273,14 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
           {["12 ชุด", "72%", "🔥 5", "ระบาดฯ"].map((v, i) => (
             <div key={i} className="bg-white rounded-2xl p-4" style={{ border: "1px solid #EBEBEA" }}>
               <div className="text-[20px] font-extrabold text-gray-900">{v}</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">—</div>
+              <div className="text-[17px] text-gray-600 mt-0.5">—</div>
             </div>
           ))}
         </div>
 
         <button
           onClick={onSignIn}
-          className="flex items-center gap-2.5 px-6 py-3 rounded-2xl font-semibold text-[14px]
+          className="flex items-center gap-2.5 px-6 py-3 rounded-2xl font-semibold text-[17px]
                      bg-white shadow-md hover:shadow-lg transition-all active:scale-[0.97]"
           style={{ border: "1px solid #E0DFDC" }}
         >
@@ -293,7 +293,7 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
           เข้าสู่ระบบด้วย Google
         </button>
 
-        <p className="text-[11px] mt-4" style={{ color: "#C4C4C0" }}>
+        <p className="text-[17px] mt-4" style={{ color: "#5A6478" }}>
           ฟรี — ใช้บัญชี Google ของคุณ
         </p>
       </div>
@@ -394,7 +394,7 @@ export default function DashboardPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-stone-50 pb-28">
+    <div className="min-h-screen pb-28" style={{ backgroundColor: "#A8D5BF" }}>
 
       {/* ── Profile header ────────────────────────────────────────────── */}
       <div className="bg-white" style={{ borderBottom: "1px solid #EBEBEA" }}>
@@ -415,13 +415,13 @@ export default function DashboardPage() {
             </div>
             {/* Name */}
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#A8A8A6" }}>
+              <p className="text-[17px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#4A5568" }}>
                 Dashboard ของฉัน
               </p>
               <p className="text-[17px] font-bold text-gray-900 truncate">
                 {safeUser.displayName ?? "ผู้ใช้"}
               </p>
-              <p className="text-[12px] truncate" style={{ color: "#A8A8A6" }}>
+              <p className="text-[18px] truncate" style={{ color: "#4A5568" }}>
                 {safeUser.email}
               </p>
             </div>
@@ -483,11 +483,11 @@ export default function DashboardPage() {
 
         {/* ═══ Activity chart (7 days) ══════════════════════════════════ */}
         <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest mb-4">
             กิจกรรม 7 วันล่าสุด
           </p>
           {stats.daily.every((d) => d.count === 0) ? (
-            <p className="text-[13px] text-center py-4" style={{ color: "#A8A8A6" }}>
+            <p className="text-[16px] text-center py-4" style={{ color: "#4A5568" }}>
               ยังไม่มีกิจกรรม — เริ่มทำข้อสอบวันนี้เลย!
             </p>
           ) : (
@@ -498,7 +498,7 @@ export default function DashboardPage() {
                 return (
                   <div key={d.key} className="flex-1 flex flex-col items-center gap-1">
                     {d.count > 0 && (
-                      <span className="text-[10px] font-bold" style={{ color: "#0B6E65" }}>{d.count}</span>
+                      <span className="text-[16px] font-bold" style={{ color: "#0B6E65" }}>{d.count}</span>
                     )}
                     <div className="w-full flex flex-col justify-end" style={{ flex: 1 }}>
                       <div
@@ -506,7 +506,7 @@ export default function DashboardPage() {
                         style={{ height: h, backgroundColor: d.isToday ? "#0B6E65" : "#C3E5DE" }}
                       />
                     </div>
-                    <span className="text-[10px] font-medium" style={{ color: d.isToday ? "#0B6E65" : "#A8A8A6" }}>
+                    <span className="text-[16px] font-medium" style={{ color: d.isToday ? "#0B6E65" : "#4A5568" }}>
                       {d.day}
                     </span>
                   </div>
@@ -519,21 +519,21 @@ export default function DashboardPage() {
         {/* ═══ Score history chart ══════════════════════════════════════ */}
         {stats.chart.length > 0 && (
           <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+            <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest mb-4">
               พัฒนาการคะแนน (7 ครั้งล่าสุด)
             </p>
             <div className="space-y-3">
               {stats.chart.map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <span className="text-[11px] font-medium w-16 text-right flex-shrink-0"
-                    style={{ color: "#A8A8A6" }}>
+                  <span className="text-[17px] font-medium w-16 text-right flex-shrink-0"
+                    style={{ color: "#4A5568" }}>
                     {item.date}
                   </span>
                   <div className="flex-1">
                     <ScoreBar pct={item.pct} color={gradeColor(item.pct)} />
                   </div>
                   <span
-                    className="text-[12px] font-bold w-10 text-right flex-shrink-0"
+                    className="text-[18px] font-bold w-10 text-right flex-shrink-0"
                     style={{ color: gradeColor(item.pct) }}
                   >
                     {item.pct}%
@@ -544,9 +544,9 @@ export default function DashboardPage() {
             {/* Pass threshold line indicator */}
             <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px dashed #F3F2F0" }}>
               <div className="h-0.5 w-4 rounded" style={{ backgroundColor: "#22C55E" }} />
-              <span className="text-[11px]" style={{ color: "#A8A8A6" }}>60% = เกณฑ์ผ่าน</span>
+              <span className="text-[17px]" style={{ color: "#4A5568" }}>60% = เกณฑ์ผ่าน</span>
               <div className="h-0.5 w-4 rounded ml-2" style={{ backgroundColor: "#0B6E65" }} />
-              <span className="text-[11px]" style={{ color: "#A8A8A6" }}>80% = ดีมาก</span>
+              <span className="text-[17px]" style={{ color: "#4A5568" }}>80% = ดีมาก</span>
             </div>
           </div>
         )}
@@ -558,10 +558,10 @@ export default function DashboardPage() {
             {/* Header + legend */}
             <div className="flex items-start justify-between gap-3 mb-5">
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest">
                   ความก้าวหน้ารายวิชา
                 </p>
-                <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
+                <p className="text-[18px] mt-0.5" style={{ color: "#4A5568" }}>
                   {stats.subjectStats.length} วิชา · เรียงจากต้องพัฒนาก่อน
                 </p>
               </div>
@@ -574,7 +574,7 @@ export default function DashboardPage() {
                 ] as const).map(({ color, label }) => (
                   <div key={label} className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                    <span className="text-[10px]" style={{ color: "#A8A8A6" }}>{label}</span>
+                    <span className="text-[16px]" style={{ color: "#4A5568" }}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -603,13 +603,13 @@ export default function DashboardPage() {
                             className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                             style={{ backgroundColor: subColor }}
                           />
-                          <span className="text-[13px] font-semibold text-gray-800 truncate">
+                          <span className="text-[16px] font-semibold text-gray-800 truncate">
                             {subject}
                           </span>
                           {count > 1 && (
                             <span
-                              className="text-[10.5px] flex-shrink-0"
-                              style={{ color: "#C4C4C0" }}
+                              className="text-[16px] flex-shrink-0"
+                              style={{ color: "#5A6478" }}
                             >
                               {count} ชุด
                             </span>
@@ -618,7 +618,7 @@ export default function DashboardPage() {
                         {/* Right: badge + score */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span
-                            className="text-[10.5px] font-bold px-2.5 py-[4px] rounded-full"
+                            className="text-[16px] font-bold px-2.5 py-[4px] rounded-full"
                             style={{ backgroundColor: perf.badgeBg, color: perf.badgeColor }}
                           >
                             {perf.label}
@@ -658,7 +658,7 @@ export default function DashboardPage() {
             >
               <div className="flex items-center gap-1.5">
                 <div className="w-px h-4" style={{ backgroundColor: "#9CA3AF", opacity: 0.5 }} />
-                <span className="text-[11px]" style={{ color: "#A8A8A6" }}>
+                <span className="text-[17px]" style={{ color: "#4A5568" }}>
                   เส้นกั้นในแถบ = เกณฑ์ผ่าน 60%
                 </span>
               </div>
@@ -670,16 +670,16 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+              <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest">
                 คอร์สของฉัน
               </p>
-              <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
+              <p className="text-[18px] mt-0.5" style={{ color: "#4A5568" }}>
                 {courses.length > 0 ? `${courses.length} คอร์สที่เปิดใช้งาน` : "ยังไม่มีคอร์ส"}
               </p>
             </div>
             <Link
               href="/activate"
-              className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-xl transition-all"
+              className="flex items-center gap-1.5 text-[18px] font-semibold px-3 py-1.5 rounded-xl transition-all"
               style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -705,13 +705,13 @@ export default function DashboardPage() {
               style={{ border: "1px dashed #E0DFDC" }}
             >
               <div className="text-2xl mb-2">🔑</div>
-              <p className="text-[13px] font-semibold text-gray-700 mb-1">ยังไม่มีคอร์สที่เปิดใช้งาน</p>
-              <p className="text-[12px] mb-4" style={{ color: "#A8A8A6" }}>
+              <p className="text-[16px] font-semibold text-gray-700 mb-1">ยังไม่มีคอร์สที่เปิดใช้งาน</p>
+              <p className="text-[18px] mb-4" style={{ color: "#4A5568" }}>
                 ใช้ Activation Code เพื่อปลดล็อกคอร์ส
               </p>
               <Link
                 href="/activate"
-                className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold
+                className="inline-flex items-center gap-1.5 text-[18px] font-semibold
                            px-4 py-2 rounded-xl text-white"
                 style={{ backgroundColor: "#0B6E65" }}
               >
@@ -737,15 +737,15 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-semibold text-gray-900 truncate">{c.courseName}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>
+                    <p className="text-[16px] font-semibold text-gray-900 truncate">{c.courseName}</p>
+                    <p className="text-[17px] mt-0.5" style={{ color: "#4A5568" }}>
                       Code: <span className="font-mono">{c.activationCode}</span>
                       {" · "}เปิดใช้{" "}
                       {c.activatedAt.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}
                     </p>
                   </div>
                   <span
-                    className="text-[10.5px] font-bold px-2 py-1 rounded-full flex-shrink-0"
+                    className="text-[16px] font-bold px-2 py-1 rounded-full flex-shrink-0"
                     style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
                   >
                     ✓ เปิดแล้ว
@@ -762,23 +762,23 @@ export default function DashboardPage() {
             {/* Section header */}
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest">
                   บันทึกของฉัน
                 </p>
-                <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
+                <p className="text-[18px] mt-0.5" style={{ color: "#4A5568" }}>
                   {summaries.length} ชุดข้อสอบ · เรียงจากล่าสุด
                 </p>
               </div>
               {/* Pass summary chips */}
               <div className="flex items-center gap-1.5">
                 <span
-                  className="text-[11px] font-semibold px-2 py-[3px] rounded-full"
+                  className="text-[17px] font-semibold px-2 py-[3px] rounded-full"
                   style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
                 >
                   ✓ {summaries.filter((s) => s.percentage >= 60).length}
                 </span>
                 <span
-                  className="text-[11px] font-semibold px-2 py-[3px] rounded-full"
+                  className="text-[17px] font-semibold px-2 py-[3px] rounded-full"
                   style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
                 >
                   ✗ {summaries.filter((s) => s.percentage < 60).length}
@@ -800,8 +800,8 @@ export default function DashboardPage() {
             style={{ border: "1px solid #EBEBEA" }}
           >
             <div className="text-4xl mb-3">📋</div>
-            <p className="text-[15px] font-semibold text-gray-800 mb-1">ยังไม่มีประวัติการสอบ</p>
-            <p className="text-[13px] mb-5" style={{ color: "#A8A8A6" }}>
+            <p className="text-[18px] font-semibold text-gray-800 mb-1">ยังไม่มีประวัติการสอบ</p>
+            <p className="text-[16px] mb-5" style={{ color: "#4A5568" }}>
               เริ่มทำข้อสอบแล้วคะแนนและสถิติของคุณจะปรากฏที่นี่
             </p>
             <Link href="/exams" className="btn-primary text-sm">

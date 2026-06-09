@@ -44,13 +44,16 @@ const _redirectPromise: Promise<User | null> =
         });
 
 // ─── Redirect detection ───────────────────────────────────────────────────────
-// Use redirect ONLY on Android Chrome — popup is blocked there.
-// iOS/iPadOS and desktop Safari use signInWithPopup, which opens a new tab
-// and communicates back via window.opener (no authorized-domain or HTTPS
-// requirement, so it works on local IP dev servers too).
+// Android WebView เท่านั้น: popup tab ส่ง result กลับไม่ได้ในบาง WebView
+// iOS Safari และ desktop ใช้ popup — redirect พัง เพราะ ITP บล็อก cross-origin IndexedDB
+// (Firebase getRedirectResult คืน null บน iOS Safari เสมอ)
 
 function shouldUseRedirect(): boolean {
-  return typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  // ใช้ redirect เฉพาะ Android ที่อยู่ใน WebView เท่านั้น
+  // iOS ใช้ popup เพราะ ITP ทำให้ getRedirectResult() คืน null
+  return /Android/i.test(ua) && /wv|WebView/i.test(ua);
 }
 
 // ─── Google provider ──────────────────────────────────────────────────────────

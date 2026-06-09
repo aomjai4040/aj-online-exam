@@ -46,7 +46,7 @@ export default function EditExamPage() {
 
   if (!initial) {
     return (
-      <div className="text-center py-20 text-gray-400">
+      <div className="text-center py-20 text-gray-600">
         <p>ไม่พบชุดข้อสอบนี้</p>
       </div>
     );

@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
+import { SUBJECTS, SUBJECT_DISPLAY, normalizeSubject } from "@/lib/types";
 import { MOCK_EXAM_LIST, type Difficulty } from "@/lib/mock-data";
 import { getHistory, type ExamRecord } from "@/lib/exam-history";
 import { getUserHistory } from "@/lib/user-firestore";
@@ -17,23 +18,23 @@ type ExamCard = Exam & { difficulty?: Difficulty };
 
 // ─── Subject colors ───────────────────────────────────────────────────────────
 
+// สีหมวดวิชา — รองรับทั้ง code ใหม่ (BASIC) และ legacy (ระบาดวิทยา)
 const SUBJECT_COLOR: Record<string, string> = {
+  // New codes
+  BASIC:   "#3B82F6",
+  APPLIED: "#10B981",
+  POLICY:  "#EF4444",
+  CURRENT: "#F97316",
+  REFORM:  "#8B5CF6",
+  LAWIT:   "#0D9488",
+  MOPH:    "#EC4899",
+  // Legacy Thai names (fallback)
   ระบาดวิทยา:          "#3B82F6",
   อนามัยสิ่งแวดล้อม:   "#10B981",
-  กฎหมาย:              "#F97316",
-  บริหารสาธารณสุข:     "#8B5CF6",
-  ชีวสถิติ:            "#0D9488",
-  "นโยบาย สป.สธ.":     "#EF4444",
-  คณิตศาสตร์:          "#3B82F6",
-  ภาษาไทย:            "#F472B6",
-  วิทยาศาสตร์:         "#34D399",
-  ภาษาอังกฤษ:         "#A78BFA",
-  สังคมศึกษา:          "#FBBF24",
-  ประวัติศาสตร์:        "#F87171",
-  คอมพิวเตอร์:         "#22D3EE",
-  ศิลปะ:              "#A855F7",
-  พลศึกษา:            "#FB923C",
-  ดนตรี:              "#E879F9",
+  กฎหมาย:              "#0D9488",
+  บริหารสาธารณสุข:     "#10B981",
+  ชีวสถิติ:            "#3B82F6",
+  "นโยบาย สป.สธ.":     "#EC4899",
 };
 function subjectColor(s: string) { return SUBJECT_COLOR[s] ?? "#0B6E65"; }
 
@@ -88,7 +89,9 @@ function formatRecordDate(iso: string): string {
 // ─── Exam card ────────────────────────────────────────────────────────────────
 
 function ExamCardItem({ exam, record }: { exam: ExamCard; record: ExamRecord | null }) {
-  const color  = subjectColor(exam.subject);
+  const normalizedSubject = normalizeSubject(exam.subject);
+  const displaySubject = SUBJECT_DISPLAY[normalizedSubject] ?? exam.subject;
+  const color  = subjectColor(normalizedSubject);
   const diff   = exam.difficulty;
   const ds     = diff ? DIFF_STYLE[diff] : null;
   const isDone = record !== null;
@@ -115,15 +118,15 @@ function ExamCardItem({ exam, record }: { exam: ExamCard; record: ExamRecord | n
         {/* Header: subject chip + badges */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <span
-            className="text-[11px] font-bold px-2.5 py-[5px] rounded-full"
+            className="text-[17px] font-bold px-2.5 py-[5px] rounded-full"
             style={{ backgroundColor: chipBg, color }}
           >
-            {exam.subject}
+            {displaySubject}
           </span>
           <div className="flex items-center gap-1.5">
             {isDone && (
               <span
-                className="text-[11px] font-bold px-2.5 py-[5px] rounded-full"
+                className="text-[17px] font-bold px-2.5 py-[5px] rounded-full"
                 style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
               >
                 ✓ ทำแล้ว
@@ -131,7 +134,7 @@ function ExamCardItem({ exam, record }: { exam: ExamCard; record: ExamRecord | n
             )}
             {ds && diff && (
               <span
-                className="text-[11px] font-semibold px-2.5 py-[5px] rounded-full"
+                className="text-[17px] font-semibold px-2.5 py-[5px] rounded-full"
                 style={{ backgroundColor: ds.bg, color: ds.color }}
               >
                 {diff}
@@ -141,15 +144,15 @@ function ExamCardItem({ exam, record }: { exam: ExamCard; record: ExamRecord | n
         </div>
 
         {/* Title */}
-        <h3 className="font-bold text-[15px] text-gray-900 leading-snug mb-1.5">
+        <h3 className="font-bold text-[18px] text-gray-900 leading-snug mb-1.5">
           {exam.title}
         </h3>
 
         {/* Description */}
         {exam.description && (
           <p
-            className="text-[12px] leading-relaxed mb-4 line-clamp-2"
-            style={{ color: "#A8A8A6" }}
+            className="text-[18px] leading-relaxed mb-4 line-clamp-2"
+            style={{ color: "#4A5568" }}
           >
             {exam.description}
           </p>
@@ -157,7 +160,7 @@ function ExamCardItem({ exam, record }: { exam: ExamCard; record: ExamRecord | n
 
         {/* Stats row */}
         <div
-          className="flex items-center gap-2 text-[12px] mb-4"
+          className="flex items-center gap-2 text-[18px] mb-4"
           style={{ color: "#9CA3AF" }}
         >
           <span className="font-semibold" style={{ color: "#6B7280" }}>
@@ -176,7 +179,7 @@ function ExamCardItem({ exam, record }: { exam: ExamCard; record: ExamRecord | n
         {/* Last result strip — shown only when completed */}
         {record && (
           <div
-            className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl text-[12px]"
+            className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl text-[18px]"
             style={{ backgroundColor: "#EBF5F3", border: "1px solid #C3E5DE" }}
           >
             {/* Bar-chart icon */}
@@ -196,7 +199,7 @@ function ExamCardItem({ exam, record }: { exam: ExamCard; record: ExamRecord | n
               ({record.score}/{record.totalQuestions} ข้อ)
             </span>
             <span className="flex-1" />
-            <span style={{ color: "#A8A8A6" }}>
+            <span style={{ color: "#4A5568" }}>
               {formatRecordDate(record.doneAt)}
             </span>
           </div>
@@ -205,7 +208,7 @@ function ExamCardItem({ exam, record }: { exam: ExamCard; record: ExamRecord | n
         {/* CTA button */}
         <div
           className="flex items-center justify-center gap-2 py-3 rounded-xl
-                     text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90"
+                     text-[16px] font-semibold text-white transition-opacity hover:opacity-90"
           style={{ backgroundColor: "#0B6E65" }}
         >
           {isDone ? "ทำอีกครั้ง" : "เริ่มทำข้อสอบ"}
@@ -261,37 +264,45 @@ export default function ExamsPage() {
   useEffect(() => {
     getPublishedExams()
       .then((data) => {
+        console.log("[ExamsPage] getPublishedExams returned:", data.length, "exams");
+        console.log("[ExamsPage] exams:", data.map(e => e.title));
         if (data.length > 0) {
           setExams(data);
           setIsMock(false);
         } else {
+          console.warn("[ExamsPage] 0 published exams → using mock data");
           setExams(MOCK_EXAM_LIST as ExamCard[]);
           setIsMock(true);
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("[ExamsPage] getPublishedExams error:", err);
         setExams(MOCK_EXAM_LIST as ExamCard[]);
         setIsMock(true);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const subjects = useMemo(
-    () => ["ทั้งหมด", ...Array.from(new Set(exams.map((e) => e.subject))).sort()],
-    [exams]
-  );
+  // Fixed 7 subject tabs — ดึงจาก SUBJECTS constant เสมอ ไม่ hardcode
+  const SUBJECT_TABS = [
+    { code: "ทั้งหมด", label: "ทั้งหมด" },
+    ...SUBJECTS.map(s => ({ code: s.code, label: SUBJECT_DISPLAY[s.code] ?? s.code })),
+  ];
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return exams.filter((e) => {
-      const bySubject = activeSubject === "ทั้งหมด" || e.subject === activeSubject;
+    const result = exams.filter((e) => {
+      const normalizedCode = normalizeSubject(e.subject);
+      const bySubject = activeSubject === "ทั้งหมด" || normalizedCode === activeSubject;
       const bySearch  =
         !q ||
         e.title.toLowerCase().includes(q) ||
-        e.subject.toLowerCase().includes(q) ||
+        (SUBJECT_DISPLAY[normalizedCode] ?? e.subject).toLowerCase().includes(q) ||
         (e.description ?? "").toLowerCase().includes(q);
       return bySubject && bySearch;
     });
+    console.log("[ExamsPage] activeSubject:", activeSubject, "filteredExams:", result.map(e => e.title));
+    return result;
   }, [exams, activeSubject, search]);
 
   const isFiltering = search !== "" || activeSubject !== "ทั้งหมด";
@@ -304,7 +315,7 @@ export default function ExamsPage() {
   if (guard !== "allowed") return <AccessGuardSpinner />;
 
   return (
-    <div className="min-h-screen bg-stone-50 pb-28">
+    <div className="min-h-screen pb-28" style={{ backgroundColor: "#A8D5BF" }}>
 
       {/* ── Sticky compound header ────────────────────────────────────────── */}
       <div className="sticky top-14 z-30 bg-stone-50">
@@ -314,8 +325,8 @@ export default function ExamsPage() {
           <div className="flex items-start justify-between mb-5">
             <div>
               <p
-                className="text-[11px] font-semibold tracking-[0.12em] uppercase mb-1"
-                style={{ color: "#A8A8A6" }}
+                className="text-[17px] font-semibold tracking-[0.12em] uppercase mb-1"
+                style={{ color: "#4A5568" }}
               >
                 AJ ExamOnline
               </p>
@@ -326,10 +337,10 @@ export default function ExamsPage() {
             {isFiltering && !loading && (
               <button
                 onClick={clearFilters}
-                className="mt-1 text-[12px] font-medium transition-colors"
-                style={{ color: "#A8A8A6" }}
+                className="mt-1 text-[18px] font-medium transition-colors"
+                style={{ color: "#4A5568" }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "#6B6B6A")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#A8A8A6")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#4A5568")}
               >
                 ล้างทั้งหมด
               </button>
@@ -339,7 +350,7 @@ export default function ExamsPage() {
           {/* Search input */}
           <div className="relative">
             <svg
-              viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
+              viewBox="0 0 24 24" fill="none" stroke="#5A6478"
               strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
               className="w-[17px] h-[17px] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
             >
@@ -350,7 +361,7 @@ export default function ExamsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ค้นหาชุดข้อสอบ..."
-              className="w-full bg-white rounded-2xl pl-11 pr-10 py-2.5 text-[14px]
+              className="w-full bg-white rounded-2xl pl-11 pr-10 py-2.5 text-[17px]
                          text-gray-900 placeholder-gray-400 transition-all duration-150 focus:outline-none"
               style={{ border: "1px solid #E0DFDC" }}
               onFocus={(e) => {
@@ -378,31 +389,42 @@ export default function ExamsPage() {
           </div>
         </div>
 
-        {/* Subject filter tabs */}
-        {!loading && subjects.length > 1 && (
-          <div style={{ borderBottom: "1px solid #EBEBEA" }}>
-            <div className="flex overflow-x-auto no-scrollbar px-5 max-w-2xl mx-auto">
-              {subjects.map((s) => {
-                const active = activeSubject === s;
-                return (
-                  <button
-                    key={s}
-                    onClick={() => setActiveSubject(s)}
-                    className="flex-shrink-0 py-3 px-3 text-[13px] font-medium
-                               transition-all duration-150 whitespace-nowrap"
-                    style={{
-                      color:        active ? "#111110" : "#A8A8A6",
-                      borderBottom: active ? "2px solid #111110" : "2px solid transparent",
-                      marginBottom: "-1px",
-                    }}
-                  >
-                    {s}
-                  </button>
-                );
-              })}
-            </div>
+        {/* Subject filter tabs — fixed 7 หมวด + ทั้งหมด */}
+        <div style={{ borderBottom: "1px solid #EBEBEA" }}>
+          <div className="flex overflow-x-auto no-scrollbar px-5 max-w-2xl mx-auto">
+            {SUBJECT_TABS.map(({ code, label }) => {
+              const active = activeSubject === code;
+              // นับจำนวนข้อสอบในแต่ละหมวด
+              const count = code === "ทั้งหมด"
+                ? exams.length
+                : exams.filter(e => normalizeSubject(e.subject) === code).length;
+              return (
+                <button
+                  key={code}
+                  onClick={() => setActiveSubject(code)}
+                  className="flex-shrink-0 py-3 px-3 text-[16px] font-medium
+                             transition-all duration-150 whitespace-nowrap flex items-center gap-1"
+                  style={{
+                    color:        active ? "#111110" : "#4A5568",
+                    borderBottom: active ? "2px solid #0B6E65" : "2px solid transparent",
+                    marginBottom: "-1px",
+                  }}
+                >
+                  {label}
+                  {count > 0 && (
+                    <span className="text-[13px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: active ? "#0B6E65" : "#F3F2F0",
+                        color: active ? "white" : "#6B7280",
+                      }}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
@@ -411,14 +433,14 @@ export default function ExamsPage() {
         {/* Count label */}
         {!loading && (
           <div className="flex items-center justify-between pb-3">
-            <p className="text-[11px]" style={{ color: "#A8A8A6" }}>
+            <p className="text-[17px]" style={{ color: "#4A5568" }}>
               {isFiltering
                 ? `แสดง ${filtered.length} จาก ${exams.length} ชุด`
                 : `ชุดข้อสอบทั้งหมด ${exams.length} ชุด`}
             </p>
             {isMock && (
               <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase"
+                className="text-[16px] font-bold px-2 py-0.5 rounded tracking-wide uppercase"
                 style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
               >
                 Demo
@@ -439,10 +461,10 @@ export default function ExamsPage() {
         {/* Empty state */}
         {!loading && filtered.length === 0 && (
           <div className="py-20 text-center">
-            <p className="text-[15px] font-semibold text-gray-800 mb-2">
+            <p className="text-[18px] font-semibold text-gray-800 mb-2">
               {isFiltering ? "ไม่พบชุดข้อสอบ" : "ยังไม่มีชุดข้อสอบ"}
             </p>
-            <p className="text-[13px] mb-6" style={{ color: "#A8A8A6" }}>
+            <p className="text-[16px] mb-6" style={{ color: "#4A5568" }}>
               {isFiltering
                 ? "ลองเปลี่ยนคำค้นหาหรือเลือกหมวดหมู่อื่น"
                 : "ชุดข้อสอบจะปรากฏที่นี่เมื่อมีการเพิ่มข้อมูล"}
@@ -450,7 +472,7 @@ export default function ExamsPage() {
             {isFiltering && (
               <button
                 onClick={clearFilters}
-                className="text-[13px] font-medium border rounded-full px-5 py-2
+                className="text-[16px] font-medium border rounded-full px-5 py-2
                            transition-colors text-gray-600 hover:bg-gray-50"
                 style={{ borderColor: "#E0DFDC" }}
               >

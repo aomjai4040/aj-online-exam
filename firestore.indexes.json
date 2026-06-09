@@ -1,5 +1,7 @@
 {
   "indexes": [
+
+    // ── Exams ────────────────────────────────────────────────────────────────
     {
       "collectionGroup": "exams",
       "queryScope": "COLLECTION",
@@ -8,6 +10,8 @@
         { "fieldPath": "createdAt",   "order": "DESCENDING" }
       ]
     },
+
+    // ── Results ──────────────────────────────────────────────────────────────
     {
       "collectionGroup": "results",
       "queryScope": "COLLECTION",
@@ -15,7 +19,41 @@
         { "fieldPath": "examId",      "order": "ASCENDING"  },
         { "fieldPath": "submittedAt", "order": "DESCENDING" }
       ]
+    },
+
+    // ── Flash Card Decks ──────────────────────────────────────────────────────
+    // getPublishedDecks(): isPublished + order
+    {
+      "collectionGroup": "flashcardDecks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "order",       "order": "ASCENDING" }
+      ]
+    },
+
+    // ── Flash Cards ───────────────────────────────────────────────────────────
+    // getCardsByDeck(): isPublished + deckIds(array-contains)
+    // (client sorts by deckOrder[slug] after fetch — no compound sort needed)
+    {
+      "collectionGroup": "flashcards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING"   },
+        { "fieldPath": "deckIds",     "arrayConfig": "CONTAINS" }
+      ]
+    },
+
+    // ── User Flash Card Progress ───────────────────────────────────────────────
+    // getFCProgress(): cardId in [...ids]
+    {
+      "collectionGroup": "fcProgress",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "cardId", "order": "ASCENDING" }
+      ]
     }
+
   ],
   "fieldOverrides": []
 }

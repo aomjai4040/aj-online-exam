@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, browserLocalPersistence, setPersistence } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,3 +15,8 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// ตั้ง persistence ชัดเจนเพื่อให้ session คงอยู่ข้าม page reload
+if (typeof window !== "undefined") {
+  setPersistence(auth, browserLocalPersistence).catch(() => {});
+}

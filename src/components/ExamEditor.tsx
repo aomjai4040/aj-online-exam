@@ -2,14 +2,9 @@
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { ExamForm, QuestionForm } from "@/lib/types";
+import { SUBJECTS } from "@/lib/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const PRESET_SUBJECTS = [
-  "ระบาดวิทยา", "อนามัยสิ่งแวดล้อม", "กฎหมาย",
-  "บริหารสาธารณสุข", "ชีวสถิติ", "นโยบาย สป.สธ.",
-  "คณิตศาสตร์", "ภาษาไทย", "วิทยาศาสตร์", "ภาษาอังกฤษ",
-];
 
 const OPTS = ["ก", "ข", "ค", "ง"] as const;
 
@@ -75,13 +70,13 @@ function Toast({ toast }: { toast: ToastState | null }) {
     >
       <div
         className="flex items-center gap-3 px-4 py-3.5 rounded-2xl shadow-xl
-                   text-white text-[13px] font-semibold"
+                   text-white text-[16px] font-semibold"
         style={{ backgroundColor: ok ? "#0B6E65" : "#DC2626" }}
       >
         <span className="text-base flex-shrink-0">{ok ? "✓" : "✕"}</span>
         <span className="flex-1 leading-snug">{toast.message}</span>
         {ok && (
-          <span className="text-[11px] font-normal opacity-70 flex-shrink-0">กำลังนำทาง…</span>
+          <span className="text-[17px] font-normal opacity-70 flex-shrink-0">กำลังนำทาง…</span>
         )}
       </div>
     </div>
@@ -113,12 +108,12 @@ function QuestionCard({
         <div className="flex items-center gap-2.5">
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center
-                       text-[12px] font-bold text-white flex-shrink-0"
+                       text-[18px] font-bold text-white flex-shrink-0"
             style={{ backgroundColor: "#0B6E65" }}
           >
             {qi + 1}
           </div>
-          <span className="text-[13px] font-semibold text-gray-600">ข้อที่ {qi + 1}</span>
+          <span className="text-[16px] font-semibold text-gray-600">ข้อที่ {qi + 1}</span>
         </div>
 
         <div className="flex items-center gap-0.5">
@@ -127,7 +122,7 @@ function QuestionCard({
             onClick={() => onMove(-1)}
             disabled={qi === 0}
             className="w-8 h-8 flex items-center justify-center rounded-lg
-                       text-gray-400 hover:bg-gray-100 hover:text-gray-600
+                       text-gray-600 hover:bg-gray-100 hover:text-gray-600
                        disabled:opacity-25 transition-colors"
             title="เลื่อนขึ้น"
           >
@@ -141,7 +136,7 @@ function QuestionCard({
             onClick={() => onMove(1)}
             disabled={qi === total - 1}
             className="w-8 h-8 flex items-center justify-center rounded-lg
-                       text-gray-400 hover:bg-gray-100 hover:text-gray-600
+                       text-gray-600 hover:bg-gray-100 hover:text-gray-600
                        disabled:opacity-25 transition-colors"
             title="เลื่อนลง"
           >
@@ -155,7 +150,7 @@ function QuestionCard({
             onClick={onRemove}
             disabled={total <= 1}
             className="w-8 h-8 flex items-center justify-center rounded-lg
-                       text-gray-400 hover:bg-red-50 hover:text-red-500
+                       text-gray-600 hover:bg-red-50 hover:text-red-500
                        disabled:opacity-25 transition-colors"
             title="ลบข้อนี้"
           >
@@ -174,11 +169,11 @@ function QuestionCard({
 
         {/* Question text */}
         <div>
-          <label className="block text-[12px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5">
+          <label className="block text-[18px] font-semibold text-gray-700 uppercase tracking-widest mb-1.5">
             คำถาม <span className="text-red-400">*</span>
           </label>
           <textarea
-            className="w-full rounded-xl px-4 py-2.5 text-[14px] text-gray-900
+            className="w-full rounded-xl px-4 py-2.5 text-[17px] text-gray-900
                        placeholder-gray-400 resize-none focus:outline-none transition-all h-[76px]"
             style={{ border: "1px solid #E0DFDC" }}
             onFocus={focusOn}
@@ -191,7 +186,7 @@ function QuestionCard({
 
         {/* Options */}
         <div>
-          <label className="block text-[12px] font-semibold text-gray-500 uppercase tracking-widest mb-2">
+          <label className="block text-[18px] font-semibold text-gray-700 uppercase tracking-widest mb-2">
             ตัวเลือก — คลิก <span style={{ color: "#0B6E65" }}>ตัวอักษร</span> เพื่อกำหนดเฉลย
           </label>
           <div className="space-y-2">
@@ -204,7 +199,7 @@ function QuestionCard({
                     type="button"
                     onClick={() => onUpdate("correctAnswer", oi)}
                     className="w-8 h-8 rounded-lg flex items-center justify-center
-                               text-[13px] font-bold flex-shrink-0 transition-all duration-150"
+                               text-[16px] font-bold flex-shrink-0 transition-all duration-150"
                     style={{
                       backgroundColor: isCorrect ? "#0B6E65" : "#F3F2F0",
                       color:           isCorrect ? "white"   : "#9CA3AF",
@@ -217,7 +212,7 @@ function QuestionCard({
 
                   {/* Option text input */}
                   <input
-                    className="flex-1 rounded-xl px-3.5 py-2 text-[13.5px] text-gray-900
+                    className="flex-1 rounded-xl px-3.5 py-2 text-[16px] text-gray-900
                                focus:outline-none transition-all duration-150"
                     style={{
                       border:          `1.5px solid ${isCorrect ? "#0B6E65" : "#E0DFDC"}`,
@@ -235,7 +230,7 @@ function QuestionCard({
                   {/* Correct indicator */}
                   {isCorrect && (
                     <span
-                      className="flex-shrink-0 text-[11px] font-bold w-10 text-right"
+                      className="flex-shrink-0 text-[17px] font-bold w-10 text-right"
                       style={{ color: "#0B6E65" }}
                     >
                       ✓ เฉลย
@@ -249,12 +244,12 @@ function QuestionCard({
 
         {/* Explanation */}
         <div>
-          <label className="block text-[12px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5">
+          <label className="block text-[18px] font-semibold text-gray-700 uppercase tracking-widest mb-1.5">
             คำอธิบายเฉลย{" "}
-            <span className="normal-case font-normal" style={{ color: "#C4C4C0" }}>(ถ้ามี)</span>
+            <span className="normal-case font-normal" style={{ color: "#5A6478" }}>(ถ้ามี)</span>
           </label>
           <textarea
-            className="w-full rounded-xl px-4 py-2.5 text-[14px] text-gray-900
+            className="w-full rounded-xl px-4 py-2.5 text-[17px] text-gray-900
                        placeholder-gray-400 resize-none focus:outline-none transition-all h-14"
             style={{ border: "1px solid #E0DFDC" }}
             onFocus={focusOn}
@@ -358,7 +353,7 @@ export default function ExamEditor({
 
   function validate(): string {
     if (!meta.title.trim())   return "กรุณากรอกชื่อชุดข้อสอบ";
-    if (!meta.subject.trim()) return "กรุณาเลือกหรือพิมพ์หมวดวิชา";
+    if (!meta.subject.trim()) return "กรุณาเลือกหมวดวิชา";
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (!q.text.trim()) return `ข้อที่ ${i + 1}: กรุณากรอกคำถาม`;
@@ -408,19 +403,19 @@ export default function ExamEditor({
             type="button"
             onClick={() => router.push(backHref)}
             className="flex items-center gap-1.5 transition-colors"
-            style={{ color: "#A8A8A6" }}
+            style={{ color: "#4A5568" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#6B7280")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#A8A8A6")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#4A5568")}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
               <polyline points="15 18 9 12 15 6" />
             </svg>
-            <span className="text-[13px] font-medium">กลับ</span>
+            <span className="text-[16px] font-medium">กลับ</span>
           </button>
 
           {/* Centred title */}
-          <h1 className="absolute left-1/2 -translate-x-1/2 text-[15px] font-bold text-gray-900 whitespace-nowrap">
+          <h1 className="absolute left-1/2 -translate-x-1/2 text-[18px] font-bold text-gray-900 whitespace-nowrap">
             {title}
           </h1>
 
@@ -429,7 +424,7 @@ export default function ExamEditor({
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="text-[13px] font-semibold px-4 py-1.5 rounded-xl text-white
+            className="text-[16px] font-semibold px-4 py-1.5 rounded-xl text-white
                        hover:opacity-90 active:opacity-75 disabled:opacity-50
                        transition-opacity flex-shrink-0"
             style={{ backgroundColor: "#0B6E65" }}
@@ -445,7 +440,7 @@ export default function ExamEditor({
         {/* Error banner */}
         {error && (
           <div
-            className="flex items-center gap-2.5 px-4 py-3 rounded-2xl text-[13px] font-medium"
+            className="flex items-center gap-2.5 px-4 py-3 rounded-2xl text-[16px] font-medium"
             style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626" }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -461,7 +456,7 @@ export default function ExamEditor({
 
         {/* ═══ Section 1: ข้อมูลพื้นฐาน ════════════════════════════════ */}
         <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest mb-4">
             📝 ข้อมูลพื้นฐาน
           </p>
 
@@ -477,7 +472,7 @@ export default function ExamEditor({
               onChange={(e) => setMetaField("title", e.target.value)}
               maxLength={120}
             />
-            <p className="text-[11px] text-right mt-1" style={{ color: "#C4C4C0" }}>
+            <p className="text-[17px] text-right mt-1" style={{ color: "#5A6478" }}>
               {meta.title.length}/120
             </p>
           </div>
@@ -486,7 +481,7 @@ export default function ExamEditor({
           <div>
             <label className="label">
               คำอธิบาย{" "}
-              <span className="text-[12px] font-normal" style={{ color: "#C4C4C0" }}>(ไม่บังคับ)</span>
+              <span className="text-[18px] font-normal" style={{ color: "#5A6478" }}>(ไม่บังคับ)</span>
             </label>
             <textarea
               className="input resize-none h-[80px]"
@@ -500,48 +495,33 @@ export default function ExamEditor({
 
         {/* ═══ Section 2: หมวดวิชาและเวลา ══════════════════════════════ */}
         <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest mb-4">
             🏷️ หมวดวิชาและเวลา
           </p>
 
-          {/* Subject input + datalist */}
-          <div className="mb-2">
+          {/* Subject dropdown — 7 fixed values */}
+          <div className="mb-5">
             <label className="label">
-              วิชา <span className="text-red-500">*</span>
+              หมวดวิชา <span className="text-red-500">*</span>
             </label>
-            <input
-              list="subject-list"
+            <select
               className="input"
-              placeholder="เลือกจากรายการหรือพิมพ์เอง..."
               value={meta.subject}
               onChange={(e) => setMetaField("subject", e.target.value)}
-            />
-            <datalist id="subject-list">
-              {PRESET_SUBJECTS.map((s) => <option key={s} value={s} />)}
-            </datalist>
-          </div>
-
-          {/* Quick-pick chips */}
-          <div className="flex flex-wrap gap-1.5 mb-5">
-            {PRESET_SUBJECTS.map((s) => {
-              const active = meta.subject === s;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setMetaField("subject", active ? "" : s)}
-                  className="text-[12px] font-medium px-2.5 py-1 rounded-full border
-                             transition-all duration-150"
-                  style={{
-                    backgroundColor: active ? "#0B6E65" : "white",
-                    borderColor:     active ? "#0B6E65" : "#E0DFDC",
-                    color:           active ? "white"   : "#6B7280",
-                  }}
-                >
-                  {s}
-                </button>
-              );
-            })}
+              style={{ cursor: "pointer" }}
+            >
+              <option value="">— เลือกหมวดวิชา —</option>
+              {SUBJECTS.map(s => (
+                <option key={s.code} value={s.code}>
+                  [{s.code}] {s.label}
+                </option>
+              ))}
+            </select>
+            {meta.subject && (
+              <p className="text-[15px] mt-1.5 font-medium" style={{ color: "#0B6E65" }}>
+                ✓ {SUBJECTS.find(s => s.code === meta.subject)?.label ?? meta.subject}
+              </p>
+            )}
           </div>
 
           {/* Time limit */}
@@ -559,13 +539,13 @@ export default function ExamEditor({
                 onChange={(e) => setMetaField("timeLimit", Number(e.target.value) || 0)}
               />
               <span
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] pointer-events-none"
-                style={{ color: "#C4C4C0" }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[18px] pointer-events-none"
+                style={{ color: "#5A6478" }}
               >
                 นาที
               </span>
             </div>
-            <p className="text-[12px] mt-1.5" style={{ color: "#A8A8A6" }}>
+            <p className="text-[18px] mt-1.5" style={{ color: "#4A5568" }}>
               {meta.timeLimit > 0
                 ? `⏱ จำกัดเวลา ${meta.timeLimit} นาที`
                 : "0 = ไม่จำกัดเวลา"}
@@ -575,15 +555,15 @@ export default function ExamEditor({
 
         {/* ═══ Section 3: การเผยแพร่ ════════════════════════════════════ */}
         <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[17px] font-bold text-gray-600 uppercase tracking-widest mb-4">
             🌐 การเผยแพร่
           </p>
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
-              <p className="text-[14px] font-semibold text-gray-900 mb-1">
+              <p className="text-[17px] font-semibold text-gray-900 mb-1">
                 เผยแพร่ให้นักเรียนเห็น
               </p>
-              <p className="text-[12px] leading-relaxed" style={{ color: "#A8A8A6" }}>
+              <p className="text-[18px] leading-relaxed" style={{ color: "#4A5568" }}>
                 {meta.isPublished
                   ? "✅ จะปรากฏในหน้าคลังข้อสอบทันที"
                   : "📝 ซ่อนอยู่ นักเรียนจะยังไม่เห็น"}
@@ -600,15 +580,15 @@ export default function ExamEditor({
         {/* ═══ Questions section ════════════════════════════════════════ */}
         <div className="flex items-center justify-between pt-2">
           <div>
-            <h2 className="text-[15px] font-bold text-gray-900">ข้อสอบ</h2>
-            <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
+            <h2 className="text-[18px] font-bold text-gray-900">ข้อสอบ</h2>
+            <p className="text-[18px] mt-0.5" style={{ color: "#4A5568" }}>
               {questions.length} ข้อ · คลิกตัวอักษร ก ข ค ง เพื่อกำหนดเฉลย
             </p>
           </div>
           <button
             type="button"
             onClick={addQuestion}
-            className="text-[13px] font-semibold px-3.5 py-2 rounded-xl
+            className="text-[16px] font-semibold px-3.5 py-2 rounded-xl
                        flex items-center gap-1.5 transition-colors"
             style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
           >
@@ -641,7 +621,7 @@ export default function ExamEditor({
         <button
           type="button"
           onClick={addQuestion}
-          className="w-full py-4 rounded-2xl text-[13.5px] font-semibold
+          className="w-full py-4 rounded-2xl text-[16px] font-semibold
                      flex items-center justify-center gap-2
                      transition-all duration-150 hover:opacity-75 active:scale-[0.99]"
           style={{
@@ -664,7 +644,7 @@ export default function ExamEditor({
           onClick={handleSave}
           disabled={saving}
           className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl
-                     text-white text-[15px] font-bold transition-all duration-150
+                     text-white text-[18px] font-bold transition-all duration-150
                      hover:opacity-90 active:scale-[0.99] disabled:opacity-60"
           style={{ backgroundColor: "#0B6E65" }}
         >

@@ -6,10 +6,11 @@
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
+    font-size: 21px;
   }
   body {
-    /* stone-50 ≈ #FAFAF9 — warm off-white, Notion-like base */
-    @apply bg-stone-50 text-gray-900 antialiased;
+    background-color: #A8D5BF;
+    @apply text-gray-900 antialiased;
     font-family: var(--font-prompt), "Prompt", system-ui, sans-serif;
   }
 }

@@ -72,7 +72,7 @@ export default function AdminLoginPage() {
             </svg>
           </div>
           <h1 className="text-[20px] font-bold text-gray-900">Admin Panel</h1>
-          <p className="text-[13px] mt-1 text-center" style={{ color: "#A8A8A6" }}>
+          <p className="text-[16px] mt-1 text-center" style={{ color: "#4A5568" }}>
             เข้าสู่ระบบด้วยบัญชี Google ที่มีสิทธิ์
           </p>
         </div>
@@ -86,14 +86,14 @@ export default function AdminLoginPage() {
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <p className="text-[13px] font-medium" style={{ color: "#DC2626" }}>
+            <p className="text-[16px] font-medium" style={{ color: "#DC2626" }}>
               บัญชีนี้ไม่มีสิทธิ์เข้าถึง Admin Panel
             </p>
           </div>
         )}
 
         {error && (
-          <div className="mb-5 rounded-xl px-4 py-3 text-[13px] font-medium"
+          <div className="mb-5 rounded-xl px-4 py-3 text-[16px] font-medium"
             style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
             {error}
           </div>
@@ -130,7 +130,7 @@ export default function AdminLoginPage() {
           </span>
         </button>
 
-        <p className="text-center text-[11.5px] mt-5" style={{ color: "#C4C4C0" }}>
+        <p className="text-center text-[17px] mt-5" style={{ color: "#5A6478" }}>
           เฉพาะบัญชีที่ได้รับสิทธิ์เท่านั้น
         </p>
         <style>{`@keyframes aspin { to { transform:rotate(360deg); } }`}</style>

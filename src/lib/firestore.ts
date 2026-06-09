@@ -29,13 +29,20 @@ function toDate(v: unknown): Date {
 // ─── Exams ───────────────────────────────────────────────────────────────────
 
 export async function getPublishedExams(): Promise<Exam[]> {
+  // ไม่ใช้ orderBy ใน query เพื่อหลีกเลี่ยง composite index
+  // เรียงลำดับใน JavaScript แทน
   const q = query(
     collection(db, "exams"),
-    where("isPublished", "==", true),
-    orderBy("createdAt", "desc")
+    where("isPublished", "==", true)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data(), createdAt: toDate(d.data().createdAt), updatedAt: toDate(d.data().updatedAt) } as Exam));
+  const exams = snap.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+    createdAt: toDate(d.data().createdAt),
+    updatedAt: toDate(d.data().updatedAt),
+  } as Exam));
+  return exams.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 export async function getAllExams(): Promise<Exam[]> {
@@ -141,6 +148,33 @@ export async function createExamMeta(data: ExamMetaInput): Promise<string> {
     updatedAt: serverTimestamp(),
   });
   return ref.id;
+}
+
+// ─── Import helpers ──────────────────────────────────────────────────────────
+
+export async function findExamByTitle(title: string): Promise<Exam | null> {
+  const q = query(collection(db, "exams"), where("title", "==", title), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data(), createdAt: toDate(d.data().createdAt), updatedAt: toDate(d.data().updatedAt) } as Exam;
+}
+
+export async function appendQuestionsToExam(
+  examId: string,
+  questions: import("./types").QuestionForm[],
+  currentCount: number,
+): Promise<void> {
+  const batch = writeBatch(db);
+  questions.forEach((q, i) => {
+    const qRef = doc(collection(db, "exams", examId, "questions"));
+    batch.set(qRef, { ...q, order: currentCount + i });
+  });
+  await batch.commit();
+  await updateDoc(doc(db, "exams", examId), {
+    questionCount: currentCount + questions.length,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 // ─── Results ─────────────────────────────────────────────────────────────────

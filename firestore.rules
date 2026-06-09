@@ -10,7 +10,6 @@ service cloud.firestore {
 
       match /questions/{questionId} {
         allow read: if (
-            get(/databases/$(database)/documents/exams/$(examId)) != null &&
             get(/databases/$(database)/documents/exams/$(examId)).data.isPublished == true
           ) || request.auth != null;
         allow write: if request.auth != null;
@@ -18,26 +17,38 @@ service cloud.firestore {
     }
 
     // ── Activation codes ────────────────────────────────────────────────────
-    // Authenticated users may query codes (to look up & validate).
-    // Only authenticated users can write (admin panel).
     match /activationCodes/{codeId} {
       allow read:  if request.auth != null;
       allow write: if request.auth != null;
     }
 
     // ── User courses ────────────────────────────────────────────────────────
-    // Users can read/create their own course records.
-    // Admins (any authenticated user for now) can list all.
     match /userCourses/{docId} {
       allow read:   if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null;
     }
 
-    // ── Users (profile cache) ───────────────────────────────────────────────
+    // ── Users + subcollections ───────────────────────────────────────────────
     match /users/{userId} {
       allow read:  if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
+
+      // exam history / results (ระบบเดิม)
+      match /{subcol}/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Flash Card progress (แยก rule เพื่อความชัดเจน)
+      match /fcProgress/{cardId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Flash Card deck stats (aggregate counter ต่อ deck ต่อ user)
+      match /fcDeckStats/{deckId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // ── Results ─────────────────────────────────────────────────────────────
@@ -47,5 +58,20 @@ service cloud.firestore {
       allow list:   if request.auth != null;
       allow update, delete: if request.auth != null;
     }
+
+    // ── Flash Card Decks ─────────────────────────────────────────────────────
+    // published deck → อ่านได้ทุกคน  |  write → auth only (admin)
+    match /flashcardDecks/{deckId} {
+      allow read:  if resource.data.isPublished == true || request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // ── Flash Cards ──────────────────────────────────────────────────────────
+    // published card → อ่านได้ทุกคน  |  write → auth only
+    match /flashcards/{cardId} {
+      allow read:  if resource.data.isPublished == true || request.auth != null;
+      allow write: if request.auth != null;
+    }
+
   }
 }
