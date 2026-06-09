@@ -73,7 +73,7 @@ function FlipCard({
                 const s = TAG_STYLE[tag] ?? { bg: "#F3F4F6", color: "#374151" };
                 return (
                   <span key={tag}
-                    className="text-[12px] font-bold px-2.5 py-[3px] rounded-full"
+                    className="text-[13px] font-bold px-3 py-1 rounded-full"
                     style={{ backgroundColor: s.bg, color: s.color }}>
                     {tag}
                   </span>
@@ -82,19 +82,20 @@ function FlipCard({
             </div>
           )}
 
-          <p className="text-[20px] font-bold text-gray-900 text-center
-                        leading-relaxed whitespace-pre-wrap">
+          <p className="text-[22px] md:text-[26px] font-bold text-gray-900 text-center
+                        whitespace-pre-wrap"
+            style={{ lineHeight: 1.5 }}>
             {card.front}
           </p>
 
           {card.hint && (
-            <p className="text-[14px] mt-5 text-center px-2"
-              style={{ color: "#6B7280" }}>
+            <p className="text-[15px] mt-5 text-center px-2"
+              style={{ color: "#6B7280", lineHeight: 1.55 }}>
               💡 {card.hint}
             </p>
           )}
 
-          <p className="text-[12px] mt-6" style={{ color: "#D1D5DB" }}>
+          <p className="text-[13px] mt-6" style={{ color: "#D1D5DB" }}>
             แตะการ์ดเพื่อดูคำตอบ
           </p>
         </div>
@@ -121,12 +122,13 @@ function FlipCard({
             </span>
           </div>
 
-          <p className="text-[19px] font-bold text-gray-900 text-center
-                        leading-relaxed whitespace-pre-wrap">
+          <p className="text-[20px] md:text-[22px] font-bold text-gray-900 text-center
+                        whitespace-pre-wrap"
+            style={{ lineHeight: 1.6 }}>
             {card.back}
           </p>
 
-          <p className="text-[12px] mt-6" style={{ color: "#6B7280" }}>
+          <p className="text-[13px] mt-6" style={{ color: "#6B7280" }}>
             แตะการ์ดเพื่อกลับด้านหน้า
           </p>
         </div>
@@ -146,10 +148,10 @@ function ProgressBar({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[13px] font-semibold" style={{ color: "#4A5568" }}>
+        <span className="text-[14px] font-semibold" style={{ color: "#4A5568" }}>
           {current} / {total}
         </span>
-        <div className="flex gap-3 text-[12px]">
+        <div className="flex gap-3 text-[13px] font-semibold">
           <span style={{ color: ACCENT }}>✓ {known}</span>
           <span style={{ color: "#D97706" }}>↺ {learning}</span>
         </div>
@@ -513,7 +515,7 @@ export default function FlashCardDeckPage() {
             <button
               onClick={() => mark("learning")}
               disabled={saving}
-              className="py-4 rounded-2xl font-bold text-[16px]
+              className="py-4 rounded-2xl font-bold text-[17px]
                          transition-transform active:scale-[0.97] disabled:opacity-40"
               style={{ backgroundColor: "#FFFBEB", color: "#D97706",
                        border: "1px solid #FDE68A" }}>
@@ -522,7 +524,7 @@ export default function FlashCardDeckPage() {
             <button
               onClick={() => mark("known")}
               disabled={saving}
-              className="py-4 rounded-2xl font-bold text-[16px]
+              className="py-4 rounded-2xl font-bold text-[17px]
                          transition-transform active:scale-[0.97] disabled:opacity-40"
               style={{ backgroundColor: "#EBF5F3", color: ACCENT,
                        border: "1px solid #C3E5DE" }}>

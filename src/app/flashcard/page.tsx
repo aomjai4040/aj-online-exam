@@ -84,11 +84,11 @@ function DeckCard({
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-[16px] font-bold text-gray-900 leading-snug truncate flex-1">
+          <p className="text-[18px] font-bold text-gray-900 leading-snug truncate flex-1">
             {deck.name}
           </p>
           {hasLearning && (
-            <span className="text-[10px] font-bold px-2 py-[2px] rounded-full flex-shrink-0"
+            <span className="text-[12px] font-bold px-2.5 py-[3px] rounded-full flex-shrink-0"
               style={{ backgroundColor: "#FEF3C7", color: "#D97706" }}>
               ↺ {learning}
             </span>
@@ -96,7 +96,7 @@ function DeckCard({
         </div>
 
         {deck.description ? (
-          <p className="text-[13px] leading-snug line-clamp-1 mb-1"
+          <p className="text-[15px] leading-snug line-clamp-1 mb-1"
             style={{ color: "#4A5568" }}>
             {deck.description}
           </p>
@@ -112,12 +112,12 @@ function DeckCard({
                 style={{ width: `${knownPct}%`, backgroundColor: theme.badge }}
               />
             </div>
-            <p className="text-[11px] mt-1 font-semibold" style={{ color: theme.badge }}>
+            <p className="text-[13px] mt-1 font-semibold" style={{ color: theme.badge }}>
               {known} / {total} ใบ · {knownPct}% จำได้
             </p>
           </div>
         ) : (
-          <p className="text-[12px] mt-1 font-semibold" style={{ color: theme.badge }}>
+          <p className="text-[14px] mt-1 font-semibold" style={{ color: theme.badge }}>
             {total > 0 ? `${total} ใบ` : "ยังไม่มีการ์ด"}
           </p>
         )}
@@ -144,7 +144,7 @@ function GroupSection({
   const theme = DECK_THEME[type];
   return (
     <section>
-      <p className="text-[11px] font-bold uppercase tracking-widest mb-2.5"
+      <p className="text-[12px] font-bold uppercase tracking-widest mb-2.5"
         style={{ color: "#4A5568" }}>
         {theme.groupLabel}
       </p>

@@ -72,10 +72,10 @@ function DonutChart({
       </svg>
       {/* Center text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[26px] font-extrabold leading-none" style={{ color: ACCENT }}>
+        <span className="text-[34px] font-extrabold leading-none" style={{ color: ACCENT }}>
           {knownPct}%
         </span>
-        <span className="text-[11px] mt-0.5" style={{ color: "#6B7280" }}>จำได้</span>
+        <span className="text-[13px] mt-1 font-semibold" style={{ color: "#6B7280" }}>จำได้</span>
       </div>
     </div>
   );
@@ -89,16 +89,16 @@ function StatCard({
   label: string; value: number; bg: string; color: string; sub?: string;
 }) {
   return (
-    <div className="rounded-2xl p-4 text-center flex flex-col items-center"
+    <div className="rounded-2xl p-5 text-center flex flex-col items-center"
       style={{ backgroundColor: bg }}>
-      <p className="text-[28px] font-extrabold leading-none mb-1" style={{ color }}>
+      <p className="text-[38px] font-extrabold leading-none mb-1.5" style={{ color }}>
         {value}
       </p>
-      <p className="text-[12px] font-semibold" style={{ color }}>
+      <p className="text-[16px] font-semibold" style={{ color }}>
         {label}
       </p>
       {sub && (
-        <p className="text-[10px] mt-0.5" style={{ color: "#9CA3AF" }}>{sub}</p>
+        <p className="text-[12px] mt-1" style={{ color: "#9CA3AF" }}>{sub}</p>
       )}
     </div>
   );
@@ -111,11 +111,11 @@ function Legend({ color, label, value, total }: {
 }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-      <span className="text-[13px] flex-1" style={{ color: "#374151" }}>{label}</span>
-      <span className="text-[13px] font-bold" style={{ color }}>
-        {value} <span className="text-[11px] font-normal text-gray-400">({pct}%)</span>
+    <div className="flex items-center gap-2.5">
+      <span className="w-3.5 h-3.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+      <span className="text-[15px] flex-1" style={{ color: "#374151" }}>{label}</span>
+      <span className="text-[15px] font-bold" style={{ color }}>
+        {value} <span className="text-[12px] font-normal text-gray-400">({pct}%)</span>
       </span>
     </div>
   );
@@ -289,16 +289,16 @@ export default function DeckStatsPage() {
             <Legend color="#9CA3AF"   label="ข้าม"         value={skipped}  total={total} />
             <Legend color="#D1D5DB"   label="ยังไม่เปิด"   value={newCount} total={total} />
             <div className="border-t pt-2.5 mt-2.5" style={{ borderColor: "#F3F4F6" }}>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: "#374151" }} />
-                <span className="text-[13px] flex-1 font-semibold" style={{ color: "#374151" }}>รวมทั้งหมด</span>
-                <span className="text-[13px] font-bold text-gray-700">{total} ใบ</span>
+              <div className="flex items-center gap-2.5">
+                <span className="w-3.5 h-3.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#374151" }} />
+                <span className="text-[15px] flex-1 font-semibold" style={{ color: "#374151" }}>รวมทั้งหมด</span>
+                <span className="text-[15px] font-bold text-gray-700">{total} ใบ</span>
               </div>
             </div>
           </div>
 
           {lastStudied && (
-            <p className="text-[11px] text-center mt-4" style={{ color: "#9CA3AF" }}>
+            <p className="text-[13px] text-center mt-4" style={{ color: "#9CA3AF" }}>
               ทบทวนล่าสุด: {lastStudied}
             </p>
           )}
@@ -316,7 +316,7 @@ export default function DeckStatsPage() {
         <div className="space-y-2.5">
           <button
             onClick={() => router.push(`/flashcard/${deckId}`)}
-            className="w-full py-4 rounded-2xl font-bold text-[16px] text-white
+            className="w-full py-4 rounded-2xl font-bold text-[18px] text-white
                        transition-transform active:scale-[0.97]"
             style={{ backgroundColor: ACCENT }}>
             ▶ เริ่มทบทวน{learning > 0 ? `เฉพาะที่จำไม่ได้ (${learning} ใบ)` : ""}
@@ -327,7 +327,7 @@ export default function DeckStatsPage() {
             <button
               onClick={() => setConfirmReset(true)}
               disabled={!stats}
-              className="w-full py-3.5 rounded-2xl font-semibold text-[15px]
+              className="w-full py-3.5 rounded-2xl font-semibold text-[16px]
                          transition-transform active:scale-[0.97] disabled:opacity-30"
               style={{ backgroundColor: "#FEF2F2", color: "#DC2626",
                        border: "1px solid #FECACA" }}>
