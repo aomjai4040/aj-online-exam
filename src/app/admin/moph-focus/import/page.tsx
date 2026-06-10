@@ -57,7 +57,24 @@ function parseRow(raw: Record<string, string>, rowNum: number): ParsedRow {
   const coverEmoji   = g("coverEmoji") || "🏥";
   const order        = parseInt(g("order"), 10) || rowNum;
   const isPublished  = g("isPublished") !== "0";
-  const publishedDate = g("publishedDate");
+
+  // Normalize date — XLSX อาจ reformat "2025-01-15" → "1/15/2025" หรือ Excel serial number
+  // แปลงกลับเป็น YYYY-MM-DD เสมอ
+  const rawDate = g("publishedDate");
+  let publishedDate = rawDate;
+  if (rawDate) {
+    // Excel serial number (ตัวเลขล้วน เช่น 45672)
+    if (/^\d{5}$/.test(rawDate)) {
+      const d = new Date(Math.round((parseInt(rawDate) - 25569) * 86400 * 1000));
+      publishedDate = d.toISOString().slice(0, 10);
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+      // รูปแบบอื่น เช่น "1/15/2025", "15-Jan-2025", "Jan 15, 2025"
+      const d = new Date(rawDate);
+      if (!isNaN(d.getTime())) {
+        publishedDate = d.toISOString().slice(0, 10);
+      }
+    }
+  }
 
   // Tags: pipe-separated
   const rawTags = g("tags")
@@ -112,11 +129,12 @@ export default function MOPHFocusImportPage() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const wb    = XLSX.read(e.target?.result, { type: "array" });
+        const wb    = XLSX.read(e.target?.result, { type: "array", cellDates: false, dateNF: "yyyy-mm-dd" });
         const ws    = wb.Sheets[wb.SheetNames[0]];
         const data  = XLSX.utils.sheet_to_json<Record<string, string>>(ws, {
           defval: "",
           raw: false,
+          dateNF: "yyyy-mm-dd",
         });
 
         if (!data.length) {
