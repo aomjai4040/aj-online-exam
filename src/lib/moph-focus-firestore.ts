@@ -10,7 +10,7 @@
 
 import {
   collection, doc,
-  getDoc, getDocs,
+  getDoc, getDocs, deleteDoc, setDoc, updateDoc,
   query, orderBy,
   writeBatch, serverTimestamp, Timestamp,
   type QueryDocumentSnapshot, type DocumentSnapshot,
@@ -104,6 +104,66 @@ export function filterMOPHFocus(
   }
 
   return result;
+}
+
+// ── Admin — CRUD ──────────────────────────────────────────────────────────────
+
+/** ดึงทุก item (รวม unpublished) สำหรับ Admin */
+export async function getAllMOPHFocus(): Promise<MOPHFocusItem[]> {
+  const q    = query(collection(db, "mophFocus"), orderBy("publishedDate", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(toItem);
+}
+
+export interface MOPHFocusSaveData {
+  title:         string;
+  subtitle:      string;
+  summary:       string;
+  mustKnow:      string;
+  examPoints:    string;
+  quickMemory:   string;
+  fullContent:   string;
+  coverEmoji:    string;
+  tags:          MOPHTag[];
+  order:         number;
+  isPublished:   boolean;
+  publishedDate: Date;
+}
+
+/** สร้างใหม่ หรืออัปเดต item ที่มีอยู่ */
+export async function saveMOPHFocus(
+  id:   string | null,
+  data: MOPHFocusSaveData,
+): Promise<string> {
+  const payload = {
+    title:         data.title,
+    subtitle:      data.subtitle,
+    summary:       data.summary,
+    mustKnow:      data.mustKnow,
+    examPoints:    data.examPoints,
+    quickMemory:   data.quickMemory,
+    fullContent:   data.fullContent,
+    coverEmoji:    data.coverEmoji || "🏥",
+    tags:          data.tags,
+    order:         data.order,
+    isPublished:   data.isPublished,
+    publishedDate: Timestamp.fromDate(data.publishedDate),
+    updatedAt:     serverTimestamp(),
+  };
+
+  if (id) {
+    await updateDoc(doc(db, "mophFocus", id), payload);
+    return id;
+  } else {
+    const ref = doc(collection(db, "mophFocus"));
+    await setDoc(ref, { ...payload, createdAt: serverTimestamp() });
+    return ref.id;
+  }
+}
+
+/** ลบ item */
+export async function deleteMOPHFocusById(id: string): Promise<void> {
+  await deleteDoc(doc(db, "mophFocus", id));
 }
 
 // ── Admin — Bulk Import ───────────────────────────────────────────────────────

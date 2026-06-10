@@ -684,6 +684,9 @@ export default function AdminDashboard() {
                   <Link href="/admin/seed" className="btn-secondary text-sm">
                     📥 Seed ข้อสอบ
                   </Link>
+                  <Link href="/admin/moph-focus" className="btn-secondary text-sm">
+                    🏥 MOPH Focus
+                  </Link>
                 </div>
               </div>
             )}
@@ -749,6 +752,9 @@ export default function AdminDashboard() {
                 </Link>
                 <Link href="/admin/seed" className="btn-secondary text-sm">
                   📥 Seed ข้อสอบ
+                </Link>
+                <Link href="/admin/moph-focus" className="btn-secondary text-sm">
+                  🏥 จัดการ MOPH Focus
                 </Link>
                 <Link href="/exams" className="btn-secondary text-sm">
                   ดูหน้านักเรียน ↗
