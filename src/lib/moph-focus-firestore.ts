@@ -11,7 +11,7 @@
 import {
   collection, doc,
   getDoc, getDocs,
-  query, where, orderBy,
+  query, orderBy,
   writeBatch, serverTimestamp, Timestamp,
   type QueryDocumentSnapshot, type DocumentSnapshot,
 } from "firebase/firestore";
@@ -53,15 +53,19 @@ function toItem(d: QueryDocumentSnapshot | DocumentSnapshot): MOPHFocusItem {
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
-/** ดึงทุกเรื่องที่ published เรียงจากใหม่ → เก่า */
+/** ดึงทุกเรื่องที่ published เรียงจากใหม่ → เก่า
+ *  ใช้ orderBy อย่างเดียว (single-field index — auto-created โดย Firestore)
+ *  กรอง isPublished client-side เพื่อไม่ต้องพึ่ง composite index
+ */
 export async function getPublishedMOPHFocus(): Promise<MOPHFocusItem[]> {
   const q    = query(
     collection(db, "mophFocus"),
-    where("isPublished", "==", true),
     orderBy("publishedDate", "desc"),
   );
   const snap = await getDocs(q);
-  return snap.docs.map(toItem);
+  return snap.docs
+    .map(toItem)
+    .filter((item) => item.isPublished);
 }
 
 /** ดึงเรื่องเดียวด้วย id */
