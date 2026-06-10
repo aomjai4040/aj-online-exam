@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
 import {
   getAllMOPHFocus,
   deleteMOPHFocusById,
@@ -62,22 +63,32 @@ function DeleteModal({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function AdminMOPHFocusListPage() {
+  const { user, loading: authLoading } = useAuth();
   const [items,   setItems]   = useState<MOPHFocusItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState("");
   const [search,  setSearch]  = useState("");
   const [deleteTarget, setDeleteTarget] = useState<MOPHFocusItem | null>(null);
   const [deleting,     setDeleting]     = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadErr("");
     try {
       setItems(await getAllMOPHFocus());
+    } catch (e) {
+      setLoadErr(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // รอ auth พร้อมก่อน load Firestore — ป้องกัน unauthenticated read
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    load();
+  }, [authLoading, user, load]);
 
   // Search filter
   const filtered = items.filter((item) => {
@@ -155,6 +166,19 @@ export default function AdminMOPHFocusListPage() {
             style={{ border: "1px solid #E5E7EB", "--tw-ring-color": ACCENT } as React.CSSProperties}
           />
         </div>
+
+        {/* Load error */}
+        {loadErr && !loading && (
+          <div className="bg-red-50 rounded-2xl px-5 py-4 flex items-center justify-between gap-3"
+            style={{ border: "1px solid #FECACA" }}>
+            <p className="text-[14px] font-semibold text-red-600">❌ {loadErr}</p>
+            <button onClick={load}
+              className="px-4 py-2 rounded-xl text-[13px] font-bold text-white flex-shrink-0"
+              style={{ backgroundColor: "#DC2626" }}>
+              ลองใหม่
+            </button>
+          </div>
+        )}
 
         {/* Loading skeleton */}
         {loading && (
