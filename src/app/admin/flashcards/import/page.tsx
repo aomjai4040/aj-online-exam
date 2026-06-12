@@ -35,6 +35,46 @@ const TEMPLATE_CSV = [TEMPLATE_HEADER, ...TEMPLATE_ROWS].join("\n");
 const VALID_TAGS    = new Set(Object.values(FC_TAGS));
 const VALID_TYPES   = new Set(["chapter", "pre_exam", "tag", "custom"]);
 
+// Thai / alternate aliases → canonical English key
+const KEY_ALIASES: Record<string, string> = {
+  // deck_slug
+  "slug": "deck_slug", "ชื่อย่อ": "deck_slug",
+  // deck_name
+  "ชื่อdeck": "deck_name", "ชื่อ deck": "deck_name", "ชื่อ": "deck_name",
+  // deck_type
+  "ประเภท": "deck_type", "type": "deck_type",
+  // deck_order
+  "ลำดับ": "deck_order", "order": "deck_order",
+  // front
+  "คำถาม": "front", "หน้า": "front", "question": "front",
+  // back
+  "คำตอบ": "back", "หลัง": "back", "answer": "back",
+  // hint
+  "คำใบ้": "hint",
+  // category
+  "หมวดหมู่": "category", "วิชา": "category", "subject": "category",
+  // importance
+  "ความสำคัญ": "importance", "ระดับ": "importance",
+  // tags
+  "แท็ก": "tags", "tag": "tags",
+  // is_published
+  "เผยแพร่": "is_published", "published": "is_published",
+};
+
+/** Normalize a raw object: strip BOM from keys, apply aliases, lowercase */
+function normalizeKeys(raw: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    const clean = k.replace(/^﻿/, "").trim();           // strip BOM
+    const lower = clean.toLowerCase().replace(/\s+/g, "_");  // space→underscore
+    const canonical = KEY_ALIASES[clean] ?? KEY_ALIASES[lower] ?? lower;
+    out[canonical] = v;
+  }
+  return out;
+}
+
+const REQUIRED_COLS = ["deck_slug","deck_name","deck_type","deck_order","front","back","category","importance"];
+
 interface ParsedRow {
   rowNum:    number;
   data:      ImportCardRow;
@@ -43,7 +83,8 @@ interface ParsedRow {
 }
 
 function parseRow(raw: Record<string, string>, rowNum: number): ParsedRow {
-  const g = (k: string) => String(raw[k] ?? "").trim();
+  const normalized = normalizeKeys(raw);
+  const g = (k: string) => String(normalized[k] ?? "").trim();
   const errors: string[] = [];
 
   const deckSlug   = g("deck_slug");
@@ -87,15 +128,26 @@ function parseRow(raw: Record<string, string>, rowNum: number): ParsedRow {
   };
 }
 
-function parseFile(file: File): Promise<ParsedRow[]> {
+function parseFile(file: File): Promise<{ rows: ParsedRow[]; headerWarning: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const wb    = XLSX.read(e.target?.result, { type: "array" });
         const ws    = wb.Sheets[wb.SheetNames[0]];
-        const rows  = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" });
-        resolve(rows.map((r, i) => parseRow(r, i + 2)));
+        const raw   = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" });
+
+        if (!raw.length) { reject(new Error("ไฟล์ไม่มีข้อมูล")); return; }
+
+        // Check which required columns are missing after normalization
+        const sample     = normalizeKeys(raw[0]);
+        const foundKeys  = Object.keys(sample);
+        const missingCols = REQUIRED_COLS.filter((c) => !foundKeys.includes(c));
+        const headerWarning = missingCols.length
+          ? `ไม่พบคอลัมน์: ${missingCols.join(", ")}  (พบ: ${foundKeys.join(", ")})`
+          : "";
+
+        resolve({ rows: raw.map((r, i) => parseRow(r, i + 2)), headerWarning });
       } catch (err) {
         reject(err);
       }
@@ -111,10 +163,11 @@ type Step = "idle" | "preview" | "importing" | "done";
 
 export default function AdminFlashCardImportPage() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [step,   setStep]   = useState<Step>("idle");
-  const [rows,   setRows]   = useState<ParsedRow[]>([]);
-  const [result, setResult] = useState({ decksCreated: 0, cardsImported: 0 });
-  const [errMsg, setErrMsg] = useState("");
+  const [step,          setStep]          = useState<Step>("idle");
+  const [rows,          setRows]          = useState<ParsedRow[]>([]);
+  const [result,        setResult]        = useState({ decksCreated: 0, cardsImported: 0 });
+  const [errMsg,        setErrMsg]        = useState("");
+  const [headerWarning, setHeaderWarning] = useState("");
 
   const validRows   = rows.filter((r) => r.valid);
   const invalidRows = rows.filter((r) => !r.valid);
@@ -125,9 +178,11 @@ export default function AdminFlashCardImportPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setErrMsg("");
+    setHeaderWarning("");
     try {
-      const parsed = await parseFile(file);
+      const { rows: parsed, headerWarning: hw } = await parseFile(file);
       setRows(parsed);
+      setHeaderWarning(hw);
       setStep("preview");
     } catch {
       setErrMsg("อ่านไฟล์ไม่สำเร็จ — ตรวจสอบ format แล้วลองใหม่");
@@ -163,6 +218,7 @@ export default function AdminFlashCardImportPage() {
     setStep("idle");
     setRows([]);
     setErrMsg("");
+    setHeaderWarning("");
     if (inputRef.current) inputRef.current.value = "";
   }, []);
 
@@ -271,6 +327,15 @@ export default function AdminFlashCardImportPage() {
               ))}
             </div>
           </div>
+
+          {/* Header mismatch warning */}
+          {headerWarning && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-[13px] text-amber-800">
+              <p className="font-bold mb-0.5">⚠️ ชื่อคอลัมน์ไม่ตรง Template</p>
+              <p className="break-all">{headerWarning}</p>
+              <p className="mt-1 text-amber-600">กรุณาดาวน์โหลด Template CSV แล้วกรอกข้อมูลตามรูปแบบ</p>
+            </div>
+          )}
 
           {/* Error message */}
           {errMsg && (
