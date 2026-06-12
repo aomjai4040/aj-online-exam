@@ -34,9 +34,14 @@ export default function AdminExamsPage() {
     <div className="max-w-5xl mx-auto px-4 py-10">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">จัดการข้อสอบ</h1>
-        <Link href="/admin/exams/new" className="btn-primary">
-          + สร้างข้อสอบใหม่
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/exams/import" className="btn-secondary">
+            📥 อัพโหลด CSV/Excel
+          </Link>
+          <Link href="/admin/exams/new" className="btn-primary">
+            + สร้างข้อสอบใหม่
+          </Link>
+        </div>
       </div>
 
       {loading ? (
