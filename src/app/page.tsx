@@ -187,35 +187,32 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="max-w-lg mx-auto px-5 pt-8 pb-7">
-
+      <section
+        className="px-5 pt-9 pb-8"
+        style={{ background: "linear-gradient(160deg, #0B6E65 0%, #0d9488 60%, #134e4a 100%)" }}
+      >
+        <div className="max-w-lg mx-auto">
         <p
-          className="text-[14px] font-bold tracking-[0.16em] uppercase mb-4"
-          style={{ color: "#0B6E65" }}
+          className="text-[13px] font-bold tracking-[0.18em] uppercase mb-4 text-white/60"
         >
           AJ ExamOnline · สนาม สป.สธ.
         </p>
-        <h1 className="text-[2rem] font-bold text-gray-900 leading-[1.18] tracking-tight mb-2">
+        <h1 className="text-[2rem] font-bold leading-[1.2] tracking-tight mb-2 text-white">
           เตรียมพร้อมสอบ
           <br />
-          <span style={{ color: "#0B6E65" }}>นักวิชาการสาธารณสุข</span>
+          <span style={{ color: "#A7F3D0" }}>นักวิชาการสาธารณสุข</span>
         </h1>
-        <p className="text-[17px] font-medium text-gray-500 mb-3.5">
+        <p className="text-[15px] font-medium mb-2" style={{ color: "rgba(255,255,255,0.75)" }}>
           สำนักงานปลัดกระทรวงสาธารณสุข (สป.สธ.)
         </p>
-        <p
-          className="text-[17px] leading-relaxed mb-6"
-          style={{ color: "#A8A8A6" }}
-        >
-          รวมแนวข้อสอบ แบบฝึก และ Mock Exam
-          <br />
-          ฝึกทำได้ทุกวัน พร้อมเฉลยและสรุปผลคะแนน
+        <p className="text-[15px] leading-relaxed mb-7" style={{ color: "rgba(255,255,255,0.6)" }}>
+          รวมแนวข้อสอบ แบบฝึก และ Mock Exam · ฝึกทำได้ทุกวัน
         </p>
 
         {/* Search — full width */}
         <div className="relative mb-3">
           <svg
-            viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
+            viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)"
             strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
             className="w-[16px] h-[16px] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
           >
@@ -223,16 +220,16 @@ export default function HomePage() {
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
-            className="w-full bg-white rounded-2xl pl-10 pr-9 py-3.5 text-[17px]
-                       text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-150"
-            style={{ border: "1px solid #E0DFDC" }}
+            className="w-full bg-white/15 rounded-2xl pl-10 pr-9 py-3.5 text-[17px]
+                       text-white placeholder-white/50 focus:outline-none transition-all duration-150"
+            style={{ border: "1px solid rgba(255,255,255,0.25)" }}
             onFocus={(e) => {
-              e.currentTarget.style.border = "1.5px solid transparent";
-              e.currentTarget.style.boxShadow = "0 0 0 3px rgba(11,110,101,0.14)";
+              e.currentTarget.style.border = "1.5px solid rgba(255,255,255,0.6)";
+              e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.2)";
             }}
             onBlur={(e) => {
-              e.currentTarget.style.border = "1px solid #E0DFDC";
-              e.currentTarget.style.boxShadow = "none";
+              e.currentTarget.style.border = "1px solid rgba(255,255,255,0.25)";
+              e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.15)";
             }}
             placeholder="ค้นหาชุดข้อสอบ..."
             value={search}
@@ -264,9 +261,9 @@ export default function HomePage() {
                 className="flex-shrink-0 text-[15px] font-medium px-4 py-2 rounded-full
                            transition-all duration-150 whitespace-nowrap"
                 style={{
-                  backgroundColor: active ? "#111110" : "white",
-                  color:           active ? "white"   : "#6B6B6A",
-                  border:          active ? "1px solid #111110" : "1px solid #E0DFDC",
+                  backgroundColor: active ? "white" : "rgba(255,255,255,0.15)",
+                  color:           active ? "#0B6E65" : "rgba(255,255,255,0.85)",
+                  border:          active ? "1px solid white" : "1px solid rgba(255,255,255,0.3)",
                 }}
               >
                 {chip}
@@ -274,12 +271,8 @@ export default function HomePage() {
             );
           })}
         </div>
+        </div>
       </section>
-
-      {/* ── Section divider ────────────────────────────────────────────────── */}
-      <div className="max-w-lg mx-auto px-5">
-        <div className="h-px" style={{ backgroundColor: "#EBEBEA" }} />
-      </div>
 
       {/* ── Daily Quiz card ────────────────────────────────────────────────── */}
       <section className="max-w-lg mx-auto px-5 py-5">
