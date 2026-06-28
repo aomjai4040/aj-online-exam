@@ -149,6 +149,24 @@ export default function Navbar() {
                           </svg>
                           คลังข้อสอบ
                         </Link>
+                        <a
+                          href="https://jade-fenglisu-32fb47.netlify.app"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-gray-700
+                                     hover:bg-stone-50 transition-colors"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
+                            className="w-4 h-4 text-gray-400">
+                            <rect x="2" y="3" width="20" height="14" rx="2" />
+                            <line x1="8" y1="21" x2="16" y2="21" />
+                            <line x1="12" y1="17" x2="12" y2="21" />
+                            <polyline points="10 9 12 11 16 7" />
+                          </svg>
+                          Checklist วิดีโอ
+                        </a>
                         <Link
                           href="/activate"
                           onClick={() => setMenuOpen(false)}

@@ -1,0 +1,16 @@
+﻿deck_slug,deck_name,deck_type,deck_order,front,back,hint,category,importance,tags,is_published
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,1,Attack Rate คืออะไร?,จำนวนผู้ป่วยใหม่ ÷ จำนวนประชากรเสี่ยง × 100,ใช้ในการสอบสวนการระบาดระยะสั้น,ระบาดวิทยา,3,"จุดตาย,ตัวเลข",1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,2,Herd Immunity Threshold ของโรคหัด (R0=12-18) คือกี่ %?,94-95%,สูตร: 1 - 1/R0,ระบาดวิทยา,3,"จุดตาย,ตัวเลข",1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,3,R naught (R0) คืออะไร?,จำนวนผู้ป่วยรายใหม่เฉลี่ยที่เกิดจากผู้ป่วย 1 รายในประชากรที่ไม่มีภูมิคุ้มกัน,ถ้า R0 > 1 โรคแพร่ได้,ระบาดวิทยา,3,จุดตาย,1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,4,Incidence Rate ต่างจาก Prevalence อย่างไร?,Incidence = ผู้ป่วยใหม่ / Prevalence = ผู้ป่วยทั้งหมด ณ เวลาหนึ่ง,,ระบาดวิทยา,2,สับสนบ่อย,1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,5,Sensitivity คืออะไร? สูตรคืออะไร?,TP / (TP + FN) × 100,การตรวจที่ Sensitivity สูง: Negative result เชื่อถือได้,ระบาดวิทยา,3,"จุดตาย,สับสนบ่อย",1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,6,Specificity คืออะไร? สูตรคืออะไร?,TN / (TN + FP) × 100,Specificity สูง: Positive result เชื่อถือได้,ระบาดวิทยา,3,"จุดตาย,สับสนบ่อย",1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,7,Relative Risk (RR) แปลผลอย่างไร?,RR>1=เสี่ยง / RR<1=ป้องกัน / RR=1=ไม่สัมพันธ์,,ระบาดวิทยา,2,ตัวเลข,1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,8,Odds Ratio (OR) ใช้กับการศึกษาชนิดใด?,Case-Control Study,OR ≈ RR เมื่อโรคพบน้อย,ระบาดวิทยา,2,"สับสนบ่อย,จุดตาย",1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,9,Epidemic Curve รูปแบบ Point Source มีลักษณะอย่างไร?,ยอดสูงชันเพียงยอดเดียว (sharp single peak) ระยะเวลาสั้นกว่า 1 Incubation Period,เหมือนระเบิด: ทุกคนรับเชื้อพร้อมกัน,ระบาดวิทยา,2,จุดตาย,1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,10,Secondary Attack Rate (SAR) คืออะไร?,ผู้ป่วยใหม่ใน Household ÷ สมาชิกเสี่ยง × 100,,ระบาดวิทยา,2,ตัวเลข,1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,11,Case Fatality Rate (CFR) คืออะไร?,ผู้เสียชีวิตจากโรค ÷ ผู้ป่วยโรคนั้น × 100,วัดความรุนแรงของโรค ≠ Mortality Rate,ระบาดวิทยา,2,ตัวเลข,1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,12,RCT อยู่ในระดับหลักฐานระดับใด?,ระดับสูง (เหนือ Cohort และ Case-Control แต่ต่ำกว่า Systematic Review),มาตรฐานทองคำของการศึกษาเชิงทดลอง,ระบาดวิทยา,2,จุดตาย,1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,13,Confounding Factor คืออะไร?,ตัวแปรที่เกี่ยวข้องทั้งกับ Exposure และ Outcome ทำให้ผลวิจัยคลาดเคลื่อน,,ระบาดวิทยา,2,สับสนบ่อย,1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,14,Positive Predictive Value (PPV) ขึ้นกับอะไรมากที่สุด?,Prevalence ของโรคในประชากรนั้น,PPV ต่ำเมื่อ Prevalence ต่ำ แม้ Specificity สูง,ระบาดวิทยา,3,"จุดตาย,ตัวเลข",1
+ch01-epidemiology,บทที่ 1 ระบาดวิทยา,chapter,15,Number Needed to Treat (NNT) คืออะไร?,1 / Absolute Risk Reduction (ARR),NNT น้อย = ยาได้ผลดีมาก,ระบาดวิทยา,3,"ก่อนสอบ,ตัวเลข",1
