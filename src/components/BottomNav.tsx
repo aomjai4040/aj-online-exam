@@ -116,7 +116,7 @@ export default function BottomNav() {
               )}
               {item.icon(isActive)}
               <span
-                className="text-[10px] font-medium leading-none"
+                className="text-[11px] font-medium leading-none"
                 style={{ color: isActive ? ACCENT : MUTED }}
               >
                 {item.label}

@@ -60,31 +60,31 @@ function LatestCard({ exam }: { exam: Exam }) {
   return (
     <Link
       href={`/exam/${exam.id}`}
-      className="flex-shrink-0 w-[158px] bg-white rounded-2xl p-4
+      className="flex-shrink-0 w-[172px] bg-white rounded-2xl p-4
                  flex flex-col hover:bg-stone-50 active:scale-[0.97]
                  transition-all duration-150"
       style={{ border: "1px solid #EBEBEA" }}
     >
       {/* Subject accent bar */}
-      <div className="w-7 h-[3px] rounded-full mb-3.5" style={{ backgroundColor: color }} />
+      <div className="w-8 h-[3px] rounded-full mb-4" style={{ backgroundColor: color }} />
 
-      <p className="font-semibold text-[13px] text-gray-900 leading-snug line-clamp-2 flex-1 mb-3">
+      <p className="font-semibold text-[14px] text-gray-900 leading-snug line-clamp-2 flex-1 mb-3">
         {exam.title}
       </p>
 
       <div className="flex items-center justify-between mt-auto">
-        <span className="text-[11px]" style={{ color: "#A8A8A6" }}>
+        <span className="text-[12px]" style={{ color: "#A8A8A6" }}>
           {exam.questionCount}&nbsp;ข้อ
         </span>
         {isNew ? (
           <span
-            className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+            className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
             style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
           >
             ใหม่
           </span>
         ) : (
-          <span className="text-[11px]" style={{ color }}>
+          <span className="text-[12px]" style={{ color }}>
             {exam.subject.slice(0, 4)}
           </span>
         )}
@@ -190,21 +190,21 @@ export default function HomePage() {
       <section className="max-w-lg mx-auto px-5 pt-8 pb-7">
 
         <p
-          className="text-[10.5px] font-bold tracking-[0.16em] uppercase mb-4"
+          className="text-[12px] font-bold tracking-[0.16em] uppercase mb-4"
           style={{ color: "#0B6E65" }}
         >
           AJ ExamOnline · สนาม สป.สธ.
         </p>
-        <h1 className="text-[1.9rem] font-bold text-gray-900 leading-[1.18] tracking-tight mb-2">
+        <h1 className="text-[2.1rem] font-bold text-gray-900 leading-[1.18] tracking-tight mb-2">
           เตรียมพร้อมสอบ
           <br />
           <span style={{ color: "#0B6E65" }}>นักวิชาการสาธารณสุข</span>
         </h1>
-        <p className="text-[12px] font-medium text-gray-500 mb-3.5">
+        <p className="text-[14px] font-medium text-gray-500 mb-3.5">
           สำนักงานปลัดกระทรวงสาธารณสุข (สป.สธ.)
         </p>
         <p
-          className="text-[12.5px] leading-relaxed mb-6"
+          className="text-[14px] leading-relaxed mb-6"
           style={{ color: "#A8A8A6" }}
         >
           รวมแนวข้อสอบ แบบฝึก และ Mock Exam
@@ -223,7 +223,7 @@ export default function HomePage() {
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
-            className="w-full bg-white rounded-2xl pl-10 pr-9 py-2.5 text-[13.5px]
+            className="w-full bg-white rounded-2xl pl-10 pr-9 py-3 text-[15px]
                        text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-150"
             style={{ border: "1px solid #E0DFDC" }}
             onFocus={(e) => {
@@ -261,7 +261,7 @@ export default function HomePage() {
               <button
                 key={chip}
                 onClick={() => setSelectedSubject(chip)}
-                className="flex-shrink-0 text-[11.5px] font-medium px-3 py-[5px] rounded-full
+                className="flex-shrink-0 text-[13px] font-medium px-3.5 py-1.5 rounded-full
                            transition-all duration-150 whitespace-nowrap"
                 style={{
                   backgroundColor: active ? "#111110" : "white",
@@ -283,11 +283,11 @@ export default function HomePage() {
 
       {/* ── Daily Quiz card ────────────────────────────────────────────────── */}
       <section className="max-w-lg mx-auto px-5 py-5">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-[13px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
             ข้อสอบประจำวัน
           </p>
-          <p className="text-[11px]" style={{ color: "#A8A8A6" }}>{today}</p>
+          <p className="text-[12px]" style={{ color: "#A8A8A6" }}>{today}</p>
         </div>
 
         {loading ? (
@@ -312,12 +312,12 @@ export default function HomePage() {
               {/* Subject + live indicator */}
               <div className="flex items-center gap-2 mb-1.5">
                 <span
-                  className="text-[10.5px] font-semibold"
+                  className="text-[12px] font-semibold"
                   style={{ color: dotColor(featuredExam.subject) }}
                 >
                   {featuredExam.subject}
                 </span>
-                <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: "#0B6E65" }}>
+                <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: "#0B6E65" }}>
                   <span
                     className="w-1.5 h-1.5 rounded-full inline-block"
                     style={{ backgroundColor: "#0B6E65", animation: "pulse 2s infinite" }}
@@ -325,10 +325,10 @@ export default function HomePage() {
                   LIVE
                 </span>
               </div>
-              <p className="font-bold text-[14px] text-gray-900 leading-snug line-clamp-2">
+              <p className="font-bold text-[16px] text-gray-900 leading-snug line-clamp-2">
                 {featuredExam.title}
               </p>
-              <p className="text-[11px] mt-1" style={{ color: "#A8A8A6" }}>
+              <p className="text-[13px] mt-1" style={{ color: "#A8A8A6" }}>
                 {featuredExam.questionCount} ข้อ
                 {featuredExam.timeLimit > 0 && ` · ${featuredExam.timeLimit} นาที`}
               </p>
@@ -361,7 +361,7 @@ export default function HomePage() {
 
       {/* ── Feature menu ──────────────────────────────────────────────────── */}
       <section className="max-w-lg mx-auto px-5 py-5">
-        <p className="text-[11px] font-bold tracking-[0.12em] uppercase mb-3.5" style={{ color: "#A8A8A6" }}>
+        <p className="text-[13px] font-bold tracking-[0.12em] uppercase mb-4" style={{ color: "#A8A8A6" }}>
           เมนูหลัก
         </p>
 
@@ -386,10 +386,10 @@ export default function HomePage() {
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold tracking-wider uppercase mb-0.5" style={{ color: "#0B6E65" }}>
+            <p className="text-[11px] font-bold tracking-wider uppercase mb-0.5" style={{ color: "#0B6E65" }}>
               เริ่มต้นที่นี่
             </p>
-            <p className="font-bold text-[14px] text-gray-900 leading-none">คลังข้อสอบ</p>
+            <p className="font-bold text-[16px] text-gray-900 leading-none">คลังข้อสอบ</p>
           </div>
           <svg viewBox="0 0 24 24" fill="none" stroke="#0B6E65"
             strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0" style={{ opacity: 0.5 }}>
@@ -398,7 +398,7 @@ export default function HomePage() {
         </Link>
 
         {/* Secondary 2 × 2 */}
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-3">
           {[
             {
               title: "คลังความรู้",
@@ -468,21 +468,21 @@ export default function HomePage() {
               key={item.title}
               href={item.href}
               {...("external" in item && item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className="bg-white rounded-2xl px-3.5 py-3.5 flex items-center gap-3
+              className="bg-white rounded-2xl px-4 py-4 flex items-center gap-3
                          hover:bg-stone-50 active:scale-[0.97] transition-all duration-150"
               style={{ border: "1px solid #EBEBEA" }}
             >
               <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "#F5F5F3", color: "#6B6B6A" }}
               >
                 {item.icon}
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-[12.5px] text-gray-900 leading-none truncate">
+                <p className="font-semibold text-[14px] text-gray-900 leading-none truncate">
                   {item.title}
                 </p>
-                <p className="text-[11px] mt-0.5 truncate" style={{ color: "#A8A8A6" }}>
+                <p className="text-[12px] mt-1 truncate" style={{ color: "#A8A8A6" }}>
                   {item.desc}
                 </p>
               </div>
@@ -498,13 +498,13 @@ export default function HomePage() {
 
       {/* ── Latest Exams (horizontal scroll) ──────────────────────────────── */}
       <section className="max-w-lg mx-auto py-5">
-        <div className="flex items-center justify-between mb-3.5 px-5">
-          <p className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
+        <div className="flex items-center justify-between mb-4 px-5">
+          <p className="text-[13px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
             เพิ่มล่าสุด
           </p>
           <Link
             href="/exams"
-            className="text-[12px] font-medium transition-colors"
+            className="text-[13px] font-medium transition-colors"
             style={{ color: "#0B6E65" }}
           >
             ดูทั้งหมด →
