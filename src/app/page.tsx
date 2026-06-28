@@ -195,7 +195,7 @@ export default function HomePage() {
         >
           AJ ExamOnline · สนาม สป.สธ.
         </p>
-        <h1 className="text-[2.6rem] font-bold text-gray-900 leading-[1.18] tracking-tight mb-2">
+        <h1 className="text-[2rem] font-bold text-gray-900 leading-[1.18] tracking-tight mb-2">
           เตรียมพร้อมสอบ
           <br />
           <span style={{ color: "#0B6E65" }}>นักวิชาการสาธารณสุข</span>
@@ -365,34 +365,31 @@ export default function HomePage() {
           เมนูหลัก
         </p>
 
-        {/* Primary — light teal surface, no dark fill */}
+        {/* Primary — gradient banner */}
         <Link
           href="/exams"
-          className="flex items-center gap-3.5 w-full rounded-2xl px-4 py-3.5 mb-3
-                     hover:opacity-90 active:scale-[0.98] transition-all duration-150"
+          className="flex items-center gap-3.5 w-full rounded-2xl px-5 py-4 mb-3
+                     hover:opacity-95 active:scale-[0.98] transition-all duration-150"
           style={{
-            backgroundColor: "#EBF5F3",
-            border: "1px solid #D0EDE9",
+            background: "linear-gradient(135deg, #0B6E65 0%, #0d9488 100%)",
+            boxShadow: "0 4px 14px rgba(11,110,101,0.35)",
           }}
         >
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: "#0B6E65" }}
-          >
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/20">
             <svg viewBox="0 0 24 24" fill="none" stroke="white"
-              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5" style={{ width: 18, height: 18 }}>
+              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
               <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-bold tracking-wider uppercase mb-0.5" style={{ color: "#0B6E65" }}>
+            <p className="text-[13px] font-bold tracking-wider uppercase mb-0.5 text-white/70">
               เริ่มต้นที่นี่
             </p>
-            <p className="font-bold text-[19px] text-gray-900 leading-none">คลังข้อสอบ</p>
+            <p className="font-bold text-[20px] text-white leading-none">คลังข้อสอบ</p>
           </div>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#0B6E65"
-            strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0" style={{ opacity: 0.5 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="white"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0 opacity-70">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </Link>
@@ -404,9 +401,10 @@ export default function HomePage() {
               title: "คลังความรู้",
               desc: "สรุปเนื้อหา",
               href: "#",
+              bg: "#EFF6FF", iconBg: "#3B82F6", iconColor: "white",
               icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5" style={{ width: 18, height: 18 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                   <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
                   <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
                 </svg>
@@ -417,9 +415,10 @@ export default function HomePage() {
               desc: "ติดตามวิดีโอที่ดู",
               href: "https://jade-fenglisu-32fb47.netlify.app",
               external: true,
+              bg: "#FFF7ED", iconBg: "#F97316", iconColor: "white",
               icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5" style={{ width: 18, height: 18 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                   <rect x="2" y="3" width="20" height="14" rx="2" />
                   <line x1="8" y1="21" x2="16" y2="21" />
                   <line x1="12" y1="17" x2="12" y2="21" />
@@ -431,9 +430,10 @@ export default function HomePage() {
               title: "Mock Exam",
               desc: "เสมือนสอบจริง",
               href: "#",
+              bg: "#F5F3FF", iconBg: "#8B5CF6", iconColor: "white",
               icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5" style={{ width: 18, height: 18 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
@@ -443,9 +443,10 @@ export default function HomePage() {
               title: "แบบฝึกหัด",
               desc: "ฝึกทีละบท",
               href: "#",
+              bg: "#FFF1F2", iconBg: "#F43F5E", iconColor: "white",
               icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5" style={{ width: 18, height: 18 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                   <path d="M12 20h9" />
                   <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
                 </svg>
@@ -455,9 +456,10 @@ export default function HomePage() {
               title: "บันทึกของฉัน",
               desc: "ผลสอบและคะแนน",
               href: "/dashboard",
+              bg: "#F0FDF4", iconBg: "#22C55E", iconColor: "white",
               icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5" style={{ width: 18, height: 18 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
@@ -468,21 +470,21 @@ export default function HomePage() {
               key={item.title}
               href={item.href}
               {...("external" in item && item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className="bg-white rounded-2xl px-4 py-4 flex items-center gap-3
-                         hover:bg-stone-50 active:scale-[0.97] transition-all duration-150"
-              style={{ border: "1px solid #EBEBEA" }}
+              className="rounded-2xl px-4 py-4 flex items-center gap-3
+                         active:scale-[0.97] transition-all duration-150 hover:brightness-95"
+              style={{ backgroundColor: item.bg, border: "1px solid transparent" }}
             >
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: "#F5F5F3", color: "#6B6B6A" }}
+                className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: item.iconBg, boxShadow: `0 3px 8px ${item.iconBg}55` }}
               >
                 {item.icon}
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-[16px] text-gray-900 leading-none truncate">
+                <p className="font-bold text-[15px] text-gray-900 leading-tight truncate">
                   {item.title}
                 </p>
-                <p className="text-[14px] mt-1 truncate" style={{ color: "#A8A8A6" }}>
+                <p className="text-[13px] mt-0.5 truncate text-gray-500">
                   {item.desc}
                 </p>
               </div>
