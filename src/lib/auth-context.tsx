@@ -44,16 +44,26 @@ const _redirectPromise: Promise<User | null> =
         });
 
 // ─── Redirect detection ───────────────────────────────────────────────────────
-// Android WebView เท่านั้น: popup tab ส่ง result กลับไม่ได้ในบาง WebView
-// iOS Safari และ desktop ใช้ popup — redirect พัง เพราะ ITP บล็อก cross-origin IndexedDB
-// (Firebase getRedirectResult คืน null บน iOS Safari เสมอ)
+// หลังแก้ authDomain เป็นโดเมนเดียวกับเว็บ (first-party, ดู firebase.ts +
+// rewrite ใน next.config.ts) → signInWithRedirect ใช้ได้ทุก browser รวมถึง
+// iOS Safari และ LINE/Facebook in-app browser
+//
+// กลยุทธ์: มือถือ + in-app browser → redirect (popup โดนบล็อกบ่อย)
+//          desktop → popup (UX ดีกว่า ไม่เสีย state ของหน้า)
+//          localhost → popup เท่านั้น (authDomain ยังเป็น firebaseapp.com)
 
 function shouldUseRedirect(): boolean {
-  if (typeof navigator === "undefined") return false;
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") return false;
+
   const ua = navigator.userAgent;
-  // ใช้ redirect เฉพาะ Android ที่อยู่ใน WebView เท่านั้น
-  // iOS ใช้ popup เพราะ ITP ทำให้ getRedirectResult() คืน null
-  return /Android/i.test(ua) && /wv|WebView/i.test(ua);
+  const isInApp  = /Line\/|FBAN|FBAV|Instagram|Messenger|wv|WebView/i.test(ua);
+  const isMobile = /Android|iPhone|iPod/i.test(ua)
+    // iPadOS 13+ รายงานตัวเองเป็น Macintosh แต่มี touch
+    || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)
+    || /iPad/i.test(ua);
+  return isInApp || isMobile;
 }
 
 // ─── Google provider ──────────────────────────────────────────────────────────
@@ -134,12 +144,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (shouldUseRedirect()) {
       console.log("[Auth] signIn → redirect");
       await signInWithRedirect(auth, GOOGLE);
-    } else {
-      console.log("[Auth] signIn → popup");
+      return;
+    }
+    console.log("[Auth] signIn → popup");
+    try {
       const cred = await signInWithPopup(auth, GOOGLE);
       persistUser(cred.user);
       setUser(cred.user);
       setLoading(false);
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      // popup ถูกบล็อกหรือ environment ไม่รองรับ → ลอง redirect แทน
+      if (code === "auth/popup-blocked"
+        || code === "auth/operation-not-supported-in-this-environment") {
+        console.warn("[Auth] popup failed (", code, ") → fallback to redirect");
+        await signInWithRedirect(auth, GOOGLE);
+        return;
+      }
+      throw e; // ปล่อยให้หน้า login แสดง error ตามเดิม
     }
   }, [setUser, setLoading]);
 

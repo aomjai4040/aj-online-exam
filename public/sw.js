@@ -1,13 +1,14 @@
 // AJ Exam Online - Service Worker (network-first, safe for auth & exam data)
-// Version: 1.0.0
+// Version: 1.1.0
 
-const CACHE_NAME = "aj-exam-shell-v1";
+const CACHE_NAME = "aj-exam-shell-v2";
 
 // Only cache these static shell assets — never cache API/auth/exam routes
 const PRECACHE_URLS = ["/", "/login"];
 
 // Routes that must NEVER be served from cache
 const NO_CACHE_PATTERNS = [
+  /^\/__\//,          // Firebase auth handler (proxied ผ่านโดเมนเราเอง) — ห้ามแคชเด็ดขาด
   /\/api\//,
   /\/exam\//,
   /\/result\//,
