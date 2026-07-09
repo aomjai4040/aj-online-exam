@@ -27,6 +27,7 @@ export interface UserCourse {
   courseName:     string;
   activatedAt:    Date;
   activationCode: string;
+  codeId?:        string; // doc id ของ activation code (ใช้ตรวจใน security rules)
 }
 
 export type ActivationError =
@@ -133,6 +134,8 @@ export async function activateCode(
         courseName:     codeData.courseName,
         activatedAt:    serverTimestamp(),
         activationCode: code,
+        // security rules ตรวจว่า codeId ชี้ไปยัง code ที่ active จริง
+        codeId:         codeDocRef.id,
       });
       tx.update(codeDocRef, { usedCount: increment(1) });
     });

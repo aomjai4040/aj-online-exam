@@ -2,82 +2,103 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Admin check ─────────────────────────────────────────────────────────
+    // ตรวจจาก email ที่ verify แล้วของ Google account
+    // เพิ่ม/ลบ admin: แก้ list นี้ + src/lib/admin-config.ts ให้ตรงกัน
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.token.email_verified == true
+          && request.auth.token.email in ['aomjai.4040@gmail.com'];
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     // ── Exams ───────────────────────────────────────────────────────────────
+    // อ่านได้เฉพาะชุดที่ publish (หน้าแรกไม่ต้อง login) | เขียนได้เฉพาะ admin
     match /exams/{examId} {
-      allow get:  if resource.data.isPublished == true || request.auth != null;
-      allow list: if true;
-      allow write: if request.auth != null;
+      allow read:  if resource.data.isPublished == true || isAdmin();
+      allow write: if isAdmin();
 
       match /questions/{questionId} {
-        allow read: if (
-            get(/databases/$(database)/documents/exams/$(examId)).data.isPublished == true
-          ) || request.auth != null;
-        allow write: if request.auth != null;
+        // NOTE: ยังมี correctAnswer ในเอกสาร — การซ่อนเฉลยจริงต้องย้ายไป
+        // ตรวจฝั่ง server (API route) ตามแผน; ขั้นนี้จำกัดแค่ผู้ที่ login แล้ว
+        allow read:  if isSignedIn();
+        allow write: if isAdmin();
       }
     }
 
     // ── Activation codes ────────────────────────────────────────────────────
+    // ผู้ใช้: อ่านเพื่อ activate + update ได้เฉพาะ usedCount ทีละ +1 เท่านั้น
+    // สร้าง/ลบ/แก้อย่างอื่น: admin เท่านั้น
     match /activationCodes/{codeId} {
-      allow read:  if request.auth != null;
-      allow write: if request.auth != null;
+      allow read:   if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (isSignedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedCount'])
+            && request.resource.data.usedCount == resource.data.usedCount + 1);
     }
 
     // ── User courses ────────────────────────────────────────────────────────
+    // สร้างได้เฉพาะของตัวเอง และต้องอ้างอิง activation code ที่มีจริง + active
+    // + code string/courseId ตรงกับเอกสาร code + ยังไม่หมดอายุ
     match /userCourses/{docId} {
-      allow read:   if request.auth != null;
-      allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null;
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.codeId is string
+        && get(/databases/$(database)/documents/activationCodes/$(request.resource.data.codeId)).data.status == 'active'
+        && get(/databases/$(database)/documents/activationCodes/$(request.resource.data.codeId)).data.code == request.resource.data.activationCode
+        && get(/databases/$(database)/documents/activationCodes/$(request.resource.data.codeId)).data.courseId == request.resource.data.courseId
+        && (get(/databases/$(database)/documents/activationCodes/$(request.resource.data.codeId)).data.expiresAt == null
+            || get(/databases/$(database)/documents/activationCodes/$(request.resource.data.codeId)).data.expiresAt > request.time);
+
+      allow update, delete: if isAdmin();
     }
 
-    // ── Users + subcollections ───────────────────────────────────────────────
+    // ── Users + subcollections ──────────────────────────────────────────────
+    // อ่าน/เขียนได้เฉพาะของตัวเอง (admin อ่านได้เพื่อ analytics)
     match /users/{userId} {
-      allow read:  if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read:  if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isSignedIn() && request.auth.uid == userId;
 
-      // exam history / results (ระบบเดิม)
+      // ครอบคลุม examSummaries, results, fcProgress, fcDeckStats ฯลฯ
       match /{subcol}/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-
-      // Flash Card progress (แยก rule เพื่อความชัดเจน)
-      match /fcProgress/{cardId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-
-      // Flash Card deck stats (aggregate counter ต่อ deck ต่อ user)
-      match /fcDeckStats/{deckId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read:  if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+        allow write: if isSignedIn() && request.auth.uid == userId;
       }
     }
 
     // ── Results ─────────────────────────────────────────────────────────────
+    // สร้าง/อ่านรายชิ้น: ผู้ที่ login | list/แก้/ลบ: admin (หน้า analytics)
     match /results/{resultId} {
-      allow create: if true;
-      allow get:    if true;
-      allow list:   if request.auth != null;
-      allow update, delete: if request.auth != null;
+      allow create: if isSignedIn();
+      allow get:    if isSignedIn();
+      allow list, update, delete: if isAdmin();
     }
 
-    // ── Flash Card Decks ─────────────────────────────────────────────────────
-    // published deck → อ่านได้ทุกคน  |  write → auth only (admin)
+    // ── Flash Card Decks / Cards ────────────────────────────────────────────
+    // login แล้วอ่านได้ทั้งหมด (มี query by slug ที่ไม่กรอง published)
+    // ไม่ login อ่านได้เฉพาะที่ publish | เขียน: admin เท่านั้น
     match /flashcardDecks/{deckId} {
-      allow read:  if resource.data.isPublished == true || request.auth != null;
-      allow write: if request.auth != null;
+      allow read:  if isSignedIn() || resource.data.isPublished == true;
+      allow write: if isAdmin();
     }
 
-    // ── Flash Cards ──────────────────────────────────────────────────────────
-    // published card → อ่านได้ทุกคน  |  write → auth only
     match /flashcards/{cardId} {
-      allow read:  if resource.data.isPublished == true || request.auth != null;
-      allow write: if request.auth != null;
+      allow read:  if isSignedIn() || resource.data.isPublished == true;
+      allow write: if isAdmin();
     }
 
-    // ── MOPH Focus ───────────────────────────────────────────────────────────
-    // อ่านได้เมื่อ login แล้ว  |  write → auth only (admin)
+    // ── MOPH Focus ──────────────────────────────────────────────────────────
+    // หน้า user query ทั้ง collection แล้วกรอง client-side → ต้องอ่านได้เมื่อ login
     match /mophFocus/{docId} {
-      allow read:  if request.auth != null;
-      allow write: if request.auth != null;
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
     }
 
   }
