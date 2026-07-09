@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
-import { MOCK_EXAM_LIST, type Difficulty } from "@/lib/mock-data";
+import type { Difficulty } from "@/lib/mock-data";
 import { getHistory, type ExamRecord } from "@/lib/exam-history";
 import { getUserHistory } from "@/lib/user-firestore";
 import { useAuth } from "@/lib/auth-context";
@@ -244,7 +244,7 @@ export default function ExamsPage() {
   const [loading,       setLoading]       = useState(true);
   const [search,        setSearch]        = useState("");
   const [activeSubject, setActiveSubject] = useState("ทั้งหมด");
-  const [isMock,        setIsMock]        = useState(false);
+  const [loadError,     setLoadError]     = useState(false);
   const [history,       setHistory]       = useState<Record<string, ExamRecord>>({});
 
   // Load history: Firestore when logged in, otherwise localStorage
@@ -261,18 +261,10 @@ export default function ExamsPage() {
   useEffect(() => {
     getPublishedExams()
       .then((data) => {
-        if (data.length > 0) {
-          setExams(data);
-          setIsMock(false);
-        } else {
-          setExams(MOCK_EXAM_LIST as ExamCard[]);
-          setIsMock(true);
-        }
+        setExams(data);
+        setLoadError(false);
       })
-      .catch(() => {
-        setExams(MOCK_EXAM_LIST as ExamCard[]);
-        setIsMock(true);
-      })
+      .catch(() => setLoadError(true)) // แสดง error จริง ไม่ใช้ข้อมูลจำลอง
       .finally(() => setLoading(false));
   }, []);
 
@@ -416,12 +408,12 @@ export default function ExamsPage() {
                 ? `แสดง ${filtered.length} จาก ${exams.length} ชุด`
                 : `ชุดข้อสอบทั้งหมด ${exams.length} ชุด`}
             </p>
-            {isMock && (
+            {loadError && (
               <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase"
-                style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
+                className="text-[10px] font-bold px-2 py-0.5 rounded tracking-wide"
+                style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
               >
-                Demo
+                โหลดไม่สำเร็จ — ลองรีเฟรช
               </span>
             )}
           </div>

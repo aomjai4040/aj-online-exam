@@ -1,9 +1,8 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getExam, getQuestions, saveResult } from "@/lib/firestore";
-import { MOCK_EXAM_LIST, MOCK_EXAM, MOCK_QUESTIONS } from "@/lib/mock-data";
 import { saveRecord } from "@/lib/exam-history";
 import { saveUserRecord } from "@/lib/user-firestore";
 import { useAuth } from "@/lib/auth-context";
@@ -11,30 +10,43 @@ import { useAccessGuard } from "@/lib/use-access-guard";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import type { Exam, Question } from "@/lib/types";
 
-// ─── Shuffle helpers ─────────────────────────────────────────────────────────
-
-function shuffleArr<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-/** Shuffle a question's options and remap correctAnswer. Safe for inline review. */
-function shuffleOptions(q: Question): Question {
-  const perm = shuffleArr([0, 1, 2, 3]);
-  return {
-    ...q,
-    options:       perm.map((i) => q.options[i]) as [string, string, string, string],
-    correctAnswer: perm.indexOf(q.correctAnswer),
-  };
-}
-
 // ─── Types & helpers ─────────────────────────────────────────────────────────
 
-type Phase = "loading" | "intro" | "exam" | "result";
+type Phase = "loading" | "intro" | "exam" | "result" | "error";
+
+// ─── Autosave (กันคำตอบหายเมื่อ refresh / สลับแอปบนมือถือ) ────────────────────
+
+interface SavedProgress {
+  answers: number[];
+  current: number;
+  elapsed: number;  // วินาทีที่ใช้ไปแล้ว
+  qCount:  number;  // ไว้เช็คว่าชุดข้อสอบยังเป็นชุดเดิม
+  savedAt: number;
+}
+
+const PROGRESS_TTL = 24 * 60 * 60 * 1000; // เก็บไม่เกิน 24 ชม.
+
+function progressKey(id: string) { return `exam-progress-${id}`; }
+
+function loadProgress(id: string, qCount: number): SavedProgress | null {
+  try {
+    const raw = localStorage.getItem(progressKey(id));
+    if (!raw) return null;
+    const p = JSON.parse(raw) as SavedProgress;
+    if (p.qCount !== qCount) return null;                 // ชุดข้อสอบถูกแก้ไประหว่างทาง
+    if (Date.now() - p.savedAt > PROGRESS_TTL) return null;
+    if (!p.answers.some((a) => a !== -1)) return null;    // ยังไม่ได้ตอบอะไรเลย
+    return p;
+  } catch { return null; }
+}
+
+function saveProgress(id: string, p: SavedProgress) {
+  try { localStorage.setItem(progressKey(id), JSON.stringify(p)); } catch { /* quota */ }
+}
+
+function clearProgress(id: string) {
+  try { localStorage.removeItem(progressKey(id)); } catch { /* noop */ }
+}
 
 const OPTS = ["ก", "ข", "ค", "ง"] as const;
 
@@ -60,51 +72,56 @@ export default function ExamPage() {
   const [exam,      setExam]      = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [phase,     setPhase]     = useState<Phase>("loading");
-  const [isMock,    setIsMock]    = useState(false);
   const [name,      setName]      = useState("");
   const [current,   setCurrent]   = useState(0);
   const [answers,   setAnswers]   = useState<number[]>([]);
   const [timeLeft,  setTimeLeft]  = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
+  const [saved,     setSaved]     = useState<SavedProgress | null>(null);
 
   const startRef    = useRef<number>(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stopwatchRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // answers ตัวจริงสำหรับ submit — กัน stale closure ตอน timer หมดเวลา
+  // (interval ของ countdown จับ state answers ณ ตอนเริ่มสอบ ถ้าใช้ state ตรง ๆ
+  //  การ auto-submit ตอนหมดเวลาจะเห็นคำตอบว่างทั้งหมด)
+  const answersRef = useRef<number[]>([]);
+
+  function setAnswersBoth(next: number[]) {
+    answersRef.current = next;
+    setAnswers(next);
+  }
+
   // ── Load data ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    (async () => {
-      try {
-        const [e, qs] = await Promise.all([getExam(id), getQuestions(id)]);
-        if (e && qs.length > 0) {
-          setExam(e);
-          setQuestions(qs);
-          setAnswers(new Array(qs.length).fill(-1));
-          setIsMock(false);
-        } else {
-          // Firebase has no questions → use mock data
-          const mockMeta = MOCK_EXAM_LIST.find((m) => m.id === id) ?? MOCK_EXAM;
-          setExam({ ...mockMeta, id } as Exam);
-          setQuestions(MOCK_QUESTIONS);
-          setAnswers(new Array(MOCK_QUESTIONS.length).fill(-1));
-          setIsMock(true);
-        }
-      } catch {
-        // Firebase not reachable → use mock data
-        const mockMeta = MOCK_EXAM_LIST.find((m) => m.id === id) ?? MOCK_EXAM;
-        setExam({ ...mockMeta, id } as Exam);
-        setQuestions(MOCK_QUESTIONS);
-        setAnswers(new Array(MOCK_QUESTIONS.length).fill(-1));
-        setIsMock(true);
+  const loadExam = useCallback(async () => {
+    setPhase("loading");
+    try {
+      const [e, qs] = await Promise.all([getExam(id), getQuestions(id)]);
+      if (!e || qs.length === 0) {
+        setExam(e);           // null = ไม่พบชุดข้อสอบ, มี e แต่ไม่มีข้อ = ชุดว่าง
+        setPhase("error");
+        return;
       }
+      setExam(e);
+      setQuestions(qs);
+      answersRef.current = new Array(qs.length).fill(-1);
+      setAnswers(answersRef.current);
+      setSaved(loadProgress(id, qs.length));
       setPhase("intro");
-    })();
+    } catch {
+      setPhase("error");      // โหลดไม่สำเร็จ — แสดงปุ่มลองใหม่ ไม่ใช้ข้อมูลจำลอง
+    }
   }, [id]);
+
+  useEffect(() => { loadExam(); }, [loadExam]);
 
   // ── Countdown timer ────────────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== "exam" || !exam?.timeLimit) return;
-    setTimeLeft(exam.timeLimit * 60);
+    // หักเวลาที่ใช้ไปแล้ว (กรณีทำต่อจากที่ค้างไว้ startRef ถูกตั้งย้อนหลัง)
+    const alreadyUsed = Math.round((Date.now() - startRef.current) / 1000);
+    setTimeLeft(Math.max(exam.timeLimit * 60 - alreadyUsed, 0));
     countdownRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) { clearInterval(countdownRef.current!); submitExam(true); return 0; }
@@ -114,6 +131,18 @@ export default function ExamPage() {
     return () => clearInterval(countdownRef.current!);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
+
+  // ── Autosave ทุกครั้งที่คำตอบ/ข้อปัจจุบันเปลี่ยน ─────────────────────────────
+  useEffect(() => {
+    if (phase !== "exam") return;
+    saveProgress(id, {
+      answers,
+      current,
+      elapsed: Math.round((Date.now() - startRef.current) / 1000),
+      qCount:  questions.length,
+      savedAt: Date.now(),
+    });
+  }, [answers, current, phase, id, questions.length]);
 
   // ── Stopwatch ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -126,38 +155,51 @@ export default function ExamPage() {
 
   // ── Actions ────────────────────────────────────────────────────────────────
   function startExam() {
-    // Mock exams: shuffle question order + options (inline result so no Firestore index issue)
-    if (isMock) {
-      const shuffled = shuffleArr(questions).map(shuffleOptions);
-      setQuestions(shuffled);
-      setAnswers(new Array(shuffled.length).fill(-1));
-    }
+    clearProgress(id);          // เริ่มใหม่ = ทิ้งความคืบหน้าเก่า
+    setSaved(null);
+    setAnswersBoth(new Array(questions.length).fill(-1));
     startRef.current = Date.now();
     setCurrent(0);
     setPhase("exam");
   }
 
+  /** ทำต่อจากที่ค้างไว้ (จาก autosave) */
+  function resumeExam(p: SavedProgress) {
+    setAnswersBoth([...p.answers]);
+    setCurrent(Math.min(p.current, questions.length - 1));
+    startRef.current = Date.now() - p.elapsed * 1000; // ให้ timer เดินต่อจากเดิม
+    setPhase("exam");
+  }
+
   function select(optIdx: number) {
-    setAnswers((prev) => { const n = [...prev]; n[current] = optIdx; return n; });
+    const n = [...answersRef.current];
+    n[current] = optIdx;
+    setAnswersBoth(n);
   }
 
   function goNext() { if (current < questions.length - 1) setCurrent((c) => c + 1); }
   function goPrev() { if (current > 0) setCurrent((c) => c - 1); }
 
   async function submitExam(forced = false) {
+    // ใช้ ref ไม่ใช่ state — ตอน timer หมดเวลา closure ของ interval
+    // เห็น state เก่า แต่ ref เห็นคำตอบล่าสุดเสมอ
+    const finalAnswers = answersRef.current;
+
     if (!forced) {
-      const unanswered = answers.filter((a) => a === -1).length;
+      const unanswered = finalAnswers.filter((a) => a === -1).length;
       if (unanswered > 0 && !confirm(`ยังมี ${unanswered} ข้อที่ยังไม่ตอบ\nต้องการส่งเลยหรือไม่?`)) return;
     }
     clearInterval(countdownRef.current!);
     clearInterval(stopwatchRef.current!);
     const elapsed = Math.round((Date.now() - startRef.current) / 1000);
     setTimeSpent(elapsed);
+    setAnswers([...finalAnswers]); // sync state ให้หน้าเฉลยเห็นคำตอบชุดเดียวกัน
+    clearProgress(id);             // ส่งแล้ว — ทิ้ง autosave
 
-    const score = questions.reduce((acc, q, i) => acc + (answers[i] === q.correctAnswer ? 1 : 0), 0);
+    const score = questions.reduce((acc, q, i) => acc + (finalAnswers[i] === q.correctAnswer ? 1 : 0), 0);
     const pct   = Math.round((score / questions.length) * 100);
 
-    // Always persist to localStorage (mock or real exam)
+    // Persist to localStorage
     saveRecord({ examId: id, score, totalQuestions: questions.length, percentage: pct, doneAt: new Date().toISOString() });
 
     // Also save to Firestore when user is logged in
@@ -172,13 +214,13 @@ export default function ExamPage() {
       }).catch(console.error); // fire-and-forget
     }
 
-    if (!isMock && exam) {
+    if (exam) {
       try {
         await saveResult({
           examId: id,
           examTitle: exam.title,
           studentName: name.trim() || "ผู้สอบ",
-          answers,
+          answers: finalAnswers,
           score,
           totalQuestions: questions.length,
           percentage: pct,
@@ -190,7 +232,8 @@ export default function ExamPage() {
   }
 
   function retakeExam() {
-    setAnswers(new Array(questions.length).fill(-1));
+    clearProgress(id);
+    setAnswersBoth(new Array(questions.length).fill(-1));
     setCurrent(0);
     setTimeSpent(0);
     startRef.current = Date.now();
@@ -214,11 +257,39 @@ export default function ExamPage() {
     );
   }
 
-  if (!exam) {
+  if (phase === "error" || !exam) {
+    const notFound = phase === "error" && exam === null;
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 px-5 text-center">
-        <p className="text-[15px] font-semibold text-gray-700">ไม่พบชุดข้อสอบนี้</p>
-        <Link href="/" className="btn-primary text-sm">← กลับหน้าหลัก</Link>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] gap-3 px-5 text-center">
+        <div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1"
+          style={{ backgroundColor: "#FEF2F2" }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626"
+            strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <p className="text-[16px] font-bold text-gray-900">
+          {notFound ? "ไม่พบชุดข้อสอบนี้" : "โหลดข้อสอบไม่สำเร็จ"}
+        </p>
+        <p className="text-[13px] max-w-xs" style={{ color: "#A8A8A6" }}>
+          {notFound
+            ? "ชุดข้อสอบอาจถูกลบหรือยังไม่เปิดใช้งาน"
+            : "อาจเป็นปัญหาการเชื่อมต่ออินเทอร์เน็ต กรุณาลองใหม่อีกครั้ง"}
+        </p>
+        <div className="flex gap-3 mt-3">
+          {!notFound && (
+            <button onClick={loadExam} className="btn-primary text-sm px-6 py-2.5">
+              ลองใหม่
+            </button>
+          )}
+          <Link href="/exams" className="btn-secondary text-sm px-6 py-2.5">
+            ← คลังข้อสอบ
+          </Link>
+        </div>
       </div>
     );
   }
@@ -296,20 +367,45 @@ export default function ExamPage() {
             />
           </div>
 
-          {/* CTA */}
-          <button className="btn-primary w-full py-3.5 text-[15px]" onClick={startExam}>
-            เริ่มทำข้อสอบ
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-
-          {isMock && (
-            <p className="text-center mt-4 text-[11px]" style={{ color: "#C4C4C0" }}>
-              ข้อมูลจำลอง (Demo Mode)
-            </p>
+          {/* Resume banner — มีความคืบหน้าค้างจาก autosave */}
+          {saved && (
+            <div
+              className="rounded-2xl p-4 mb-4"
+              style={{ backgroundColor: "#EBF5F3", border: "1px solid #C3E5DE" }}
+            >
+              <p className="text-[13.5px] font-bold mb-0.5" style={{ color: "#0B6E65" }}>
+                มีข้อสอบที่ทำค้างไว้
+              </p>
+              <p className="text-[12px] mb-3" style={{ color: "#0B6E65", opacity: 0.75 }}>
+                ตอบไปแล้ว {saved.answers.filter((a) => a !== -1).length}/{saved.qCount} ข้อ
+                {exam.timeLimit > 0 && ` · ใช้เวลาไป ${Math.round(saved.elapsed / 60)} นาที`}
+              </p>
+              <button
+                className="btn-primary w-full py-3 text-[14px]"
+                onClick={() => resumeExam(saved)}
+              >
+                ทำต่อจากเดิม
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
           )}
+
+          {/* CTA */}
+          <button
+            className={saved ? "btn-secondary w-full py-3.5 text-[15px]" : "btn-primary w-full py-3.5 text-[15px]"}
+            onClick={startExam}
+          >
+            {saved ? "เริ่มใหม่ตั้งแต่ข้อแรก" : "เริ่มทำข้อสอบ"}
+            {!saved && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
     );
