@@ -26,6 +26,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
+import { getInAppBrowser, escapeInAppBrowser } from "./in-app-browser";
 
 // ─── Module-level redirect processing ────────────────────────────────────────
 //
@@ -141,6 +142,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // After popup we explicitly set state — iOS Safari's cross-tab IndexedDB
   // sync is unreliable, so we cannot rely on onAuthStateChanged alone.
   const signIn = useCallback(async () => {
+    // Google บล็อก OAuth ใน in-app browser (403 disallowed_useragent)
+    // LINE: เด้งออก Safari/Chrome อัตโนมัติ | อื่น ๆ: โยน error ให้หน้า login แสดงวิธี
+    const inApp = getInAppBrowser();
+    if (inApp) {
+      if (escapeInAppBrowser()) return; // LINE — กำลังเปิดเบราว์เซอร์ภายนอก
+      const err = new Error("in-app browser blocked") as Error & { code: string };
+      err.code = "app/in-app-browser";
+      throw err;
+    }
+
     if (shouldUseRedirect()) {
       console.log("[Auth] signIn → redirect");
       await signInWithRedirect(auth, GOOGLE);

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { checkUserHasAnyAccess } from "@/lib/activation";
+import { getInAppBrowser, lineExternalBrowserUrl, type InAppBrowser } from "@/lib/in-app-browser";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 
 // ─── Destination resolver ─────────────────────────────────────────────────────
@@ -40,6 +41,18 @@ function LoginInner() {
 
   const [busy,  setBusy]  = useState(false);
   const [error, setError] = useState("");
+  const [inApp, setInApp] = useState<InAppBrowser | null>(null);
+
+  // ── In-app browser (LINE/FB/IG) — Google บล็อก OAuth ใน webview ─────────────
+  // LINE: เด้งออก Safari/Chrome อัตโนมัติทันทีด้วย openExternalBrowser=1
+  // อื่น ๆ: แสดง banner วิธีเปิดในเบราว์เซอร์
+  useEffect(() => {
+    const b = getInAppBrowser();
+    setInApp(b);
+    if (b === "line") {
+      window.location.replace(lineExternalBrowserUrl());
+    }
+  }, []);
 
   // ── Redirect when user becomes known ────────────────────────────────────────
   useEffect(() => {
@@ -66,7 +79,8 @@ function LoginInner() {
       // redirect: page navigates away — no more code runs here
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
-      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
+      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request"
+          && code !== "app/in-app-browser") { // banner ด้านบนอธิบายวิธีอยู่แล้ว
         setError("เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่");
       }
       setBusy(false);
@@ -84,7 +98,8 @@ function LoginInner() {
       //   (because new user has no courses yet)
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
-      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
+      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request"
+          && code !== "app/in-app-browser") { // banner ด้านบนอธิบายวิธีอยู่แล้ว
         setError("เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่");
       }
       setBusy(false);
@@ -122,6 +137,31 @@ function LoginInner() {
             เข้าสู่ระบบเพื่อเริ่มทำข้อสอบ
           </p>
         </div>
+
+        {/* In-app browser notice */}
+        {inApp === "line" && (
+          <div style={{ backgroundColor:"#EBF5F3", borderRadius:12, padding:"12px 16px",
+            marginBottom:16, fontSize:13, fontWeight:500, color:"#0B6E65" }}>
+            กำลังเปิดในเบราว์เซอร์เพื่อความปลอดภัย…
+            <br />
+            <a href={typeof window !== "undefined" ? lineExternalBrowserUrl() : "#"}
+              style={{ color:"#0B6E65", textDecoration:"underline", fontWeight:600 }}>
+              ถ้าไม่เด้งอัตโนมัติ แตะที่นี่
+            </a>
+          </div>
+        )}
+        {inApp && inApp !== "line" && (
+          <div style={{ backgroundColor:"#FFFBEB", borderRadius:12, padding:"12px 16px",
+            marginBottom:16, fontSize:13, lineHeight:1.6, color:"#92400E",
+            border:"1px solid #FDE68A" }}>
+            <strong>เปิดจากแอป {inApp === "facebook" ? "Facebook" : inApp === "instagram" ? "Instagram" : "Messenger"} อยู่</strong>
+            <br />
+            Google ไม่อนุญาตให้เข้าสู่ระบบจากในแอปนี้
+            <br />
+            👉 แตะปุ่ม <strong>⋯</strong> มุมขวาบน แล้วเลือก{" "}
+            <strong>&ldquo;เปิดในเบราว์เซอร์&rdquo;</strong> (Open in browser)
+          </div>
+        )}
 
         {/* Error */}
         {error && (
