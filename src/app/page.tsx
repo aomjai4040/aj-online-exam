@@ -623,7 +623,15 @@ export default function HomePage() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {isNewExam(exam) && (
+                  {exam.isFree && (
+                    <span
+                      className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-[3px] rounded"
+                      style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}
+                    >
+                      ฟรี
+                    </span>
+                  )}
+                  {isNewExam(exam) && !exam.isFree && (
                     <span
                       className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-[3px] rounded"
                       style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}

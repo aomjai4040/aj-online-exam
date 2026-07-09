@@ -19,6 +19,8 @@ export default function EditExamPage() {
           subject: exam.subject,
           timeLimit: exam.timeLimit,
           isPublished: exam.isPublished,
+          isFree: exam.isFree ?? false,
+          packageId: exam.packageId,
           questions: qs.map((q: Question) => ({
             text: q.text,
             options: q.options,

@@ -291,6 +291,7 @@ export default function ExamEditor({
     subject:     initial?.subject     ?? "",
     timeLimit:   initial?.timeLimit   ?? 0,
     isPublished: initial?.isPublished ?? false,
+    isFree:      initial?.isFree      ?? false,
   });
 
   const [questions, setQuestions] = useState<QuestionForm[]>(
@@ -592,6 +593,26 @@ export default function ExamEditor({
             <Toggle
               checked={meta.isPublished}
               onChange={(v) => setMetaField("isPublished", v)}
+              disabled={saving}
+            />
+          </div>
+
+          {/* Free trial toggle */}
+          <div className="flex items-center justify-between gap-4 mt-4 pt-4"
+            style={{ borderTop: "1px solid #F3F2F0" }}>
+            <div className="flex-1">
+              <p className="text-[14px] font-semibold text-gray-900 mb-1">
+                🎁 ทดลองทำฟรี
+              </p>
+              <p className="text-[12px] leading-relaxed" style={{ color: "#A8A8A6" }}>
+                {meta.isFree
+                  ? "✅ ใครก็ทำได้โดยไม่ต้องมีสิทธิ์คอร์ส (ชุดตัวอย่าง)"
+                  : "🔒 ต้องมีสิทธิ์คอร์ส/แพ็กเกจจึงทำได้"}
+              </p>
+            </div>
+            <Toggle
+              checked={meta.isFree}
+              onChange={(v) => setMetaField("isFree", v)}
               disabled={saving}
             />
           </div>

@@ -61,6 +61,8 @@ export interface Exam {
   timeLimit: number;   // minutes, 0 = no limit
   questionCount: number;
   isPublished: boolean;
+  isFree?: boolean;    // true = ทดลองทำฟรี ไม่ต้องมีสิทธิ์คอร์ส
+  packageId?: string;  // แพ็กเกจที่ชุดนี้สังกัด (per-package entitlement); undefined = ยังไม่ผูก (ใช้ legacy access)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,5 +102,7 @@ export interface ExamForm {
   subject: string;
   timeLimit: number;
   isPublished: boolean;
+  isFree?: boolean;
+  packageId?: string;
   questions: QuestionForm[];
 }

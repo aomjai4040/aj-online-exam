@@ -1,18 +1,18 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getExam, getQuestions, saveResult } from "@/lib/firestore";
 import { saveRecord } from "@/lib/exam-history";
 import { saveUserRecord } from "@/lib/user-firestore";
 import { useAuth } from "@/lib/auth-context";
-import { useAccessGuard } from "@/lib/use-access-guard";
+import { getUserAccess, decideExamAccess } from "@/lib/access";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import type { Exam, Question } from "@/lib/types";
 
 // ─── Types & helpers ─────────────────────────────────────────────────────────
 
-type Phase = "loading" | "intro" | "exam" | "result" | "error";
+type Phase = "loading" | "intro" | "exam" | "result" | "error" | "locked";
 
 // ─── Autosave (กันคำตอบหายเมื่อ refresh / สลับแอปบนมือถือ) ────────────────────
 
@@ -65,13 +65,14 @@ function gradeInfo(pct: number) {
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function ExamPage() {
-  const guard    = useAccessGuard();
   const { id }   = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const router   = useRouter();
+  const { user, loading: authLoading } = useAuth();
 
   const [exam,      setExam]      = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [phase,     setPhase]     = useState<Phase>("loading");
+  const [locked,    setLocked]    = useState<Exam | null>(null); // ชุดที่ยังไม่มีสิทธิ์ (แสดงหน้าปลดล็อก)
   const [name,      setName]      = useState("");
   const [current,   setCurrent]   = useState(0);
   const [answers,   setAnswers]   = useState<number[]>([]);
@@ -94,15 +95,28 @@ export default function ExamPage() {
   }
 
   // ── Load data ──────────────────────────────────────────────────────────────
+  // ลำดับ: โหลด meta ก่อน → ตรวจสิทธิ์ → ดึงคำถามเฉพาะเมื่อมีสิทธิ์
+  // (ไม่ fetch คำถามของชุดที่ล็อก — กันเนื้อหารั่วไปให้คนที่ยังไม่ซื้อ)
   const loadExam = useCallback(async () => {
+    if (authLoading) return;            // รอ auth พร้อมก่อน
+    if (!user) {                        // ยังไม่ login → ไป login แล้วกลับมา
+      router.replace(`/login?from=${encodeURIComponent(`/exam/${id}`)}`);
+      return;
+    }
     setPhase("loading");
+    setLocked(null);
     try {
-      const [e, qs] = await Promise.all([getExam(id), getQuestions(id)]);
-      if (!e || qs.length === 0) {
-        setExam(e);           // null = ไม่พบชุดข้อสอบ, มี e แต่ไม่มีข้อ = ชุดว่าง
-        setPhase("error");
-        return;
-      }
+      const e = await getExam(id);
+      if (!e) { setExam(null); setPhase("error"); return; }
+
+      // ตรวจสิทธิ์แบบ per-package
+      const access  = await getUserAccess(user.uid);
+      const verdict = decideExamAccess(e, user.uid, access);
+      if (verdict === "locked") { setLocked(e); setPhase("locked"); return; }
+
+      // มีสิทธิ์ → ดึงคำถาม
+      const qs = await getQuestions(id);
+      if (qs.length === 0) { setExam(e); setPhase("error"); return; }
       setExam(e);
       setQuestions(qs);
       answersRef.current = new Array(qs.length).fill(-1);
@@ -112,7 +126,7 @@ export default function ExamPage() {
     } catch {
       setPhase("error");      // โหลดไม่สำเร็จ — แสดงปุ่มลองใหม่ ไม่ใช้ข้อมูลจำลอง
     }
-  }, [id]);
+  }, [id, user, authLoading, router]);
 
   useEffect(() => { loadExam(); }, [loadExam]);
 
@@ -240,7 +254,65 @@ export default function ExamPage() {
     setPhase("exam");
   }
 
-  if (guard !== "allowed") return <AccessGuardSpinner />;
+  // รอ auth / กำลังพาไป login
+  if (authLoading || !user) return <AccessGuardSpinner />;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ── LOCKED (ยังไม่มีสิทธิ์ในชุดนี้) ─────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (phase === "locked" && locked) {
+    return (
+      <div className="min-h-screen bg-stone-50 pb-16">
+        <div className="max-w-lg mx-auto px-5 pt-8">
+          <Link
+            href="/exams"
+            className="inline-flex items-center gap-1.5 text-[13px] mb-8 transition-colors"
+            style={{ color: "#A8A8A6" }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            คลังข้อสอบ
+          </Link>
+
+          {/* Lock hero */}
+          <div className="rounded-2xl p-6 text-center mb-5"
+            style={{ background: "linear-gradient(160deg, #0B6E65 0%, #0d9488 100%)" }}>
+            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+            </div>
+            <p className="text-[12px] font-bold tracking-widest uppercase text-white/70 mb-1">
+              เนื้อหาล็อกอยู่
+            </p>
+            <h1 className="text-[19px] font-bold text-white leading-snug mb-1">{locked.title}</h1>
+            <p className="text-[13px] text-white/80">
+              {locked.subject} · {locked.questionCount} ข้อ
+            </p>
+          </div>
+
+          <p className="text-[13px] text-center leading-relaxed mb-6" style={{ color: "#6B6B6A" }}>
+            ปลดล็อกชุดนี้เพื่อทำข้อสอบพร้อมเฉลยละเอียด
+            <br />
+            หากมีรหัสเปิดใช้งานอยู่แล้ว กรอกได้เลย
+          </p>
+
+          <div className="space-y-3">
+            <Link href="/packages" className="btn-primary w-full py-3.5 text-[15px] text-center block">
+              ดูแพ็กเกจ & สั่งซื้อ
+            </Link>
+            <Link href="/activate" className="btn-secondary w-full py-3.5 text-[15px] text-center block">
+              กรอกรหัสเปิดใช้งาน
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ── LOADING ────────────────────────────────────────────────────────────────

@@ -3,22 +3,16 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { checkUserHasAnyAccess } from "@/lib/activation";
 import { getInAppBrowser, lineExternalBrowserUrl, type InAppBrowser } from "@/lib/in-app-browser";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 
 // ─── Destination resolver ─────────────────────────────────────────────────────
+// ไม่บังคับไป /activate อีกต่อไป — ผู้ใช้ใหม่เข้าเว็บได้เลย (ทดลองฟรี / เลือกซื้อ)
+// การเช็คสิทธิ์ย้ายไปทำต่อชุดข้อสอบแทน (ดู lib/access.ts)
 
-async function resolveAfterLogin(uid: string, from: string): Promise<string> {
-  // Don't send users back to /login (loop) or /activate (defeats purpose)
-  const safePaths = ["/exams", "/dashboard", "/exam/", "/result/", "/activate"];
-  const dest = safePaths.some(p => from.startsWith(p)) ? from : "/dashboard";
-  try {
-    const hasAccess = await checkUserHasAnyAccess(uid);
-    return hasAccess ? dest : "/activate";
-  } catch {
-    return "/activate";
-  }
+function resolveAfterLogin(from: string): string {
+  const safePaths = ["/exams", "/dashboard", "/exam/", "/result/", "/activate", "/packages", "/free"];
+  return safePaths.some((p) => from.startsWith(p)) ? from : "/dashboard";
 }
 
 // ─── Button helpers ───────────────────────────────────────────────────────────
@@ -57,11 +51,9 @@ function LoginInner() {
   // ── Redirect when user becomes known ────────────────────────────────────────
   useEffect(() => {
     if (loading || !user) return;
-    console.log("[Login] user ready →", user.email, "resolving destination...");
-    resolveAfterLogin(user.uid, from).then(dest => {
-      console.log("[Login] → router.replace:", dest);
-      router.replace(dest);
-    });
+    const dest = resolveAfterLogin(from);
+    console.log("[Login] user ready →", user.email, "→", dest);
+    router.replace(dest);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading]);
 

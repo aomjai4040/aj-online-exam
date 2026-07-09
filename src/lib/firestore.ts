@@ -78,6 +78,8 @@ export async function createExam(form: ExamForm): Promise<string> {
     subject: form.subject,
     timeLimit: form.timeLimit,
     isPublished: form.isPublished,
+    isFree: form.isFree ?? false,
+    ...(form.packageId ? { packageId: form.packageId } : {}),
     questionCount: form.questions.length,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -100,6 +102,8 @@ export async function updateExam(examId: string, form: ExamForm): Promise<void> 
     subject: form.subject,
     timeLimit: form.timeLimit,
     isPublished: form.isPublished,
+    isFree: form.isFree ?? false,
+    ...(form.packageId ? { packageId: form.packageId } : {}),
     questionCount: form.questions.length,
     updatedAt: serverTimestamp(),
   });

@@ -8,7 +8,7 @@ import {
   type UserExamSummary, type UserResult,
 } from "@/lib/user-firestore";
 import { getUserCourses, type UserCourse } from "@/lib/activation";
-import { useAccessGuard } from "@/lib/use-access-guard";
+import { useLoginGuard } from "@/lib/use-login-guard";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
 
@@ -305,7 +305,7 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const guard = useAccessGuard();
+  const guard = useLoginGuard();
   const { user } = useAuth();
 
   const [summaries,   setSummaries]   = useState<UserExamSummary[]>([]);

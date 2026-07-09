@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getResult, getQuestions } from "@/lib/firestore";
-import { useAccessGuard } from "@/lib/use-access-guard";
+import { useLoginGuard } from "@/lib/use-login-guard";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import type { ExamResult, Question } from "@/lib/types";
 
@@ -44,7 +44,7 @@ function formatTime(s: number) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ResultPage() {
-  const guard = useAccessGuard();
+  const guard = useLoginGuard();
   const { id } = useParams<{ id: string }>();
   const [result,    setResult]    = useState<ExamResult | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
