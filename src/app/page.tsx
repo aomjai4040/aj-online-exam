@@ -7,18 +7,7 @@ import type { Exam } from "@/lib/types";
 import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/lib/auth-context";
 import { subjectColor as dotColor, BRAND } from "@/lib/subjects";
-
-// ─── Subject filter chips ────────────────────────────────────────────────────
-
-const SUBJECT_CHIPS = [
-  "ทั้งหมด",
-  "ระบาดวิทยา",
-  "อนามัยสิ่งแวดล้อม",
-  "กฎหมาย",
-  "บริหารสาธารณสุข",
-  "ชีวสถิติ",
-  "นโยบาย สป.สธ.",
-];
+import { getSubjectShort } from "@/lib/types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -67,7 +56,7 @@ function LatestCard({ exam }: { exam: Exam }) {
           </span>
         ) : (
           <span className="text-[14px]" style={{ color }}>
-            {exam.subject.slice(0, 4)}
+            {getSubjectShort(exam.subject)}
           </span>
         )}
       </div>
@@ -115,6 +104,9 @@ export default function HomePage() {
   // ตัวเลขความน่าเชื่อถือใน hero — คำนวณจากข้อมูลจริง
   const totalQuestions = exams.reduce((s, e) => s + (e.questionCount || 0), 0);
   const subjectCount   = new Set(exams.map((e) => e.subject)).size;
+
+  // chips ตัวกรองหมวด — สร้างจากหมวดที่มีข้อสอบจริงเท่านั้น (กันกดแล้วว่าง)
+  const subjectChips = ["ทั้งหมด", ...Array.from(new Set(exams.map((e) => e.subject))).sort()];
 
   const filtered = exams.filter((e) => {
     const q = search.toLowerCase().trim();
@@ -511,7 +503,7 @@ export default function HomePage() {
 
         {/* Subject chips */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-3">
-          {SUBJECT_CHIPS.map((chip) => {
+          {subjectChips.map((chip) => {
             const active = selectedSubject === chip;
             return (
               <button
@@ -525,7 +517,7 @@ export default function HomePage() {
                   border:          active ? `1px solid ${BRAND.primary}` : "1px solid #E0DFDC",
                 }}
               >
-                {chip}
+                {chip === "ทั้งหมด" ? chip : getSubjectShort(chip)}
               </button>
             );
           })}
@@ -606,7 +598,7 @@ export default function HomePage() {
                     {exam.title}
                   </p>
                   <p className="text-[12px] mt-0.5 truncate" style={{ color: "#A8A8A6" }}>
-                    {exam.subject}
+                    {getSubjectShort(exam.subject)}
                     {exam.timeLimit > 0 && ` · ${exam.timeLimit} นาที`}
                   </p>
                 </div>

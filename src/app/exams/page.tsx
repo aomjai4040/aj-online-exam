@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
+import { getSubjectShort } from "@/lib/types";
 import type { Difficulty } from "@/lib/mock-data";
 import { getHistory, type ExamRecord } from "@/lib/exam-history";
 import { getUserHistory } from "@/lib/user-firestore";
@@ -102,7 +103,7 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
             className="text-[12px] font-bold px-2.5 py-[5px] rounded-full"
             style={{ backgroundColor: chipBg, color }}
           >
-            {exam.subject}
+            {getSubjectShort(exam.subject)}
           </span>
           <div className="flex items-center gap-1.5">
             {isFree && (
@@ -224,8 +225,12 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
         ) : (
           <div
             className="flex items-center justify-center gap-2 py-3 rounded-xl
-                       text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "#0B6E65" }}
+                       text-[13.5px] font-semibold transition-opacity hover:opacity-90"
+            style={
+              isDone
+                ? { backgroundColor: "#EBF5F3", color: "#0B6E65", border: "1.5px solid #0B6E65" }
+                : { backgroundColor: "#0B6E65", color: "white" }
+            }
           >
             {isDone ? "ทำอีกครั้ง" : "เริ่มทำข้อสอบ"}
             {isDone ? (
@@ -415,7 +420,7 @@ export default function ExamsPage() {
                       marginBottom: "-1px",
                     }}
                   >
-                    {s}
+                    {s === "ทั้งหมด" ? s : getSubjectShort(s)}
                   </button>
                 );
               })}
