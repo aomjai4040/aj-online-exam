@@ -6,25 +6,7 @@ import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
 import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/lib/auth-context";
-
-// ─── Subject palette ─────────────────────────────────────────────────────────
-
-const SUBJECT_COLOR: Record<string, string> = {
-  ระบาดวิทยา:          "#3B82F6",
-  อนามัยสิ่งแวดล้อม:   "#10B981",
-  กฎหมาย:              "#F97316",
-  บริหารสาธารณสุข:     "#8B5CF6",
-  ชีวสถิติ:            "#0D9488",
-  "นโยบาย สป.สธ.":     "#EF4444",
-  คณิตศาสตร์:          "#3B82F6",
-  ภาษาไทย:            "#EC4899",
-  วิทยาศาสตร์:         "#10B981",
-  ภาษาอังกฤษ:         "#8B5CF6",
-  สังคมศึกษา:          "#F59E0B",
-  ประวัติศาสตร์:        "#EF4444",
-  คอมพิวเตอร์:         "#06B6D4",
-};
-function dotColor(s: string) { return SUBJECT_COLOR[s] ?? "#0B6E65"; }
+import { subjectColor as dotColor, BRAND } from "@/lib/subjects";
 
 // ─── Subject filter chips ────────────────────────────────────────────────────
 
@@ -125,8 +107,14 @@ export default function HomePage() {
     getPublishedExams().then(setExams).finally(() => setLoading(false));
   }, []);
 
-  const featuredExam = exams[0] ?? null;
+  // ข้อสอบประจำวัน — หมุนตามวันที่จริง (ทุกคนเห็นชุดเดียวกันตลอดวันนั้น)
+  const dayIndex     = Math.floor(Date.now() / 86_400_000);
+  const featuredExam = exams.length > 0 ? exams[dayIndex % exams.length] : null;
   const latestExams  = exams.slice(0, 5);
+
+  // ตัวเลขความน่าเชื่อถือใน hero — คำนวณจากข้อมูลจริง
+  const totalQuestions = exams.reduce((s, e) => s + (e.questionCount || 0), 0);
+  const subjectCount   = new Set(exams.map((e) => e.subject)).size;
 
   const filtered = exams.filter((e) => {
     const q = search.toLowerCase().trim();
@@ -186,91 +174,61 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section
-        className="px-5 pt-9 pb-8"
-        style={{ background: "linear-gradient(160deg, #0B6E65 0%, #0d9488 60%, #134e4a 100%)" }}
-      >
+      {/* ── Hero (สีเรียบเข้ม เน้นข้อเสนอ) ─────────────────────────────────── */}
+      <section className="px-5 pt-9 pb-7" style={{ backgroundColor: BRAND.primaryDark }}>
         <div className="max-w-lg mx-auto">
-        <p
-          className="text-[13px] font-bold tracking-[0.18em] uppercase mb-4 text-white/60"
-        >
-          AJ ExamOnline · สนาม สป.สธ.
-        </p>
-        <h1 className="text-[2rem] font-bold leading-[1.2] tracking-tight mb-2 text-white">
-          เตรียมพร้อมสอบ
-          <br />
-          <span style={{ color: "#A7F3D0" }}>นักวิชาการสาธารณสุข</span>
-        </h1>
-        <p className="text-[15px] font-medium mb-2" style={{ color: "rgba(255,255,255,0.75)" }}>
-          สำนักงานปลัดกระทรวงสาธารณสุข (สป.สธ.)
-        </p>
-        <p className="text-[15px] leading-relaxed mb-7" style={{ color: "rgba(255,255,255,0.6)" }}>
-          รวมแนวข้อสอบ แบบฝึก และ Mock Exam · ฝึกทำได้ทุกวัน
-        </p>
-
-        {/* Search — full width */}
-        <div className="relative mb-3">
-          <svg
-            viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)"
-            strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
-            className="w-[16px] h-[16px] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+          <span
+            className="inline-block text-[12px] font-semibold px-3 py-1 rounded-full mb-4"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)", color: "#9FE1CB" }}
           >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            className="w-full bg-white/15 rounded-2xl pl-10 pr-9 py-3.5 text-[17px]
-                       text-white placeholder-white/50 focus:outline-none transition-all duration-150"
-            style={{ border: "1px solid rgba(255,255,255,0.25)" }}
-            onFocus={(e) => {
-              e.currentTarget.style.border = "1.5px solid rgba(255,255,255,0.6)";
-              e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.2)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.border = "1px solid rgba(255,255,255,0.25)";
-              e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.15)";
-            }}
-            placeholder="ค้นหาชุดข้อสอบ..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full
-                         bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          )}
-        </div>
+            สนามสอบ สป.สธ.
+          </span>
+          <h1 className="text-[1.9rem] font-bold leading-[1.25] tracking-tight mb-2 text-white">
+            เตรียมพร้อมสอบ
+            <br />
+            <span style={{ color: "#9FE1CB" }}>นักวิชาการสาธารณสุข</span>
+          </h1>
+          <p className="text-[14px] leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.65)" }}>
+            แนวข้อสอบพร้อมเฉลยละเอียดทุกข้อ · ฝึกทำได้ทุกวัน
+          </p>
 
-        {/* Subject chips */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
-          {SUBJECT_CHIPS.map((chip) => {
-            const active = selectedSubject === chip;
-            return (
-              <button
-                key={chip}
-                onClick={() => setSelectedSubject(chip)}
-                className="flex-shrink-0 text-[15px] font-medium px-4 py-2 rounded-full
-                           transition-all duration-150 whitespace-nowrap"
-                style={{
-                  backgroundColor: active ? "white" : "rgba(255,255,255,0.15)",
-                  color:           active ? "#0B6E65" : "rgba(255,255,255,0.85)",
-                  border:          active ? "1px solid white" : "1px solid rgba(255,255,255,0.3)",
-                }}
+          {/* CTA คู่ — ฟรีเด่นสุด */}
+          <div className="flex gap-2.5 mb-6">
+            <Link
+              href="/free"
+              className="flex-1 text-center font-bold text-[15px] py-3.5 rounded-2xl
+                         active:scale-[0.98] transition-transform"
+              style={{ backgroundColor: "white", color: BRAND.primaryDark }}
+            >
+              ทดลองทำฟรี
+            </Link>
+            <Link
+              href="/packages"
+              className="flex-1 text-center font-semibold text-[15px] py-3.5 rounded-2xl
+                         active:scale-[0.98] transition-transform text-white"
+              style={{ border: "1px solid rgba(255,255,255,0.4)" }}
+            >
+              ดูแพ็กเกจ
+            </Link>
+          </div>
+
+          {/* ตัวเลขจริงจากระบบ */}
+          <div className="flex pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+            {[
+              { value: loading ? "…" : totalQuestions.toLocaleString(), label: "ข้อสอบ" },
+              { value: loading ? "…" : `${exams.length}`,               label: "ชุดข้อสอบ" },
+              { value: loading ? "…" : `${subjectCount}`,               label: "หมวดวิชา" },
+            ].map((s, i) => (
+              <div
+                key={s.label}
+                className="flex-1 text-center"
+                style={i > 0 ? { borderLeft: "1px solid rgba(255,255,255,0.15)" } : undefined}
               >
-                {chip}
-              </button>
-            );
-          })}
-        </div>
+                <p className="text-[17px] font-bold text-white leading-tight">{s.value}</p>
+                <p className="text-[12px]" style={{ color: "#9FE1CB" }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -302,20 +260,13 @@ export default function HomePage() {
             style={{ border: "1px solid #EBEBEA", borderLeft: "3px solid #0B6E65" }}
           >
             <div className="flex-1 min-w-0">
-              {/* Subject + live indicator */}
+              {/* Subject */}
               <div className="flex items-center gap-2 mb-1.5">
                 <span
                   className="text-[14px] font-semibold"
                   style={{ color: dotColor(featuredExam.subject) }}
                 >
                   {featuredExam.subject}
-                </span>
-                <span className="flex items-center gap-1 text-[13px] font-semibold" style={{ color: "#0B6E65" }}>
-                  <span
-                    className="w-1.5 h-1.5 rounded-full inline-block"
-                    style={{ backgroundColor: "#0B6E65", animation: "pulse 2s infinite" }}
-                  />
-                  LIVE
                 </span>
               </div>
               <p className="font-bold text-[18px] text-gray-900 leading-snug line-clamp-2">
@@ -358,15 +309,12 @@ export default function HomePage() {
           เมนูหลัก
         </p>
 
-        {/* Primary — gradient banner */}
+        {/* Primary banner */}
         <Link
           href="/exams"
           className="flex items-center gap-3.5 w-full rounded-2xl px-5 py-4 mb-3
                      hover:opacity-95 active:scale-[0.98] transition-all duration-150"
-          style={{
-            background: "linear-gradient(135deg, #0B6E65 0%, #0d9488 100%)",
-            boxShadow: "0 4px 14px rgba(11,110,101,0.35)",
-          }}
+          style={{ backgroundColor: BRAND.primary }}
         >
           <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/20">
             <svg viewBox="0 0 24 24" fill="none" stroke="white"
@@ -387,19 +335,31 @@ export default function HomePage() {
           </svg>
         </Link>
 
-        {/* Secondary 2 × 2 */}
+        {/* Secondary 2 × 2 — โทนแบรนด์เดียวกันทุกใบ ทุกปุ่มมีปลายทางจริง */}
         <div className="grid grid-cols-2 gap-3">
           {[
             {
-              title: "คลังความรู้",
-              desc: "สรุปเนื้อหา",
-              href: "#",
-              bg: "#EFF6FF", iconBg: "#3B82F6", iconColor: "white",
+              title: "Flash Card",
+              desc: "ทบทวนความรู้",
+              href: "/flashcard",
               icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
-                  <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
-                  <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+                  <rect x="2" y="6" width="18" height="13" rx="2" />
+                  <path d="M6 6V4a2 2 0 012-2h12a2 2 0 012 2v11a2 2 0 01-2 2" />
+                </svg>
+              ),
+            },
+            {
+              title: "MOPH Focus",
+              desc: "ประเด็นเน้นกระทรวง",
+              href: "/moph-focus",
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
               ),
             },
@@ -408,9 +368,8 @@ export default function HomePage() {
               desc: "ติดตามวิดีโอที่ดู",
               href: "https://jade-fenglisu-32fb47.netlify.app",
               external: true,
-              bg: "#FFF7ED", iconBg: "#F97316", iconColor: "white",
               icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                   <rect x="2" y="3" width="20" height="14" rx="2" />
                   <line x1="8" y1="21" x2="16" y2="21" />
@@ -420,38 +379,11 @@ export default function HomePage() {
               ),
             },
             {
-              title: "Mock Exam",
-              desc: "เสมือนสอบจริง",
-              href: "#",
-              bg: "#F5F3FF", iconBg: "#8B5CF6", iconColor: "white",
-              icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="white"
-                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              ),
-            },
-            {
-              title: "แบบฝึกหัด",
-              desc: "ฝึกทีละบท",
-              href: "#",
-              bg: "#FFF1F2", iconBg: "#F43F5E", iconColor: "white",
-              icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="white"
-                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-                </svg>
-              ),
-            },
-            {
               title: "บันทึกของฉัน",
               desc: "ผลสอบและคะแนน",
               href: "/dashboard",
-              bg: "#F0FDF4", iconBg: "#22C55E", iconColor: "white",
               icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
@@ -463,13 +395,13 @@ export default function HomePage() {
               key={item.title}
               href={item.href}
               {...("external" in item && item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className="rounded-2xl px-4 py-4 flex items-center gap-3
-                         active:scale-[0.97] transition-all duration-150 hover:brightness-95"
-              style={{ backgroundColor: item.bg, border: "1px solid transparent" }}
+              className="bg-white rounded-2xl px-4 py-4 flex items-center gap-3
+                         active:scale-[0.97] transition-all duration-150 hover:bg-stone-50"
+              style={{ border: "1px solid #EBEBEA" }}
             >
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: item.iconBg, boxShadow: `0 3px 8px ${item.iconBg}55` }}
+                style={{ backgroundColor: BRAND.primarySoft }}
               >
                 {item.icon}
               </div>
@@ -477,7 +409,7 @@ export default function HomePage() {
                 <p className="font-bold text-[15px] text-gray-900 leading-tight truncate">
                   {item.title}
                 </p>
-                <p className="text-[13px] mt-0.5 truncate text-gray-500">
+                <p className="text-[12.5px] mt-0.5 truncate text-gray-500">
                   {item.desc}
                 </p>
               </div>
@@ -528,13 +460,13 @@ export default function HomePage() {
       {/* ── All Exams list ────────────────────────────────────────────────── */}
       <section className="max-w-lg mx-auto px-5 py-5">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
+          <p className="text-[12px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
             ชุดข้อสอบทั้งหมด
           </p>
           {isFiltering && !loading && (
             <button
               onClick={() => { setSearch(""); setSelectedSubject("ทั้งหมด"); }}
-              className="text-[12px] font-medium transition-colors"
+              className="text-[12.5px] font-medium transition-colors"
               style={{ color: "#A8A8A6" }}
             >
               ล้างตัวกรอง ×
@@ -542,9 +474,66 @@ export default function HomePage() {
           )}
         </div>
 
+        {/* Search */}
+        <div className="relative mb-3">
+          <svg
+            viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
+            strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
+            className="w-[16px] h-[16px] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            className="w-full bg-white rounded-2xl pl-10 pr-9 py-3 text-[15px]
+                       text-gray-900 placeholder-gray-400 focus:outline-none transition-all"
+            style={{ border: "1px solid #E0DFDC" }}
+            onFocus={(e) => { e.currentTarget.style.border = `1.5px solid ${BRAND.primary}`; }}
+            onBlur={(e) => { e.currentTarget.style.border = "1px solid #E0DFDC"; }}
+            placeholder="ค้นหาชุดข้อสอบ..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full
+                         bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Subject chips */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-3">
+          {SUBJECT_CHIPS.map((chip) => {
+            const active = selectedSubject === chip;
+            return (
+              <button
+                key={chip}
+                onClick={() => setSelectedSubject(chip)}
+                className="flex-shrink-0 text-[13.5px] font-medium px-3.5 py-1.5 rounded-full
+                           transition-all duration-150 whitespace-nowrap"
+                style={{
+                  backgroundColor: active ? BRAND.primary : "white",
+                  color:           active ? "white" : "#6B6B6A",
+                  border:          active ? `1px solid ${BRAND.primary}` : "1px solid #E0DFDC",
+                }}
+              >
+                {chip}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Count note */}
         {!loading && (
-          <p className="text-[11px] mb-3" style={{ color: "#C4C4C0" }}>
+          <p className="text-[12px] mb-3" style={{ color: "#C4C4C0" }}>
             {isFiltering
               ? `${filtered.length} จาก ${exams.length} ชุด`
               : `ทั้งหมด ${exams.length} ชุด`}
@@ -652,13 +641,6 @@ export default function HomePage() {
           </div>
         )}
       </section>
-
-      {/* Admin */}
-      <div className="max-w-lg mx-auto px-5 pb-4 text-center">
-        <Link href="/admin" className="text-[11px] text-gray-300 hover:text-gray-400 transition-colors">
-          Admin Panel →
-        </Link>
-      </div>
 
       <BottomNav />
     </div>

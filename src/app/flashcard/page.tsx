@@ -11,7 +11,7 @@ import type { FCDeck, FCDeckStats } from "@/lib/flashcard-types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BG = "#A8D5BF";
+const BG = "#F5F5F4";
 
 // แต่ละ deck type → visual token
 const DECK_THEME = {

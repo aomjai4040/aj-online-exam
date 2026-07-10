@@ -25,7 +25,7 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ACCENT = "#0B6E65";
-const BG     = "#A8D5BF";
+const BG     = "#F5F5F4";
 
 const TAG_STYLE: Record<string, { bg: string; color: string }> = {
   "จุดตาย":   { bg: "#FEF2F2", color: "#DC2626" },

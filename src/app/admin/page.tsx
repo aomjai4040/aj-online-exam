@@ -67,19 +67,7 @@ function getDailyStats(results: ExamResult[]): DayData[] {
   return items;
 }
 
-const SUBJECT_COLOR: Record<string, string> = {
-  ระบาดวิทยา:          "#3B82F6",
-  อนามัยสิ่งแวดล้อม:   "#10B981",
-  กฎหมาย:              "#F97316",
-  บริหารสาธารณสุข:     "#8B5CF6",
-  ชีวสถิติ:            "#0D9488",
-  "นโยบาย สป.สธ.":     "#EF4444",
-  คณิตศาสตร์:          "#3B82F6",
-  ภาษาไทย:            "#F472B6",
-  วิทยาศาสตร์:         "#34D399",
-  ภาษาอังกฤษ:         "#A78BFA",
-};
-function subjectColor(s: string) { return SUBJECT_COLOR[s] ?? "#0B6E65"; }
+import { subjectColor } from "@/lib/subjects";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

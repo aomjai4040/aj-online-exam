@@ -24,6 +24,17 @@ const config: Config = {
         sans: ["var(--font-prompt)", "Prompt", "system-ui", "sans-serif"],
       },
       colors: {
+        // AJ Brand – เขียวแบรนด์หลัก (ใช้ใน JSX classNames เช่น bg-brand-600)
+        brand: {
+          50:  "#EBF5F3",
+          100: "#D0EDE9",
+          200: "#C3E5DE",
+          300: "#86C5BE",
+          500: "#0D9488",
+          600: "#0B6E65",   // primary
+          700: "#0B4F48",   // hero / เข้ม
+          800: "#134E4A",
+        },
         // AJ Brand – mint palette (usable in JSX classNames)
         mint: {
           50:  "#E0F7F4",

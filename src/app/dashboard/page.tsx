@@ -14,15 +14,7 @@ import BottomNav from "@/components/BottomNav";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const SUBJECT_COLOR: Record<string, string> = {
-  ระบาดวิทยา:          "#3B82F6",
-  อนามัยสิ่งแวดล้อม:   "#10B981",
-  กฎหมาย:              "#F97316",
-  บริหารสาธารณสุข:     "#8B5CF6",
-  ชีวสถิติ:            "#0D9488",
-  "นโยบาย สป.สธ.":     "#EF4444",
-};
-function sc(s: string) { return SUBJECT_COLOR[s] ?? "#0B6E65"; }
+import { subjectColor as sc } from "@/lib/subjects";
 
 function dateKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -71,17 +63,31 @@ function ScoreBar({ pct, color }: { pct: number; color: string }) {
   );
 }
 
+function KPIIcon({ children, color }: { children: React.ReactNode; color: string }) {
+  return (
+    <div
+      className="w-8 h-8 rounded-lg flex items-center justify-center mb-2"
+      style={{ backgroundColor: `${color}14` }}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke={color}
+        strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+        {children}
+      </svg>
+    </div>
+  );
+}
+
 function KPICard({
   icon, label, value, sub, color,
-}: { icon: string; label: string; value: string | number; sub?: string; color: string }) {
+}: { icon: React.ReactNode; label: string; value: string | number; sub?: string; color: string }) {
   return (
     <div className="bg-white rounded-2xl p-4" style={{ border: "1px solid #EBEBEA" }}>
-      <div className="text-[20px] mb-1.5">{icon}</div>
+      {icon}
       <div className="text-[22px] font-extrabold leading-none mb-0.5" style={{ color }}>
         {value}
       </div>
-      <div className="text-[11px] font-semibold text-gray-500">{label}</div>
-      {sub && <div className="text-[10.5px] mt-0.5" style={{ color: "#A8A8A6" }}>{sub}</div>}
+      <div className="text-[12px] font-semibold text-gray-500">{label}</div>
+      {sub && <div className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>{sub}</div>}
     </div>
   );
 }
@@ -448,13 +454,26 @@ export default function DashboardPage() {
         {/* ═══ KPI Cards ════════════════════════════════════════════════ */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <KPICard
-            icon="📚" label="ชุดที่ทำแล้ว"
+            icon={
+              <KPIIcon color="#0B6E65">
+                <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+              </KPIIcon>
+            }
+            label="ชุดที่ทำแล้ว"
             value={stats.total}
             sub={`${results.length} ครั้งรวม`}
             color="#0B6E65"
           />
           <KPICard
-            icon="📊" label="คะแนนเฉลี่ย"
+            icon={
+              <KPIIcon color={gradeColor(stats.avgScore)}>
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </KPIIcon>
+            }
+            label="คะแนนเฉลี่ย"
             value={stats.total ? `${stats.avgScore}%` : "—"}
             sub={
               stats.avgScore >= 75 ? "ระดับดีมาก"
@@ -464,13 +483,23 @@ export default function DashboardPage() {
             color={gradeColor(stats.avgScore)}
           />
           <KPICard
-            icon="🔥" label="Streak"
+            icon={
+              <KPIIcon color={stats.streak >= 3 ? "#F97316" : "#9CA3AF"}>
+                <path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z" />
+              </KPIIcon>
+            }
+            label="Streak"
             value={stats.streak > 0 ? `${stats.streak} วัน` : "0"}
             sub={stats.streak > 0 ? "ต่อเนื่อง" : "เริ่มวันนี้!"}
             color={stats.streak >= 3 ? "#F97316" : "#9CA3AF"}
           />
           <KPICard
-            icon="⭐" label="วิชาที่เก่ง"
+            icon={
+              <KPIIcon color="#7C3AED">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </KPIIcon>
+            }
+            label="วิชาที่เก่ง"
             value={stats.bestSubject !== "—" ? stats.bestSubject.slice(0, 5) : "—"}
             sub={
               stats.subjectStats[0]

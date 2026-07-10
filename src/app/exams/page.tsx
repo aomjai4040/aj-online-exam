@@ -16,27 +16,9 @@ import BottomNav from "@/components/BottomNav";
 
 type ExamCard = Exam & { difficulty?: Difficulty };
 
-// ─── Subject colors ───────────────────────────────────────────────────────────
+// ─── Subject colors (แหล่งเดียว: lib/subjects) ────────────────────────────────
 
-const SUBJECT_COLOR: Record<string, string> = {
-  ระบาดวิทยา:          "#3B82F6",
-  อนามัยสิ่งแวดล้อม:   "#10B981",
-  กฎหมาย:              "#F97316",
-  บริหารสาธารณสุข:     "#8B5CF6",
-  ชีวสถิติ:            "#0D9488",
-  "นโยบาย สป.สธ.":     "#EF4444",
-  คณิตศาสตร์:          "#3B82F6",
-  ภาษาไทย:            "#F472B6",
-  วิทยาศาสตร์:         "#34D399",
-  ภาษาอังกฤษ:         "#A78BFA",
-  สังคมศึกษา:          "#FBBF24",
-  ประวัติศาสตร์:        "#F87171",
-  คอมพิวเตอร์:         "#22D3EE",
-  ศิลปะ:              "#A855F7",
-  พลศึกษา:            "#FB923C",
-  ดนตรี:              "#E879F9",
-};
-function subjectColor(s: string) { return SUBJECT_COLOR[s] ?? "#0B6E65"; }
+import { subjectColor } from "@/lib/subjects";
 
 // ─── Difficulty styles ────────────────────────────────────────────────────────
 

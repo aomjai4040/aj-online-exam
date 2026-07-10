@@ -14,7 +14,7 @@ import type { FCDeck, FCDeckStats } from "@/lib/flashcard-types";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ACCENT = "#0B6E65";
-const BG     = "#A8D5BF";
+const BG     = "#F5F5F4";
 
 // ─── DonutChart ───────────────────────────────────────────────────────────────
 
