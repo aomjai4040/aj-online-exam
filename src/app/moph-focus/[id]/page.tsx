@@ -258,7 +258,7 @@ export default function MOPHFocusDetailPage() {
             </svg>
           </button>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-widest"
+            <p className="text-[12px] font-bold uppercase tracking-widest"
               style={{ color: "#64748B" }}>
               MOPH FOCUS
             </p>

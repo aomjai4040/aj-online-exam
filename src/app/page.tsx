@@ -165,7 +165,7 @@ export default function HomePage() {
           ) : (
             <button
               onClick={signInWithGoogle}
-              className="text-[11.5px] font-semibold px-2.5 py-1.5 rounded-xl border transition-all"
+              className="text-[12.5px] font-semibold px-2.5 py-1.5 rounded-xl border transition-all"
               style={{ borderColor: "#E0DFDC", color: "#374151" }}
             >
               เข้าสู่ระบบ
@@ -589,7 +589,7 @@ export default function HomePage() {
               >
                 {/* Index number */}
                 <span
-                  className="text-[11px] font-medium w-5 text-right flex-shrink-0"
+                  className="text-[12px] font-medium w-5 text-right flex-shrink-0"
                   style={{ color: "#D4D4D0" }}
                 >
                   {idx + 1}
@@ -605,7 +605,7 @@ export default function HomePage() {
                   <p className="font-semibold text-[13.5px] text-gray-900 truncate leading-snug">
                     {exam.title}
                   </p>
-                  <p className="text-[11px] mt-0.5 truncate" style={{ color: "#A8A8A6" }}>
+                  <p className="text-[12px] mt-0.5 truncate" style={{ color: "#A8A8A6" }}>
                     {exam.subject}
                     {exam.timeLimit > 0 && ` · ${exam.timeLimit} นาที`}
                   </p>
@@ -614,7 +614,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {exam.isFree && (
                     <span
-                      className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-[3px] rounded"
+                      className="text-[11px] font-bold uppercase tracking-wide px-1.5 py-[3px] rounded"
                       style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}
                     >
                       ฟรี
@@ -622,13 +622,13 @@ export default function HomePage() {
                   )}
                   {isNewExam(exam) && !exam.isFree && (
                     <span
-                      className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-[3px] rounded"
+                      className="text-[11px] font-bold uppercase tracking-wide px-1.5 py-[3px] rounded"
                       style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
                     >
                       ใหม่
                     </span>
                   )}
-                  <span className="text-[11px] font-medium" style={{ color: "#A8A8A6" }}>
+                  <span className="text-[12px] font-medium" style={{ color: "#A8A8A6" }}>
                     {exam.questionCount}&nbsp;ข้อ
                   </span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="#D4D4D0"

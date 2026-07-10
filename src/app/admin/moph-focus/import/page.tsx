@@ -203,7 +203,7 @@ export default function MOPHFocusImportPage() {
 
       {/* Header */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">
+        <p className="text-[12px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">
           Admin
         </p>
         <h1 className="text-[22px] font-extrabold text-gray-900">
@@ -222,7 +222,7 @@ export default function MOPHFocusImportPage() {
         <div className="flex flex-wrap gap-1.5">
           {Object.values(MOPH_TAGS).map((t) => (
             <code key={t}
-              className="text-[11px] bg-white px-2 py-0.5 rounded-lg border border-blue-200
+              className="text-[12px] bg-white px-2 py-0.5 rounded-lg border border-blue-200
                          font-mono text-blue-700">
               {t}
             </code>
@@ -318,7 +318,7 @@ export default function MOPHFocusImportPage() {
                       {row.data.coverEmoji} {row.data.title || "(ไม่มีชื่อ)"}
                     </p>
                     {row.data.tags.length > 0 && (
-                      <p className="text-[11px] mt-0.5 text-gray-500">
+                      <p className="text-[12px] mt-0.5 text-gray-500">
                         🏷 {row.data.tags.join(" | ")}
                       </p>
                     )}

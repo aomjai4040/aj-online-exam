@@ -389,7 +389,7 @@ export default function ExamPage() {
 
           {/* Subject badge */}
           <span
-            className="inline-block text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-full mb-3"
+            className="inline-block text-[12px] font-bold tracking-wide px-2.5 py-1 rounded-full mb-3"
             style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
           >
             {exam.subject}
@@ -418,7 +418,7 @@ export default function ExamPage() {
               <div key={i} className="flex items-center gap-8">
                 <div>
                   <div className="text-[1.75rem] font-extrabold text-gray-900 leading-none">{s.value}</div>
-                  <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>{s.unit}</div>
+                  <div className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>{s.unit}</div>
                 </div>
                 {i < arr.length - 1 && (
                   <div className="w-px h-8" style={{ backgroundColor: "#EBEBEA" }} />
@@ -503,7 +503,7 @@ export default function ExamPage() {
             style={{ backgroundColor: g.bg, border: `1px solid ${g.border}` }}
           >
             <p
-              className="text-[10.5px] font-bold tracking-[0.14em] uppercase mb-4"
+              className="text-[12px] font-bold tracking-[0.14em] uppercase mb-4"
               style={{ color: g.accent }}
             >
               ผลการสอบ{name ? ` · ${name}` : ""}
@@ -529,21 +529,21 @@ export default function ExamPage() {
             >
               <div>
                 <div className="text-[1rem] font-bold" style={{ color: "#0B6E65" }}>{score}</div>
-                <div className="text-[11px]" style={{ color: "#A8A8A6" }}>ถูก</div>
+                <div className="text-[12px]" style={{ color: "#A8A8A6" }}>ถูก</div>
               </div>
               <div>
                 <div className="text-[1rem] font-bold text-red-500">{wrong}</div>
-                <div className="text-[11px]" style={{ color: "#A8A8A6" }}>ผิด</div>
+                <div className="text-[12px]" style={{ color: "#A8A8A6" }}>ผิด</div>
               </div>
               {skipped > 0 && (
                 <div>
                   <div className="text-[1rem] font-bold" style={{ color: "#A8A8A6" }}>{skipped}</div>
-                  <div className="text-[11px]" style={{ color: "#A8A8A6" }}>ข้าม</div>
+                  <div className="text-[12px]" style={{ color: "#A8A8A6" }}>ข้าม</div>
                 </div>
               )}
               <div>
                 <div className="text-[1rem] font-bold text-gray-700">{formatTime(timeSpent)}</div>
-                <div className="text-[11px]" style={{ color: "#A8A8A6" }}>เวลา</div>
+                <div className="text-[12px]" style={{ color: "#A8A8A6" }}>เวลา</div>
               </div>
             </div>
           </div>
@@ -562,7 +562,7 @@ export default function ExamPage() {
           <div className="h-px mb-6" style={{ backgroundColor: "#EBEBEA" }} />
 
           {/* Review label */}
-          <p className="text-[11px] font-bold tracking-[0.12em] uppercase mb-5" style={{ color: "#A8A8A6" }}>
+          <p className="text-[12px] font-bold tracking-[0.12em] uppercase mb-5" style={{ color: "#A8A8A6" }}>
             เฉลยและคำอธิบาย
           </p>
 
@@ -585,12 +585,12 @@ export default function ExamPage() {
                   <div className="flex items-start gap-3 mb-3.5">
                     <div
                       className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
-                                 text-[11px] font-bold text-white mt-0.5"
+                                 text-[12px] font-bold text-white mt-0.5"
                       style={{ backgroundColor: borderColor }}
                     >
                       {isSkipped ? "–" : isCorrect ? "✓" : "✗"}
                     </div>
-                    <p className="text-[13px] font-semibold text-gray-900 leading-relaxed">
+                    <p className="text-[14px] font-semibold text-gray-900 leading-relaxed">
                       <span className="font-normal" style={{ color: "#A8A8A6" }}>ข้อ {qi + 1} · </span>
                       {q.text}
                     </p>
@@ -604,7 +604,7 @@ export default function ExamPage() {
                       return (
                         <div
                           key={oi}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px]"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[14px]"
                           style={{
                             backgroundColor: isAnswer ? "#EBF5F3" : isWrong ? "#FEF2F2" : "transparent",
                             color:           isAnswer ? "#0B6E65" : isWrong ? "#DC2626" : "#6B6B6A",
@@ -619,7 +619,7 @@ export default function ExamPage() {
                           </span>
                           <span className="flex-1">{opt}</span>
                           {isAnswer && (
-                            <span className="text-[10px] font-bold flex-shrink-0" style={{ color: "#0B6E65" }}>
+                            <span className="text-[11.5px] font-bold flex-shrink-0" style={{ color: "#0B6E65" }}>
                               ✓ เฉลย
                             </span>
                           )}
@@ -631,7 +631,7 @@ export default function ExamPage() {
                   {/* Explanation */}
                   {q.explanation && (
                     <div
-                      className="mt-3 ml-9 px-3 py-2.5 rounded-xl text-[12px] leading-relaxed"
+                      className="mt-3 ml-9 px-3 py-2.5 rounded-xl text-[13.5px] leading-relaxed"
                       style={{ backgroundColor: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A" }}
                     >
                       <span className="font-semibold">คำอธิบาย · </span>
@@ -705,7 +705,7 @@ export default function ExamPage() {
         {/* Subject + question number */}
         <div className="flex items-center gap-2 mb-5">
           <span
-            className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+            className="text-[12px] font-bold px-2.5 py-1 rounded-full"
             style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
           >
             {exam.subject}
@@ -716,7 +716,7 @@ export default function ExamPage() {
         </div>
 
         {/* Question text */}
-        <p className="text-[15px] font-semibold text-gray-900 leading-relaxed mb-7">
+        <p className="text-[16px] font-semibold text-gray-900 leading-relaxed mb-7">
           {q.text}
         </p>
 
@@ -748,7 +748,7 @@ export default function ExamPage() {
                   {OPTS[oi]}
                 </div>
                 <span
-                  className="text-[13.5px] leading-snug transition-colors duration-150"
+                  className="text-[15px] leading-snug transition-colors duration-150"
                   style={{
                     color:      selected ? "#0B6E65" : "#374151",
                     fontWeight: selected ? 600 : 400,

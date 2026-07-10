@@ -99,7 +99,7 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
         {/* Header: subject chip + badges */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <span
-            className="text-[11px] font-bold px-2.5 py-[5px] rounded-full"
+            className="text-[12px] font-bold px-2.5 py-[5px] rounded-full"
             style={{ backgroundColor: chipBg, color }}
           >
             {exam.subject}
@@ -107,7 +107,7 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
           <div className="flex items-center gap-1.5">
             {isFree && (
               <span
-                className="text-[11px] font-bold px-2.5 py-[5px] rounded-full"
+                className="text-[12px] font-bold px-2.5 py-[5px] rounded-full"
                 style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}
               >
                 ทดลองฟรี
@@ -115,7 +115,7 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
             )}
             {locked && (
               <span
-                className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-[5px] rounded-full"
+                className="flex items-center gap-1 text-[12px] font-bold px-2.5 py-[5px] rounded-full"
                 style={{ backgroundColor: "#F3F4F6", color: "#6B7280" }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -128,7 +128,7 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
             )}
             {isDone && (
               <span
-                className="text-[11px] font-bold px-2.5 py-[5px] rounded-full"
+                className="text-[12px] font-bold px-2.5 py-[5px] rounded-full"
                 style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
               >
                 ✓ ทำแล้ว
@@ -136,7 +136,7 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
             )}
             {ds && diff && !locked && (
               <span
-                className="text-[11px] font-semibold px-2.5 py-[5px] rounded-full"
+                className="text-[12px] font-semibold px-2.5 py-[5px] rounded-full"
                 style={{ backgroundColor: ds.bg, color: ds.color }}
               >
                 {diff}
@@ -333,7 +333,7 @@ export default function ExamsPage() {
           <div className="flex items-start justify-between mb-5">
             <div>
               <p
-                className="text-[11px] font-semibold tracking-[0.12em] uppercase mb-1"
+                className="text-[12px] font-semibold tracking-[0.12em] uppercase mb-1"
                 style={{ color: "#A8A8A6" }}
               >
                 AJ ExamOnline
@@ -430,14 +430,14 @@ export default function ExamsPage() {
         {/* Count label */}
         {!loading && (
           <div className="flex items-center justify-between pb-3">
-            <p className="text-[11px]" style={{ color: "#A8A8A6" }}>
+            <p className="text-[12px]" style={{ color: "#A8A8A6" }}>
               {isFiltering
                 ? `แสดง ${filtered.length} จาก ${exams.length} ชุด`
                 : `ชุดข้อสอบทั้งหมด ${exams.length} ชุด`}
             </p>
             {loadError && (
               <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded tracking-wide"
+                className="text-[11.5px] font-bold px-2 py-0.5 rounded tracking-wide"
                 style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
               >
                 โหลดไม่สำเร็จ — ลองรีเฟรช

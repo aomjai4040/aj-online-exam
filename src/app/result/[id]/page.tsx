@@ -108,7 +108,7 @@ export default function ResultPage() {
             border: `1px solid ${g.border}`,
           }}
         >
-          <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-0.5" style={{ color: "#A8A8A6" }}>
+          <p className="text-[12px] font-semibold tracking-[0.1em] uppercase mb-0.5" style={{ color: "#A8A8A6" }}>
             ผลการสอบ
           </p>
           <h1 className="text-[17px] font-bold text-gray-900 mb-0.5 leading-snug">
@@ -139,19 +139,19 @@ export default function ResultPage() {
           >
             <div className="text-center">
               <div className="text-[17px] font-bold text-gray-900">{result.score}</div>
-              <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>ตอบถูก</div>
+              <div className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>ตอบถูก</div>
             </div>
             <div className="text-center">
               <div className="text-[17px] font-bold text-gray-900">
                 {result.totalQuestions - result.score}
               </div>
-              <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>ตอบผิด</div>
+              <div className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>ตอบผิด</div>
             </div>
             <div className="text-center">
               <div className="text-[17px] font-bold text-gray-900">
                 {formatTime(result.timeSpent)}
               </div>
-              <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>เวลาที่ใช้</div>
+              <div className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>เวลาที่ใช้</div>
             </div>
           </div>
         </div>
@@ -187,14 +187,14 @@ export default function ResultPage() {
                   <div className="flex items-start gap-3 mb-3">
                     {/* Status badge */}
                     <span
-                      className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold text-white"
+                      className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-[12px] font-bold text-white"
                       style={{
                         backgroundColor: isSkipped ? "#9CA3AF" : isCorrect ? "#22C55E" : "#EF4444",
                       }}
                     >
                       {isSkipped ? "–" : isCorrect ? "✓" : "✗"}
                     </span>
-                    <p className="text-[13px] font-medium text-gray-900 leading-relaxed">
+                    <p className="text-[14px] font-medium text-gray-900 leading-relaxed">
                       <span className="mr-1" style={{ color: "#A8A8A6" }}>ข้อ {qi + 1}.</span>
                       {q.text}
                     </p>
@@ -210,7 +210,7 @@ export default function ResultPage() {
                       return (
                         <div
                           key={oi}
-                          className="flex items-start gap-2 px-3 py-2 rounded-lg text-[13px]"
+                          className="flex items-start gap-2 px-3 py-2 rounded-lg text-[14px]"
                           style={{
                             backgroundColor: isAnswer
                               ? "#EBF5F3"
@@ -232,7 +232,7 @@ export default function ResultPage() {
                           <span className="flex-1">{opt}</span>
                           {isAnswer && (
                             <span
-                              className="flex-shrink-0 text-[11px] font-semibold"
+                              className="flex-shrink-0 text-[12px] font-semibold"
                               style={{ color: "#0B6E65" }}
                             >
                               เฉลย
@@ -246,7 +246,7 @@ export default function ResultPage() {
                   {/* Explanation */}
                   {q.explanation && (
                     <div
-                      className="mt-3 ml-9 p-3 rounded-lg text-[12px] leading-relaxed"
+                      className="mt-3 ml-9 p-3 rounded-lg text-[13.5px] leading-relaxed"
                       style={{
                         backgroundColor: "#FFFBEB",
                         border: "1px solid #FDE68A",

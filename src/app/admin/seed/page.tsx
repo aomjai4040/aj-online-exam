@@ -166,7 +166,7 @@ export default function SeedPage() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1">
                       <span
-                        className="inline-block text-[11px] font-bold px-2.5 py-[5px] rounded-full mb-2"
+                        className="inline-block text-[12px] font-bold px-2.5 py-[5px] rounded-full mb-2"
                         style={{ backgroundColor: chipBg, color }}
                       >
                         {seed.subject}

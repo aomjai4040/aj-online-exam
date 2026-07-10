@@ -14,7 +14,7 @@ const ACCENT = "#0369A1";
 function TagPill({ tag }: { tag: MOPHTag }) {
   const s = MOPH_TAG_STYLE[tag];
   return (
-    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap"
+    <span className="text-[11.5px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap"
       style={{ backgroundColor: s.bg, color: s.color }}>
       {s.label}
     </span>
@@ -127,7 +127,7 @@ export default function AdminMOPHFocusListPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-0.5"
+            <p className="text-[12px] font-bold uppercase tracking-widest mb-0.5"
               style={{ color: "#64748B" }}>Admin</p>
             <h1 className="text-[22px] font-extrabold text-gray-900">
               🏥 จัดการ MOPH Focus
@@ -238,7 +238,7 @@ export default function AdminMOPHFocusListPage() {
                         {item.title}
                       </p>
                       {/* Status badge */}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      <span className={`text-[11.5px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
                         item.isPublished
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-500"
@@ -254,7 +254,7 @@ export default function AdminMOPHFocusListPage() {
                     <div className="flex flex-wrap gap-1 mb-1.5">
                       {item.tags.map((t) => <TagPill key={t} tag={t} />)}
                     </div>
-                    <p className="text-[11px]" style={{ color: "#9CA3AF" }}>
+                    <p className="text-[12px]" style={{ color: "#9CA3AF" }}>
                       📅 {date}
                     </p>
                   </div>

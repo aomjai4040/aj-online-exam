@@ -82,7 +82,7 @@ export default function FreePage() {
                 <div className="h-[3px]" style={{ backgroundColor: sc(exam.subject) }} />
                 <div className="p-5">
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-bold px-2.5 py-[5px] rounded-full"
+                    <span className="text-[12px] font-bold px-2.5 py-[5px] rounded-full"
                       style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}>
                       ทดลองฟรี
                     </span>

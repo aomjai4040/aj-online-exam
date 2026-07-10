@@ -254,7 +254,7 @@ export default function FlashCardListPage() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="bg-white" style={{ borderBottom: "1px solid #EBEBEA" }}>
         <div className="max-w-2xl mx-auto px-5 py-5">
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-0.5"
+          <p className="text-[12px] font-bold uppercase tracking-widest mb-0.5"
             style={{ color: "#4A5568" }}>
             Flash Card
           </p>

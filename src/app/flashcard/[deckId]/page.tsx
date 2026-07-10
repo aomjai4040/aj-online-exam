@@ -209,7 +209,7 @@ function ResultScreen({
                 style={{ color: s.color }}>
                 {s.value}
               </p>
-              <p className="text-[11px]" style={{ color: "#6B7280" }}>{s.label}</p>
+              <p className="text-[12px]" style={{ color: "#6B7280" }}>{s.label}</p>
             </div>
           ))}
         </div>
@@ -499,7 +499,7 @@ export default function FlashCardDeckPage() {
             </button>
 
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-widest leading-none mb-0.5"
+              <p className="text-[12px] font-bold uppercase tracking-widest leading-none mb-0.5"
                 style={{ color: "#9CA3AF" }}>
                 {deck.coverEmoji} {deck.name}
               </p>
@@ -508,7 +508,7 @@ export default function FlashCardDeckPage() {
               </p>
             </div>
 
-            <span className="text-[11px] font-bold px-2.5 py-[3px] rounded-full flex-shrink-0"
+            <span className="text-[12px] font-bold px-2.5 py-[3px] rounded-full flex-shrink-0"
               style={{ backgroundColor: sl.bg, color: sl.color }}>
               {sl.label}
             </span>

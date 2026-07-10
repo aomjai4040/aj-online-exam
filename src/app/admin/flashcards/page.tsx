@@ -68,7 +68,7 @@ export default function AdminFlashcardsPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-[15px] font-bold text-gray-900">Flash Card Decks</h1>
             {!loading && (
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+              <span className="text-[12px] font-medium px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
                 {decks.length} คลัง · ฟรี {freeCount}
               </span>
@@ -124,13 +124,13 @@ export default function AdminFlashcardsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-[14.5px] font-bold text-gray-900 truncate">{deck.name}</p>
                       {deck.isFree && (
-                        <span className="text-[10px] font-bold px-2 py-[3px] rounded-full"
+                        <span className="text-[11.5px] font-bold px-2 py-[3px] rounded-full"
                           style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}>
                           ทดลองฟรี
                         </span>
                       )}
                     </div>
-                    <p className="text-[11.5px] mt-0.5" style={{ color: "#A8A8A6" }}>
+                    <p className="text-[12.5px] mt-0.5" style={{ color: "#A8A8A6" }}>
                       {TYPE_LABEL[deck.type]} · {deck.totalCards} ใบ · slug: {deck.slug}
                     </p>
                   </div>
@@ -144,7 +144,7 @@ export default function AdminFlashcardsPage() {
                         onChange={(v) => flip(deck, "isPublished", v)}
                         activeColor="#0B6E65"
                       />
-                      <span className="text-[10px] font-semibold" style={{ color: "#A8A8A6" }}>
+                      <span className="text-[11.5px] font-semibold" style={{ color: "#A8A8A6" }}>
                         เผยแพร่
                       </span>
                     </div>
@@ -155,7 +155,7 @@ export default function AdminFlashcardsPage() {
                         onChange={(v) => flip(deck, "isFree", v)}
                         activeColor="#16A34A"
                       />
-                      <span className="text-[10px] font-semibold" style={{ color: "#A8A8A6" }}>
+                      <span className="text-[11.5px] font-semibold" style={{ color: "#A8A8A6" }}>
                         🎁 ฟรี
                       </span>
                     </div>

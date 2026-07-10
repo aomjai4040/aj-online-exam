@@ -115,7 +115,7 @@ export default function Navbar() {
                           <p className="text-[13px] font-semibold text-gray-900 truncate">
                             {user.displayName ?? "ผู้ใช้"}
                           </p>
-                          <p className="text-[11px] truncate" style={{ color: "#A8A8A6" }}>
+                          <p className="text-[12px] truncate" style={{ color: "#A8A8A6" }}>
                             {user.email}
                           </p>
                         </div>

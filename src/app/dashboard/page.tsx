@@ -123,13 +123,13 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
         {/* Header: subject chip + pass/fail */}
         <div className="flex items-center justify-between gap-2 mb-2.5">
           <span
-            className="text-[11px] font-bold px-2 py-[4px] rounded-full"
+            className="text-[12px] font-bold px-2 py-[4px] rounded-full"
             style={{ backgroundColor: chipBg, color }}
           >
             {s.subject}
           </span>
           <span
-            className="text-[11px] font-bold px-2.5 py-[4px] rounded-full"
+            className="text-[12px] font-bold px-2.5 py-[4px] rounded-full"
             style={
               isPassing
                 ? { backgroundColor: "#EBF5F3", color: "#0B6E65" }
@@ -163,11 +163,11 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
                 {s.percentage}%
               </span>
               {improved && (
-                <span className="text-[11px]" title="ต่ำกว่าคะแนนสูงสุด">↘</span>
+                <span className="text-[12px]" title="ต่ำกว่าคะแนนสูงสุด">↘</span>
               )}
             </div>
-            <span className="text-[10px]" style={{ color: "#A8A8A6" }}>ล่าสุด</span>
-            <span className="text-[10px]" style={{ color: "#C4C4C0" }}>
+            <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>ล่าสุด</span>
+            <span className="text-[11.5px]" style={{ color: "#C4C4C0" }}>
               {s.score}/{s.totalQuestions} ข้อ
             </span>
           </div>
@@ -186,11 +186,11 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
                 {best}%
               </span>
             </div>
-            <span className="text-[10px]" style={{ color: "#A8A8A6" }}>สูงสุด</span>
+            <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>สูงสุด</span>
             {best >= 60 ? (
-              <span className="text-[10px]" style={{ color: "#0B6E65" }}>ผ่านแล้ว</span>
+              <span className="text-[11.5px]" style={{ color: "#0B6E65" }}>ผ่านแล้ว</span>
             ) : (
-              <span className="text-[10px]" style={{ color: "#DC2626" }}>ยังไม่ผ่าน</span>
+              <span className="text-[11.5px]" style={{ color: "#DC2626" }}>ยังไม่ผ่าน</span>
             )}
           </div>
 
@@ -199,13 +199,13 @@ function ExamRecordCard({ s }: { s: UserExamSummary }) {
             <span className="text-[20px] font-extrabold leading-none text-gray-900 mb-0.5">
               {attempts}
             </span>
-            <span className="text-[10px]" style={{ color: "#A8A8A6" }}>ครั้งที่สอบ</span>
+            <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>ครั้งที่สอบ</span>
             {attempts >= 5 ? (
-              <span className="text-[10px]" style={{ color: "#F97316" }}>ขยันมาก!</span>
+              <span className="text-[11.5px]" style={{ color: "#F97316" }}>ขยันมาก!</span>
             ) : attempts >= 2 ? (
-              <span className="text-[10px]" style={{ color: "#A8A8A6" }}>ทบทวนแล้ว</span>
+              <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>ทบทวนแล้ว</span>
             ) : (
-              <span className="text-[10px]" style={{ color: "#A8A8A6" }}>ครั้งแรก</span>
+              <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>ครั้งแรก</span>
             )}
           </div>
         </div>
@@ -279,7 +279,7 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
           {["12 ชุด", "72%", "🔥 5", "ระบาดฯ"].map((v, i) => (
             <div key={i} className="bg-white rounded-2xl p-4" style={{ border: "1px solid #EBEBEA" }}>
               <div className="text-[20px] font-extrabold text-gray-900">{v}</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">—</div>
+              <div className="text-[12px] text-gray-400 mt-0.5">—</div>
             </div>
           ))}
         </div>
@@ -299,7 +299,7 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
           เข้าสู่ระบบด้วย Google
         </button>
 
-        <p className="text-[11px] mt-4" style={{ color: "#C4C4C0" }}>
+        <p className="text-[12px] mt-4" style={{ color: "#C4C4C0" }}>
           ฟรี — ใช้บัญชี Google ของคุณ
         </p>
       </div>
@@ -421,7 +421,7 @@ export default function DashboardPage() {
             </div>
             {/* Name */}
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#A8A8A6" }}>
+              <p className="text-[12px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#A8A8A6" }}>
                 Dashboard ของฉัน
               </p>
               <p className="text-[17px] font-bold text-gray-900 truncate">
@@ -512,7 +512,7 @@ export default function DashboardPage() {
 
         {/* ═══ Activity chart (7 days) ══════════════════════════════════ */}
         <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
             กิจกรรม 7 วันล่าสุด
           </p>
           {stats.daily.every((d) => d.count === 0) ? (
@@ -527,7 +527,7 @@ export default function DashboardPage() {
                 return (
                   <div key={d.key} className="flex-1 flex flex-col items-center gap-1">
                     {d.count > 0 && (
-                      <span className="text-[10px] font-bold" style={{ color: "#0B6E65" }}>{d.count}</span>
+                      <span className="text-[11.5px] font-bold" style={{ color: "#0B6E65" }}>{d.count}</span>
                     )}
                     <div className="w-full flex flex-col justify-end" style={{ flex: 1 }}>
                       <div
@@ -535,7 +535,7 @@ export default function DashboardPage() {
                         style={{ height: h, backgroundColor: d.isToday ? "#0B6E65" : "#C3E5DE" }}
                       />
                     </div>
-                    <span className="text-[10px] font-medium" style={{ color: d.isToday ? "#0B6E65" : "#A8A8A6" }}>
+                    <span className="text-[11.5px] font-medium" style={{ color: d.isToday ? "#0B6E65" : "#A8A8A6" }}>
                       {d.day}
                     </span>
                   </div>
@@ -548,13 +548,13 @@ export default function DashboardPage() {
         {/* ═══ Score history chart ══════════════════════════════════════ */}
         {stats.chart.length > 0 && (
           <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+            <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
               พัฒนาการคะแนน (7 ครั้งล่าสุด)
             </p>
             <div className="space-y-3">
               {stats.chart.map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <span className="text-[11px] font-medium w-16 text-right flex-shrink-0"
+                  <span className="text-[12px] font-medium w-16 text-right flex-shrink-0"
                     style={{ color: "#A8A8A6" }}>
                     {item.date}
                   </span>
@@ -573,9 +573,9 @@ export default function DashboardPage() {
             {/* Pass threshold line indicator */}
             <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px dashed #F3F2F0" }}>
               <div className="h-0.5 w-4 rounded" style={{ backgroundColor: "#22C55E" }} />
-              <span className="text-[11px]" style={{ color: "#A8A8A6" }}>60% = เกณฑ์ผ่าน</span>
+              <span className="text-[12px]" style={{ color: "#A8A8A6" }}>60% = เกณฑ์ผ่าน</span>
               <div className="h-0.5 w-4 rounded ml-2" style={{ backgroundColor: "#0B6E65" }} />
-              <span className="text-[11px]" style={{ color: "#A8A8A6" }}>80% = ดีมาก</span>
+              <span className="text-[12px]" style={{ color: "#A8A8A6" }}>80% = ดีมาก</span>
             </div>
           </div>
         )}
@@ -587,7 +587,7 @@ export default function DashboardPage() {
             {/* Header + legend */}
             <div className="flex items-start justify-between gap-3 mb-5">
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
                   ความก้าวหน้ารายวิชา
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
@@ -603,7 +603,7 @@ export default function DashboardPage() {
                 ] as const).map(({ color, label }) => (
                   <div key={label} className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                    <span className="text-[10px]" style={{ color: "#A8A8A6" }}>{label}</span>
+                    <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -637,7 +637,7 @@ export default function DashboardPage() {
                           </span>
                           {count > 1 && (
                             <span
-                              className="text-[10.5px] flex-shrink-0"
+                              className="text-[12px] flex-shrink-0"
                               style={{ color: "#C4C4C0" }}
                             >
                               {count} ชุด
@@ -647,7 +647,7 @@ export default function DashboardPage() {
                         {/* Right: badge + score */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span
-                            className="text-[10.5px] font-bold px-2.5 py-[4px] rounded-full"
+                            className="text-[12px] font-bold px-2.5 py-[4px] rounded-full"
                             style={{ backgroundColor: perf.badgeBg, color: perf.badgeColor }}
                           >
                             {perf.label}
@@ -687,7 +687,7 @@ export default function DashboardPage() {
             >
               <div className="flex items-center gap-1.5">
                 <div className="w-px h-4" style={{ backgroundColor: "#9CA3AF", opacity: 0.5 }} />
-                <span className="text-[11px]" style={{ color: "#A8A8A6" }}>
+                <span className="text-[12px]" style={{ color: "#A8A8A6" }}>
                   เส้นกั้นในแถบ = เกณฑ์ผ่าน 60%
                 </span>
               </div>
@@ -699,7 +699,7 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
                 คอร์สของฉัน
               </p>
               <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
@@ -767,14 +767,14 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13.5px] font-semibold text-gray-900 truncate">{c.courseName}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>
+                    <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
                       Code: <span className="font-mono">{c.activationCode}</span>
                       {" · "}เปิดใช้{" "}
                       {c.activatedAt.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}
                     </p>
                   </div>
                   <span
-                    className="text-[10.5px] font-bold px-2 py-1 rounded-full flex-shrink-0"
+                    className="text-[12px] font-bold px-2 py-1 rounded-full flex-shrink-0"
                     style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
                   >
                     ✓ เปิดแล้ว
@@ -791,7 +791,7 @@ export default function DashboardPage() {
             {/* Section header */}
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
                   บันทึกของฉัน
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
@@ -801,13 +801,13 @@ export default function DashboardPage() {
               {/* Pass summary chips */}
               <div className="flex items-center gap-1.5">
                 <span
-                  className="text-[11px] font-semibold px-2 py-[3px] rounded-full"
+                  className="text-[12px] font-semibold px-2 py-[3px] rounded-full"
                   style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
                 >
                   ✓ {summaries.filter((s) => s.percentage >= 60).length}
                 </span>
                 <span
-                  className="text-[11px] font-semibold px-2 py-[3px] rounded-full"
+                  className="text-[12px] font-semibold px-2 py-[3px] rounded-full"
                   style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
                 >
                   ✗ {summaries.filter((s) => s.percentage < 60).length}

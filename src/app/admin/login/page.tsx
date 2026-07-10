@@ -130,7 +130,7 @@ export default function AdminLoginPage() {
           </span>
         </button>
 
-        <p className="text-center text-[11.5px] mt-5" style={{ color: "#C4C4C0" }}>
+        <p className="text-center text-[12.5px] mt-5" style={{ color: "#C4C4C0" }}>
           เฉพาะบัญชีที่ได้รับสิทธิ์เท่านั้น
         </p>
         <style>{`@keyframes aspin { to { transform:rotate(360deg); } }`}</style>

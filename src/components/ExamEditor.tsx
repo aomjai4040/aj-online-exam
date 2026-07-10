@@ -81,7 +81,7 @@ function Toast({ toast }: { toast: ToastState | null }) {
         <span className="text-base flex-shrink-0">{ok ? "✓" : "✕"}</span>
         <span className="flex-1 leading-snug">{toast.message}</span>
         {ok && (
-          <span className="text-[11px] font-normal opacity-70 flex-shrink-0">กำลังนำทาง…</span>
+          <span className="text-[12px] font-normal opacity-70 flex-shrink-0">กำลังนำทาง…</span>
         )}
       </div>
     </div>
@@ -235,7 +235,7 @@ function QuestionCard({
                   {/* Correct indicator */}
                   {isCorrect && (
                     <span
-                      className="flex-shrink-0 text-[11px] font-bold w-10 text-right"
+                      className="flex-shrink-0 text-[12px] font-bold w-10 text-right"
                       style={{ color: "#0B6E65" }}
                     >
                       ✓ เฉลย
@@ -462,7 +462,7 @@ export default function ExamEditor({
 
         {/* ═══ Section 1: ข้อมูลพื้นฐาน ════════════════════════════════ */}
         <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
             📝 ข้อมูลพื้นฐาน
           </p>
 
@@ -478,7 +478,7 @@ export default function ExamEditor({
               onChange={(e) => setMetaField("title", e.target.value)}
               maxLength={120}
             />
-            <p className="text-[11px] text-right mt-1" style={{ color: "#C4C4C0" }}>
+            <p className="text-[12px] text-right mt-1" style={{ color: "#C4C4C0" }}>
               {meta.title.length}/120
             </p>
           </div>
@@ -501,7 +501,7 @@ export default function ExamEditor({
 
         {/* ═══ Section 2: หมวดวิชาและเวลา ══════════════════════════════ */}
         <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
             🏷️ หมวดวิชาและเวลา
           </p>
 
@@ -576,7 +576,7 @@ export default function ExamEditor({
 
         {/* ═══ Section 3: การเผยแพร่ ════════════════════════════════════ */}
         <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
             🌐 การเผยแพร่
           </p>
           <div className="flex items-center justify-between gap-4">

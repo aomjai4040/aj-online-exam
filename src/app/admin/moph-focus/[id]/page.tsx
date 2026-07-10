@@ -228,7 +228,7 @@ export default function AdminMOPHFocusEditPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-0.5"
+          <p className="text-[12px] font-bold uppercase tracking-widest mb-0.5"
             style={{ color: "#64748B" }}>Admin › MOPH Focus</p>
           <h1 className="text-[20px] font-extrabold text-gray-900">
             {isNew ? "✏️ เพิ่มประเด็นใหม่" : "✏️ แก้ไขประเด็น"}

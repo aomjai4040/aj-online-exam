@@ -115,7 +115,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
               value={form.courseId}
               onChange={(e) => set("courseId", e.target.value)}
             />
-            <p className="text-[11px] mt-1" style={{ color: "#A8A8A6" }}>ใช้อ้างอิงภายใน ไม่แสดงต่อผู้ใช้</p>
+            <p className="text-[12px] mt-1" style={{ color: "#A8A8A6" }}>ใช้อ้างอิงภายใน ไม่แสดงต่อผู้ใช้</p>
           </div>
 
           {/* Course name */}
@@ -147,7 +147,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
                 value={form.maxUses}
                 onChange={(e) => set("maxUses", e.target.value)}
               />
-              <p className="text-[11px] mt-1" style={{ color: "#A8A8A6" }}>0 = ไม่จำกัด</p>
+              <p className="text-[12px] mt-1" style={{ color: "#A8A8A6" }}>0 = ไม่จำกัด</p>
             </div>
             <div>
               <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
@@ -161,7 +161,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
                 value={form.expiresAt}
                 onChange={(e) => set("expiresAt", e.target.value)}
               />
-              <p className="text-[11px] mt-1" style={{ color: "#A8A8A6" }}>เว้นว่าง = ไม่มีวันหมดอายุ</p>
+              <p className="text-[12px] mt-1" style={{ color: "#A8A8A6" }}>เว้นว่าง = ไม่มีวันหมดอายุ</p>
             </div>
           </div>
 
@@ -244,7 +244,7 @@ function UsersModal({ code, onClose }: UsersModalProps) {
               <span className="text-[13px] font-mono font-bold" style={{ color: "#0B6E65" }}>
                 {code.code}
               </span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full font-medium"
+              <span className="text-[12px] px-2 py-0.5 rounded-full font-medium"
                 style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
                 {code.usedCount} คน
               </span>
@@ -267,14 +267,14 @@ function UsersModal({ code, onClose }: UsersModalProps) {
             className="grid grid-cols-[1fr_auto_auto] gap-4 px-6 py-2.5 shrink-0"
             style={{ borderBottom: "1px solid #F3F2F0", backgroundColor: "#FAFAF9" }}
           >
-            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#A8A8A6" }}>
+            <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: "#A8A8A6" }}>
               อีเมล
             </span>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-right w-28"
+            <span className="text-[12px] font-bold uppercase tracking-wider text-right w-28"
               style={{ color: "#A8A8A6" }}>
               วันที่ Activate
             </span>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-right w-20"
+            <span className="text-[12px] font-bold uppercase tracking-wider text-right w-20"
               style={{ color: "#A8A8A6" }}>
               ใช้งานแล้ว
             </span>
@@ -312,7 +312,7 @@ function UsersModal({ code, onClose }: UsersModalProps) {
                   {/* Email + index */}
                   <div className="flex items-center gap-3 min-w-0">
                     <span
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[11px]
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-[12px]
                                  font-bold flex-shrink-0"
                       style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
                     >
@@ -350,7 +350,7 @@ function UsersModal({ code, onClose }: UsersModalProps) {
                         >
                           {u.totalAttempts}
                         </span>
-                        <span className="text-[11px]" style={{ color: "#A8A8A6" }}>ครั้ง</span>
+                        <span className="text-[12px]" style={{ color: "#A8A8A6" }}>ครั้ง</span>
                       </div>
                     )}
                   </div>
@@ -417,7 +417,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       title="คัดลอก Code"
-      className="flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5
+      className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5
                  rounded-lg transition-all duration-150"
       style={
         copied
@@ -483,7 +483,7 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
             </p>
           </div>
           <span
-            className="text-[11px] font-bold px-2.5 py-[5px] rounded-full flex-shrink-0"
+            className="text-[12px] font-bold px-2.5 py-[5px] rounded-full flex-shrink-0"
             style={{ backgroundColor: statusBg, color: statusColor }}
           >
             {statusLabel}
@@ -496,7 +496,7 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
             <p className="text-[18px] font-extrabold text-gray-900 leading-none">
               {code.usedCount}
             </p>
-            <p className="text-[10px] mt-0.5" style={{ color: "#A8A8A6" }}>
+            <p className="text-[11.5px] mt-0.5" style={{ color: "#A8A8A6" }}>
               {code.maxUses > 0 ? `จาก ${code.maxUses}` : "ครั้ง"}
             </p>
           </div>
@@ -504,13 +504,13 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
             <p className="text-[13px] font-bold text-gray-900 leading-tight">
               {code.maxUses > 0 ? code.maxUses : "∞"}
             </p>
-            <p className="text-[10px] mt-0.5" style={{ color: "#A8A8A6" }}>สูงสุด</p>
+            <p className="text-[11.5px] mt-0.5" style={{ color: "#A8A8A6" }}>สูงสุด</p>
           </div>
           <div className="rounded-lg px-2.5 py-2 text-center" style={{ backgroundColor: "#F5F5F3" }}>
             <p className="text-[13px] font-bold text-gray-900 leading-tight truncate">
               {fmt(code.expiresAt)}
             </p>
-            <p className="text-[10px] mt-0.5" style={{ color: "#A8A8A6" }}>หมดอายุ</p>
+            <p className="text-[11.5px] mt-0.5" style={{ color: "#A8A8A6" }}>หมดอายุ</p>
           </div>
         </div>
 
@@ -531,14 +531,14 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px]" style={{ color: "#C4C4C0" }}>
+          <p className="text-[12px]" style={{ color: "#C4C4C0" }}>
             สร้าง {fmtCreated(code.createdAt)}
           </p>
           <div className="flex items-center gap-2">
             {/* View users */}
             <button
               onClick={() => onViewUsers(code)}
-              className="text-[11.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              className="text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
               style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
             >
               ดูผู้ใช้ ({code.usedCount})
@@ -546,7 +546,7 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
             {/* Toggle */}
             <button
               onClick={() => onToggle(code.id, code.status === "active" ? "inactive" : "active")}
-              className="text-[11.5px] font-semibold px-3 py-1.5 rounded-lg border transition-colors"
+              className="text-[12.5px] font-semibold px-3 py-1.5 rounded-lg border transition-colors"
               style={{ borderColor: "#E0DFDC", color: "#6B7280" }}
             >
               {code.status === "active" ? "ปิด" : "เปิด"}
@@ -554,7 +554,7 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
             {/* Delete */}
             <button
               onClick={() => onDelete(code.id, code.code)}
-              className="text-[11.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              className="text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
               style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
             >
               ลบ
@@ -615,7 +615,7 @@ export default function CodesPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-[15px] font-bold text-gray-900">Activation Codes</h1>
             {!loading && (
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+              <span className="text-[12px] font-medium px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
                 {codes.length} รายการ
               </span>
@@ -648,7 +648,7 @@ export default function CodesPage() {
               <div key={item.label} className="bg-white rounded-2xl p-4 text-center"
                 style={{ border: "1px solid #EBEBEA" }}>
                 <div className="text-[28px] font-extrabold" style={{ color: item.color }}>{item.value}</div>
-                <div className="text-[11px] font-semibold text-gray-500 mt-0.5">{item.label}</div>
+                <div className="text-[12px] font-semibold text-gray-500 mt-0.5">{item.label}</div>
               </div>
             ))}
           </div>
