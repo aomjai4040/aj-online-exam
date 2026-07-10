@@ -1,8 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { useAccessGuard } from "@/lib/use-access-guard";
+import { useLoginGuard } from "@/lib/use-login-guard";
+import { getUserAccess } from "@/lib/access";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import {
   getDeckById,
@@ -238,7 +240,7 @@ function ResultScreen({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function FlashCardDeckPage() {
-  const guard    = useAccessGuard();
+  const guard    = useLoginGuard();
   const { user } = useAuth();
   const router   = useRouter();
   const params   = useParams<{ deckId: string }>();
@@ -250,6 +252,7 @@ export default function FlashCardDeckPage() {
   const [progress, setProgress] = useState<Map<string, FCProgress>>(new Map());
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
+  const [locked,   setLocked]   = useState(false); // deck ไม่ฟรี + ผู้ใช้ยังไม่มีคอร์ส
 
   // ── Session ───────────────────────────────────────────────────────────────
   const [index,    setIndex]    = useState(0);
@@ -273,6 +276,12 @@ export default function FlashCardDeckPage() {
         const d = await getDeckById(deckId);
         if (!d) { setError("ไม่พบ Deck นี้"); return; }
         setDeck(d);
+
+        // Gate ต่อ deck: ไม่ฟรี + ไม่มีคอร์ส → ล็อก (ไม่ดึงการ์ด)
+        if (!d.isFree && user) {
+          const access = await getUserAccess(user.uid);
+          if (!access.hasAny) { setLocked(true); return; }
+        }
 
         const fetched = await getCardsByDeck(deckId, d.slug);
         setCards(fetched);
@@ -362,6 +371,45 @@ export default function FlashCardDeckPage() {
 
   // ── Guards ────────────────────────────────────────────────────────────────
   if (guard !== "allowed") return <AccessGuardSpinner />;
+
+  // ── Locked (deck ไม่ฟรี + ยังไม่มีสิทธิ์คอร์ส) ─────────────────────────────
+  if (locked && deck) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-5"
+        style={{ backgroundColor: BG }}>
+        <div className="bg-white rounded-3xl p-8 text-center max-w-sm w-full"
+          style={{ border: "1px solid #E5E7EB" }}>
+          <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+            style={{ backgroundColor: "#EBF5F3" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0B6E65"
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+          </div>
+          <p className="text-[17px] font-bold text-gray-900 mb-1">
+            {deck.coverEmoji} {deck.name}
+          </p>
+          <p className="text-[13px] leading-relaxed mb-6" style={{ color: "#6B7280" }}>
+            คลังการ์ดนี้สำหรับสมาชิกคอร์ส
+            <br />
+            ปลดล็อกเพื่อทบทวนได้ทั้ง {deck.totalCards} ใบ
+          </p>
+          <div className="space-y-2.5">
+            <Link href="/packages" className="btn-primary w-full py-3 text-[14px] block text-center">
+              ดูแพ็กเกจ & สั่งซื้อ
+            </Link>
+            <Link href="/activate" className="btn-secondary w-full py-3 text-[14px] block text-center">
+              กรอกรหัสเปิดใช้งาน
+            </Link>
+            <Link href="/flashcard" className="block text-[13px] mt-2" style={{ color: "#A8A8A6" }}>
+              ← กลับหน้า Flash Card
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {

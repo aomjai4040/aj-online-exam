@@ -684,8 +684,8 @@ export default function AdminDashboard() {
                   <Link href="/admin/seed" className="btn-secondary text-sm">
                     📥 Seed ข้อสอบ
                   </Link>
-                  <Link href="/admin/flashcards/import" className="btn-secondary text-sm">
-                    🃏 นำเข้า Flashcard
+                  <Link href="/admin/flashcards" className="btn-secondary text-sm">
+                    🃏 จัดการ Flash Card
                   </Link>
                   <Link href="/admin/moph-focus" className="btn-secondary text-sm">
                     🏥 MOPH Focus
@@ -756,8 +756,8 @@ export default function AdminDashboard() {
                 <Link href="/admin/seed" className="btn-secondary text-sm">
                   📥 Seed ข้อสอบ
                 </Link>
-                <Link href="/admin/flashcards/import" className="btn-secondary text-sm">
-                  🃏 นำเข้า Flashcard
+                <Link href="/admin/flashcards" className="btn-secondary text-sm">
+                  🃏 จัดการ Flash Card
                 </Link>
                 <Link href="/admin/moph-focus" className="btn-secondary text-sm">
                   🏥 จัดการ MOPH Focus

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { useAccessGuard } from "@/lib/use-access-guard";
+import { useLoginGuard } from "@/lib/use-login-guard";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import {
   getDeckById,
@@ -124,7 +124,7 @@ function Legend({ color, label, value, total }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DeckStatsPage() {
-  const guard    = useAccessGuard();
+  const guard    = useLoginGuard();
   const { user } = useAuth();
   const router   = useRouter();
   const params   = useParams<{ deckId: string }>();

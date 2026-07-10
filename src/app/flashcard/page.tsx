@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAccessGuard } from "@/lib/use-access-guard";
+import { useLoginGuard } from "@/lib/use-login-guard";
 import { useAuth } from "@/lib/auth-context";
+import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
 import { getPublishedDecks, getAllFCDeckStats } from "@/lib/flashcard-firestore";
@@ -52,10 +53,11 @@ const GROUP_ORDER: FCDeck["type"][] = ["pre_exam", "tag", "chapter", "custom"];
 // ─── DeckCard ─────────────────────────────────────────────────────────────────
 
 function DeckCard({
-  deck, stats,
+  deck, stats, locked,
 }: {
-  deck:  FCDeck;
-  stats: FCDeckStats | undefined;
+  deck:   FCDeck;
+  stats:  FCDeckStats | undefined;
+  locked: boolean;
 }) {
   const theme = DECK_THEME[deck.type];
   const total = deck.totalCards;
@@ -87,7 +89,24 @@ function DeckCard({
           <p className="text-[18px] font-bold text-gray-900 leading-snug truncate flex-1">
             {deck.name}
           </p>
-          {hasLearning && (
+          {deck.isFree && (
+            <span className="text-[12px] font-bold px-2.5 py-[3px] rounded-full flex-shrink-0"
+              style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}>
+              ฟรี
+            </span>
+          )}
+          {locked && (
+            <span className="flex items-center gap-1 text-[12px] font-bold px-2.5 py-[3px] rounded-full flex-shrink-0"
+              style={{ backgroundColor: "#F3F4F6", color: "#6B7280" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+              ล็อก
+            </span>
+          )}
+          {hasLearning && !locked && (
             <span className="text-[12px] font-bold px-2.5 py-[3px] rounded-full flex-shrink-0"
               style={{ backgroundColor: "#FEF3C7", color: "#D97706" }}>
               ↺ {learning}
@@ -136,9 +155,10 @@ function DeckCard({
 // ─── GroupSection ─────────────────────────────────────────────────────────────
 
 function GroupSection({
-  type, decks, statsMap,
+  type, decks, statsMap, access,
 }: {
   type: FCDeck["type"]; decks: FCDeck[]; statsMap: Map<string, FCDeckStats>;
+  access: UserAccess;
 }) {
   if (!decks.length) return null;
   const theme = DECK_THEME[type];
@@ -150,7 +170,12 @@ function GroupSection({
       </p>
       <div className="space-y-2.5">
         {decks.map((d) => (
-          <DeckCard key={d.id} deck={d} stats={statsMap.get(d.id)} />
+          <DeckCard
+            key={d.id}
+            deck={d}
+            stats={statsMap.get(d.id)}
+            locked={!d.isFree && !access.hasAny}
+          />
         ))}
       </div>
     </section>
@@ -179,10 +204,11 @@ function Skeleton() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function FlashCardListPage() {
-  const guard    = useAccessGuard();
+  const guard    = useLoginGuard();
   const { user } = useAuth();
   const [decks,    setDecks]    = useState<FCDeck[]>([]);
   const [statsMap, setStatsMap] = useState<Map<string, FCDeckStats>>(new Map());
+  const [access,   setAccess]   = useState<UserAccess>(EMPTY_ACCESS);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
 
@@ -191,13 +217,15 @@ export default function FlashCardListPage() {
 
     async function load() {
       try {
-        // โหลด deck list + stats พร้อมกัน
-        const [fetchedDecks, fetchedStats] = await Promise.all([
+        // โหลด deck list + stats + สิทธิ์ พร้อมกัน
+        const [fetchedDecks, fetchedStats, fetchedAccess] = await Promise.all([
           getPublishedDecks(),
           user ? getAllFCDeckStats(user.uid) : Promise.resolve(new Map<string, FCDeckStats>()),
+          user ? getUserAccess(user.uid)     : Promise.resolve(EMPTY_ACCESS),
         ]);
         setDecks(fetchedDecks);
         setStatsMap(fetchedStats);
+        setAccess(fetchedAccess);
       } catch {
         setError("โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่");
       } finally {
@@ -282,7 +310,7 @@ export default function FlashCardListPage() {
         )}
 
         {!loading && !error && GROUP_ORDER.map((type) => (
-          <GroupSection key={type} type={type} decks={grouped[type]} statsMap={statsMap} />
+          <GroupSection key={type} type={type} decks={grouped[type]} statsMap={statsMap} access={access} />
         ))}
 
       </div>

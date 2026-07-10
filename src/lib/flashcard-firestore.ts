@@ -44,6 +44,7 @@ function toDeck(d: QueryDocumentSnapshot | DocumentSnapshot): FCDeck {
     coverEmoji:  String(x.coverEmoji  ?? "🃏"),
     totalCards:  Number(x.totalCards  ?? 0),
     isPublished: Boolean(x.isPublished ?? false),
+    isFree:      Boolean(x.isFree      ?? false),
     order:       Number(x.order       ?? 0),
     createdAt:   toDate(x.createdAt),
     updatedAt:   toDate(x.updatedAt),
@@ -324,6 +325,25 @@ export async function updateDeckTotalCards(
   });
 }
 
+/** Admin: ดึง deck ทั้งหมด (รวม unpublished) */
+export async function getAllDecks(): Promise<FCDeck[]> {
+  const snap = await getDocs(
+    query(collection(db, "flashcardDecks"), orderBy("order", "asc"))
+  );
+  return snap.docs.map(toDeck);
+}
+
+/** Admin: ตั้งค่า deck (isFree / isPublished) */
+export async function setDeckFlags(
+  deckId: string,
+  flags:  Partial<Pick<FCDeck, "isFree" | "isPublished">>,
+): Promise<void> {
+  await updateDoc(doc(db, "flashcardDecks", deckId), {
+    ...flags,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 // ─── Admin — Bulk import ──────────────────────────────────────────────────────
 
 export interface ImportCardRow {
@@ -374,6 +394,7 @@ export async function bulkImportCards(rows: ImportCardRow[]): Promise<{
         coverEmoji:  deckEmoji(sample.deckType),
         totalCards:  0,
         isPublished: true,
+        isFree:      false,
         order:       0,
       });
       deckIdMap.set(slug, id);

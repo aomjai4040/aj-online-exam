@@ -48,6 +48,7 @@ export interface FCDeck {
   coverEmoji:  string;       // "📚", "🎯", "🔢"
   totalCards:  number;       // cache — อัพเดตหลัง import
   isPublished: boolean;
+  isFree:      boolean;      // true = ทดลองใช้ฟรี ไม่ต้องมีสิทธิ์คอร์ส
   order:       number;       // ลำดับแสดงผลในหน้า list
   createdAt:   Date;
   updatedAt:   Date;
