@@ -28,6 +28,7 @@ export const SUBJECT_COLOR: Record<string, string> = {
   REFORM:  "#10B981",
   LAWIT:   "#F97316",
   MOPH:    "#0D9488",
+  MOCK:    "#7C3AED",
   // วิชาทั่วไป (legacy)
   คณิตศาสตร์:          "#3B82F6",
   ภาษาไทย:            "#EC4899",

@@ -230,8 +230,9 @@ export default function ImportPage() {
             title:       g.setName,
             description: "",
             subject:     g.subject,
-            timeLimit:   0,
+            timeLimit:   g.subject === "MOCK" ? 120 : 0, // mock default 120 นาที (แก้ได้ในหน้าแก้ไข)
             isPublished: false,
+            isMock:      g.subject === "MOCK",           // เข้าเมนู Mock Exam อัตโนมัติ
             questions,
           });
         }
@@ -473,7 +474,7 @@ export default function ImportPage() {
 
               <div className="space-y-2">
                 <p className="text-[15px]" style={{ color: "#4A5568" }}>
-                  <strong>subject</strong> — รหัสหมวดวิชา (เลือกจาก 7 ค่าด้านล่าง)
+                  <strong>subject</strong> — รหัสหมวดวิชา (เลือกจาก 8 ค่าด้านล่าง — MOCK = ข้อสอบเสมือนจริง)
                 </p>
                 <p className="text-[15px]" style={{ color: "#4A5568" }}>
                   <strong>correct_answer</strong> — A B C D หรือ ก ข ค ง

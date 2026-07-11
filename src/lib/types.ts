@@ -1,4 +1,4 @@
-// ─── Subject categories (7 fixed values) ─────────────────────────────────────
+// ─── Subject categories ──────────────────────────────────────────────────────
 
 export const SUBJECTS = [
   { code: "BASIC",    label: "ความรู้ความสามารถพื้นฐานด้านสาธารณสุข" },
@@ -8,6 +8,7 @@ export const SUBJECTS = [
   { code: "REFORM",   label: "ความรู้เกี่ยวกับแผนการปฏิรูปประเทศด้านสาธารณสุข" },
   { code: "LAWIT",    label: "ความรู้เกี่ยวกับการใช้งานคอมพิวเตอร์และกฎหมายที่เกี่ยวข้อง" },
   { code: "MOPH",     label: "ความรู้เกี่ยวกับวิสัยทัศน์ พันธกิจ โครงสร้าง อำนาจหน้าที่ ภารกิจ นโยบายและยุทธศาสตร์ของ สป.สธ. และกระทรวงสาธารณสุข" },
+  { code: "MOCK",     label: "Mock Exam — ข้อสอบเสมือนจริง คละทุกหมวด (เข้าเมนู Mock อัตโนมัติ)" },
 ] as const;
 
 export type SubjectCode = typeof SUBJECTS[number]["code"];
@@ -26,6 +27,7 @@ export const SUBJECT_DISPLAY: Record<string, string> = {
   REFORM:  "ปฏิรูป",
   LAWIT:   "กฎหมาย/IT",
   MOPH:    "กระทรวง",
+  MOCK:    "เสมือนจริง",
 };
 
 // Legacy Thai subject names → new subject codes (backward compat)
