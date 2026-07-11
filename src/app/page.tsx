@@ -332,6 +332,18 @@ export default function HomePage() {
         <div className="grid grid-cols-2 gap-3">
           {[
             {
+              title: "คอร์สวิดีโอ",
+              desc: "ติวครบทุกหัวข้อ",
+              href: "/videos",
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
+                  <polygon points="23 7 16 12 23 17 23 7" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+              ),
+            },
+            {
               title: "Flash Card",
               desc: "ทบทวนความรู้",
               href: "/flashcard",

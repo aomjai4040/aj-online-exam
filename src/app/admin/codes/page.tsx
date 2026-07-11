@@ -115,7 +115,12 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
               value={form.courseId}
               onChange={(e) => set("courseId", e.target.value)}
             />
-            <p className="text-[12px] mt-1" style={{ color: "#A8A8A6" }}>ใช้อ้างอิงภายใน ไม่แสดงต่อผู้ใช้</p>
+            <p className="text-[12px] mt-1" style={{ color: "#A8A8A6" }}>
+              ใช้อ้างอิงภายใน ไม่แสดงต่อผู้ใช้ ·{" "}
+              <span className="font-semibold" style={{ color: "#B45309" }}>
+                App Only (299) ต้องขึ้นต้นด้วย &ldquo;app-&rdquo; เช่น app-2026 — อื่น ๆ = คอร์สเต็ม (ดูวิดีโอได้)
+              </span>
+            </p>
           </div>
 
           {/* Course name */}

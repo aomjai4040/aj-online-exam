@@ -94,6 +94,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── Course Videos ───────────────────────────────────────────────────────
+    // เก็บ YouTube id ของวิดีโอคอร์สเต็ม — อ่านได้เมื่อ login
+    // NOTE: การกรอง tier (App Only ห้ามดู) ทำฝั่ง client ตอนนี้;
+    // การบังคับระดับ DB ต้องรอ server API (Phase 3) เช่นเดียวกับเฉลยข้อสอบ
+    match /videos/{videoId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // ── MOPH Focus ──────────────────────────────────────────────────────────
     // หน้า user query ทั้ง collection แล้วกรอง client-side → ต้องอ่านได้เมื่อ login
     match /mophFocus/{docId} {

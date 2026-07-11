@@ -16,9 +16,19 @@ import type { Exam } from "./types";
 export interface UserAccess {
   packageIds: string[]; // courseId ทั้งหมดที่ผู้ใช้เป็นเจ้าของ
   hasAny:     boolean;  // มีคอร์ส/แพ็กอย่างน้อย 1 อัน (legacy fallback)
+  hasFull:    boolean;  // มี "คอร์สเต็ม" → ดูวิดีโอได้
 }
 
-export const EMPTY_ACCESS: UserAccess = { packageIds: [], hasAny: false };
+export const EMPTY_ACCESS: UserAccess = { packageIds: [], hasAny: false, hasFull: false };
+
+/**
+ * กติกาแยก tier (ตกลงกับ Aj 2026-07-11):
+ * code สำหรับ App Only (299) ต้องตั้ง courseId ขึ้นต้นด้วย "app-" เช่น "app-2026"
+ * courseId อื่นทั้งหมด = คอร์สเต็ม (ลูกค้าเก่าทุกคนซื้อ 699 → ได้วิดีโออัตโนมัติ)
+ */
+export function isAppOnlyCourse(courseId: string): boolean {
+  return courseId.toLowerCase().startsWith("app-");
+}
 
 /** ดึงสิทธิ์ทั้งหมดของผู้ใช้ในครั้งเดียว (แทน checkUserHasAnyAccess เดิม) */
 export async function getUserAccess(uid: string): Promise<UserAccess> {
@@ -28,7 +38,11 @@ export async function getUserAccess(uid: string): Promise<UserAccess> {
   const packageIds = snap.docs
     .map((d) => String(d.data().courseId ?? ""))
     .filter(Boolean);
-  return { packageIds, hasAny: !snap.empty };
+  return {
+    packageIds,
+    hasAny:  !snap.empty,
+    hasFull: packageIds.some((id) => !isAppOnlyCourse(id)),
+  };
 }
 
 export type ExamAccess = "allowed" | "locked" | "need-login";
