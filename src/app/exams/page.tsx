@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
-import { getSubjectShort } from "@/lib/types";
+import { getSubjectShort, normalizeSubject, SUBJECTS } from "@/lib/types";
 import type { Difficulty } from "@/lib/mock-data";
 import { getHistory, type ExamRecord } from "@/lib/exam-history";
 import { getUserHistory } from "@/lib/user-firestore";
@@ -320,6 +320,22 @@ export default function ExamsPage() {
 
   const isFiltering = search !== "" || activeSubject !== "ทั้งหมด";
 
+  // จัดกลุ่มตามหมวด (โหมด "ทั้งหมด" + ไม่ได้ค้นหา) — เรียงตามลำดับหมวดสนามสอบจริง
+  const grouped = useMemo(() => {
+    const order = SUBJECTS.map((s) => s.code as string);
+    const map = new Map<string, ExamCard[]>();
+    for (const e of exams) {
+      const key = normalizeSubject(e.subject);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(e);
+    }
+    return Array.from(map.entries()).sort(
+      (a, b) =>
+        (order.indexOf(a[0]) === -1 ? 99 : order.indexOf(a[0])) -
+        (order.indexOf(b[0]) === -1 ? 99 : order.indexOf(b[0]))
+    );
+  }, [exams]);
+
   function clearFilters() {
     setSearch("");
     setActiveSubject("ทั้งหมด");
@@ -484,8 +500,8 @@ export default function ExamsPage() {
           </div>
         )}
 
-        {/* Exam cards */}
-        {!loading && filtered.length > 0 && (
+        {/* Exam cards — โหมดกรอง/ค้นหา = ลิสต์แบน */}
+        {!loading && filtered.length > 0 && isFiltering && (
           <div className="space-y-3">
             {filtered.map((exam) => (
               <ExamCardItem
@@ -495,6 +511,45 @@ export default function ExamsPage() {
                 locked={decideExamAccess(exam, user?.uid ?? null, access) === "locked"}
               />
             ))}
+          </div>
+        )}
+
+        {/* โหมดปกติ = จัดกลุ่มตามหมวดสนามสอบ พร้อมสรุปความคืบหน้าต่อหมวด */}
+        {!loading && filtered.length > 0 && !isFiltering && (
+          <div className="space-y-7">
+            {grouped.map(([code, list]) => {
+              const done = list.filter((e) => history[e.id]).length;
+              return (
+                <section key={code}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: subjectColor(code) }} />
+                      <h2 className="text-[14px] font-bold text-gray-900 truncate">
+                        {getSubjectShort(code)}
+                      </h2>
+                      <span className="text-[12px] flex-shrink-0" style={{ color: "#A8A8A6" }}>
+                        {list.length} ชุด
+                      </span>
+                    </div>
+                    <span className="text-[12px] font-semibold flex-shrink-0"
+                      style={{ color: done === list.length && done > 0 ? "#15803D" : "#A8A8A6" }}>
+                      {done === list.length && done > 0 ? "✓ ครบทุกชุด" : `ทำแล้ว ${done}/${list.length}`}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {list.map((exam) => (
+                      <ExamCardItem
+                        key={exam.id}
+                        exam={exam}
+                        record={history[exam.id] ?? null}
+                        locked={decideExamAccess(exam, user?.uid ?? null, access) === "locked"}
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         )}
 
