@@ -80,8 +80,9 @@ service cloud.firestore {
     }
 
     // อุปกรณ์ที่แต่ละบัญชีใช้ (log จาก device-session) — admin ตรวจการแชร์บัญชี
+    // delete: แอดมินล้างรายการเครื่องให้ลูกค้าที่เปลี่ยนเครื่องใหม่
     match /{path=**}/devices/{deviceId} {
-      allow read: if isAdmin();
+      allow read, delete: if isAdmin();
     }
 
     // ── Results ─────────────────────────────────────────────────────────────

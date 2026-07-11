@@ -27,7 +27,7 @@ import {
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { getInAppBrowser, escapeInAppBrowser } from "./in-app-browser";
-import { trackDeviceSession } from "./device-session";
+import { registerDevice } from "./device-session";
 
 // ─── Module-level redirect processing ────────────────────────────────────────
 //
@@ -114,7 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled  = false;
     let unsubscribe: (() => void) | undefined;
-    let stopSession: (() => void) | undefined;
 
     // Wait for redirect result (resolves instantly if no redirect pending)
     _redirectPromise.then(redirectUser => {
@@ -132,12 +131,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(u);
         setLoading(false);
 
-        // Single-session: log อุปกรณ์ + เฝ้าดู session (เตะเมื่อเปิดบังคับ)
-        stopSession?.();
-        stopSession = undefined;
+        // Device limit: ลงทะเบียนอุปกรณ์ (บล็อกเครื่องเกินโควตาเมื่อเปิดบังคับ)
         if (u) {
-          stopSession = trackDeviceSession(u.uid, () => {
-            alert("บัญชีนี้ถูกใช้งานบนอุปกรณ์อื่น ระบบจึงออกจากระบบให้อัตโนมัติ");
+          registerDevice(u.uid, (max) => {
+            alert(`บัญชีนี้ลงทะเบียนใช้งานครบ ${max} เครื่องแล้ว\nหากเปลี่ยนเครื่องใหม่ กรุณาติดต่อแอดมินทาง LINE เพื่อล้างรายการเครื่องเดิม`);
             fbSignOut(auth).catch(() => {});
           });
         }
@@ -147,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
       unsubscribe?.();
-      stopSession?.();
+
     };
   }, []);
 

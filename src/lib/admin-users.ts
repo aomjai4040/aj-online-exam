@@ -6,9 +6,16 @@
  */
 
 import {
-  collection, collectionGroup, getDocs, Timestamp,
+  collection, collectionGroup, getDocs, deleteDoc, Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+
+/** ล้างรายการอุปกรณ์ของผู้ใช้ (ลูกค้าเปลี่ยนเครื่อง → ลงทะเบียนใหม่ได้) */
+export async function deleteUserDevices(uid: string): Promise<number> {
+  const snap = await getDocs(collection(db, "users", uid, "devices"));
+  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+  return snap.size;
+}
 
 export interface MemberRow {
   uid:         string;

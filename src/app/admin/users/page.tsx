@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { getMemberStats, type MemberStats } from "@/lib/admin-users";
+import { getMemberStats, deleteUserDevices, type MemberStats } from "@/lib/admin-users";
 
 // ─── /admin/users — สรุปสมาชิก + ตรวจการใช้ code ──────────────────────────────
 
@@ -165,11 +165,29 @@ export default function AdminUsersPage() {
                           <td className="px-3 py-2.5 text-right" style={{ color: "#6B7280" }}>
                             {m.attempts}
                           </td>
-                          <td className="px-3 py-2.5 text-right font-bold"
+                          <td className="px-3 py-2.5 text-right font-bold whitespace-nowrap"
                             title={m.deviceLabels.join(", ")}
-                            style={{ color: m.devices >= 3 ? "#DC2626" : m.devices > 0 ? "#6B7280" : "#C4C4C0" }}>
+                            style={{ color: m.devices >= 4 ? "#DC2626" : m.devices === 3 ? "#B45309" : m.devices > 0 ? "#6B7280" : "#C4C4C0" }}>
                             {m.devices > 0 ? m.devices : "—"}
-                            {m.devices >= 3 && " ⚠️"}
+                            {m.devices >= 4 && " ⚠️"}
+                            {m.devices > 0 && (
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`ล้างรายการอุปกรณ์ของ ${m.email}?\n(ใช้เมื่อลูกค้าเปลี่ยนเครื่องใหม่ — เครื่องที่ใช้อยู่จะลงทะเบียนใหม่เองอัตโนมัติ)`)) return;
+                                  await deleteUserDevices(m.uid);
+                                  setStats((prev) => prev && {
+                                    ...prev,
+                                    members: prev.members.map((x) =>
+                                      x.uid === m.uid ? { ...x, devices: 0, deviceLabels: [] } : x),
+                                  });
+                                }}
+                                className="ml-1.5 text-[11px] font-semibold px-1.5 py-0.5 rounded"
+                                style={{ backgroundColor: "#F3F4F6", color: "#6B7280" }}
+                                title="ล้างรายการอุปกรณ์ (ลูกค้าเปลี่ยนเครื่อง)"
+                              >
+                                ล้าง
+                              </button>
+                            )}
                           </td>
                           <td className="px-4 py-2.5 text-right" style={{ color: "#6B7280" }}>
                             {fmtDate(m.lastSeenAt)}

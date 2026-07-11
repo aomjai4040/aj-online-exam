@@ -1,20 +1,22 @@
 /**
- * device-session.ts — กันแชร์บัญชี (single-session)
+ * device-session.ts — จำกัดจำนวนอุปกรณ์ต่อบัญชี (ไม่ใช่ single-session)
  *
- * ทุกครั้งที่ login/เปิดแอป:
- *   1. ลงทะเบียนอุปกรณ์นี้ที่ users/{uid}/devices/{deviceId} (log สำหรับ admin ตรวจ)
- *   2. เขียน users/{uid}/session/current = อุปกรณ์นี้ (ประกาศตัวเป็น session ล่าสุด)
- *   3. เฝ้าดู session/current — ถ้าเครื่องอื่น login ทีหลัง:
- *        ENFORCE=false → เก็บ log เฉย ๆ (โหมดปัจจุบัน — สังเกตการณ์ก่อน)
- *        ENFORCE=true  → sign out เครื่องนี้พร้อมข้อความแจ้ง
+ * นโยบาย (Aj 2026-07-11): ผู้เรียนใช้หลายเครื่องได้ตามสะดวก (มือถือ+iPad+คอม)
+ * → อนุญาตสูงสุด MAX_DEVICES เครื่อง · ไม่มีการเตะกลางคันขณะใช้งาน
+ * → ตรวจเฉพาะตอนเปิดแอปบน "เครื่องใหม่" ที่เกินโควตา
  *
- * เปิดบังคับ = เปลี่ยน ENFORCE_SINGLE_SESSION เป็น true (ที่เดียว)
+ * ENFORCE_DEVICE_LIMIT=false (โหมด log-only) — เก็บข้อมูลก่อน
+ * เปิดบังคับ = เปลี่ยนเป็น true: เครื่องที่ 4 ขึ้นไปจะเข้าไม่ได้
+ * พร้อมข้อความให้ติดต่อแอดมิน (แอดมินล้างรายการเครื่องได้ใน /admin/users)
  */
 
-import { doc, setDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
+import {
+  collection, doc, getDocs, setDoc, serverTimestamp,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
-export const ENFORCE_SINGLE_SESSION = false; // ← เปิดบังคับเมื่อ Aj สั่ง
+export const ENFORCE_DEVICE_LIMIT = false; // ← เปิดบังคับเมื่อ Aj สั่ง
+export const MAX_DEVICES = 3;
 
 const DEVICE_KEY = "aj-device-id";
 
@@ -35,7 +37,7 @@ export function getDeviceId(): string {
 function deviceLabel(): string {
   const ua = navigator.userAgent;
   if (/iPhone|iPod/.test(ua))  return "iPhone";
-  if (/iPad|Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return "iPad";
+  if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "iPad";
   if (/Android/.test(ua))      return "Android";
   if (/Windows/.test(ua))      return "Windows";
   if (/Macintosh/.test(ua))    return "Mac";
@@ -43,40 +45,30 @@ function deviceLabel(): string {
 }
 
 /**
- * เรียกหลัง auth พร้อม (uid ยืนยันแล้ว)
- * คืน unsubscribe function สำหรับหยุดเฝ้าดูตอน logout
+ * เรียกหลัง auth พร้อม — ลงทะเบียน/อัปเดตอุปกรณ์นี้
+ * ถ้าเป็นเครื่องใหม่ที่เกินโควตาและเปิดบังคับ → เรียก onBlocked (ให้ sign out)
  */
-export function trackDeviceSession(
-  uid:      string,
-  onKicked: () => void,
-): () => void {
+export async function registerDevice(
+  uid:       string,
+  onBlocked: (max: number) => void,
+): Promise<void> {
   const deviceId = getDeviceId();
+  try {
+    const snap = await getDocs(collection(db, "users", uid, "devices"));
+    const known = snap.docs.some((d) => d.id === deviceId);
 
-  // 1) log อุปกรณ์นี้ (admin ใช้ตรวจว่าบัญชีหนึ่งใช้กี่เครื่อง)
-  setDoc(doc(db, "users", uid, "devices", deviceId), {
-    label:      deviceLabel(),
-    ua:         navigator.userAgent.slice(0, 200),
-    lastSeenAt: serverTimestamp(),
-  }, { merge: true }).catch(() => {});
+    if (!known && snap.size >= MAX_DEVICES && ENFORCE_DEVICE_LIMIT) {
+      onBlocked(MAX_DEVICES);
+      return; // ไม่ลงทะเบียนเครื่องเกินโควตา
+    }
 
-  // 2) ประกาศตัวเป็น session ปัจจุบัน
-  setDoc(doc(db, "users", uid, "session", "current"), {
-    deviceId,
-    label:     deviceLabel(),
-    updatedAt: serverTimestamp(),
-  }).catch(() => {});
-
-  // 3) เฝ้าดู — เครื่องอื่นแย่ง session → ถูกเตะ (เมื่อเปิดบังคับ)
-  const unsub = onSnapshot(
-    doc(db, "users", uid, "session", "current"),
-    (snap) => {
-      const cur = snap.data()?.deviceId;
-      if (cur && cur !== deviceId && ENFORCE_SINGLE_SESSION) {
-        unsub();
-        onKicked();
-      }
-    },
-    () => {} // permission error ตอน sign out — เงียบไว้
-  );
-  return unsub;
+    // เครื่องที่รู้จักแล้ว = อัปเดตเวลา | เครื่องใหม่ในโควตา (หรือโหมด log) = ลงทะเบียน
+    await setDoc(doc(db, "users", uid, "devices", deviceId), {
+      label:      deviceLabel(),
+      ua:         navigator.userAgent.slice(0, 200),
+      lastSeenAt: serverTimestamp(),
+    }, { merge: true });
+  } catch {
+    // เก็บ log ไม่ได้ (เช่น network) — ไม่ขวางการใช้งาน
+  }
 }
