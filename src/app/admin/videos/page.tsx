@@ -9,6 +9,36 @@ import {
 
 const EMPTY_FORM = { title: "", url: "", chapter: "", order: "", duration: "" };
 
+interface BulkRow {
+  line:    number;
+  ytId:    string | null;
+  title:   string;
+  chapter: string;
+  ok:      boolean;
+  reason?: string;
+}
+
+/** parse บรรทัด "ลิงก์ | ชื่อ | บท" (บทเว้นได้ = ใช้บทของบรรทัดก่อนหน้า) */
+function parseBulk(text: string): BulkRow[] {
+  const rows: BulkRow[] = [];
+  let lastChapter = "";
+  text.split("\n").forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line) return;
+    const parts = line.split("|").map((s) => s.trim());
+    const ytId = parseYouTubeId(parts[0] ?? "");
+    const title = parts[1] ?? "";
+    const chapter = parts[2] || lastChapter;
+    if (chapter) lastChapter = chapter;
+    const ok = !!ytId && !!title && !!chapter;
+    rows.push({
+      line: i + 1, ytId, title, chapter, ok,
+      reason: !ytId ? "ลิงก์ไม่ถูกต้อง" : !title ? "ไม่มีชื่อคลิป" : !chapter ? "ไม่มีบท" : undefined,
+    });
+  });
+  return rows;
+}
+
 export default function AdminVideosPage() {
   const [videos,  setVideos]  = useState<CourseVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +48,13 @@ export default function AdminVideosPage() {
   const [form,    setForm]    = useState(EMPTY_FORM);
   const [saving,  setSaving]  = useState(false);
   const [busy,    setBusy]    = useState<string | null>(null);
+
+  // bulk import
+  const [showBulk, setShowBulk] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkDone, setBulkDone] = useState<number | null>(null);
+  const bulkRows = useMemo(() => parseBulk(bulkText), [bulkText]);
 
   async function load() {
     try { setVideos(await getAllVideos()); }
@@ -67,6 +104,34 @@ export default function AdminVideosPage() {
     finally { setSaving(false); }
   }
 
+  async function handleBulkSave() {
+    const good = bulkRows.filter((r) => r.ok);
+    if (good.length === 0) { setError("ยังไม่มีบรรทัดที่ข้อมูลครบ"); return; }
+    setBulkBusy(true);
+    setError("");
+    let order = (videos.at(-1)?.order ?? 0) + 1;
+    let saved = 0;
+    try {
+      for (const r of good) {
+        await saveVideo(null, {
+          title: r.title, ytId: r.ytId!, chapter: r.chapter,
+          order: order++, duration: "", isPublished: true,
+        });
+        saved++;
+      }
+      setBulkDone(saved);
+      setBulkText("");
+      setLoading(true);
+      await load();
+    } catch {
+      setError(`บันทึกได้ ${saved}/${good.length} คลิป — ลองกดบันทึกส่วนที่เหลืออีกครั้ง`);
+      setLoading(true);
+      await load();
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   async function togglePublish(v: CourseVideo) {
     setBusy(v.id);
     try {
@@ -112,11 +177,18 @@ export default function AdminVideosPage() {
               </span>
             )}
           </div>
-          <button onClick={openCreate}
-            className="text-[12.5px] font-semibold px-4 py-1.5 rounded-xl text-white"
-            style={{ backgroundColor: "#0B6E65" }}>
-            + เพิ่มวิดีโอ
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setShowBulk((s) => !s); setBulkDone(null); }}
+              className="text-[12.5px] font-semibold px-4 py-1.5 rounded-xl border"
+              style={{ borderColor: "#0B6E65", color: "#0B6E65" }}>
+              📋 เพิ่มหลายคลิป
+            </button>
+            <button onClick={openCreate}
+              className="text-[12.5px] font-semibold px-4 py-1.5 rounded-xl text-white"
+              style={{ backgroundColor: "#0B6E65" }}>
+              + เพิ่มวิดีโอ
+            </button>
+          </div>
         </div>
       </div>
 
@@ -133,6 +205,71 @@ export default function AdminVideosPage() {
           <div className="rounded-xl px-4 py-3 mb-4 text-[13px] font-medium"
             style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
             {error}
+          </div>
+        )}
+
+        {/* Bulk import */}
+        {showBulk && (
+          <div className="bg-white rounded-2xl p-5 mb-5 space-y-3.5"
+            style={{ border: "1.5px solid #0B6E65" }}>
+            <div>
+              <p className="text-[14px] font-bold text-gray-900 mb-1">เพิ่มหลายคลิปพร้อมกัน</p>
+              <p className="text-[12.5px] leading-relaxed" style={{ color: "#A8A8A6" }}>
+                วางทีละบรรทัด รูปแบบ: <span className="font-mono font-semibold text-gray-700">ลิงก์ | ชื่อคลิป | บท</span>
+                {" "}— บทเว้นว่างได้ (ใช้บทเดียวกับบรรทัดก่อนหน้า) ลำดับรันต่อจากของเดิมอัตโนมัติ
+              </p>
+              <p className="text-[12px] mt-1 font-mono rounded-lg px-3 py-2"
+                style={{ backgroundColor: "#F5F5F3", color: "#6B7280" }}>
+                https://youtu.be/xxxx | EP.1 ระบาดวิทยาเบื้องต้น | 1. ความรู้พื้นฐานสาธารณสุข<br />
+                https://youtu.be/yyyy | EP.2 การสอบสวนโรค |
+              </p>
+            </div>
+
+            <textarea
+              rows={7}
+              className="w-full border rounded-xl px-3 py-2.5 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20"
+              style={{ borderColor: "#E0DFDC" }}
+              placeholder="วางรายการที่นี่..."
+              value={bulkText}
+              onChange={(e) => { setBulkText(e.target.value); setBulkDone(null); }}
+            />
+
+            {/* Preview สรุปผล parse */}
+            {bulkRows.length > 0 && (
+              <div className="text-[12.5px] space-y-1">
+                <p style={{ color: "#0B6E65" }} className="font-semibold">
+                  ✓ พร้อมบันทึก {bulkRows.filter((r) => r.ok).length} คลิป
+                  {bulkRows.some((r) => !r.ok) &&
+                    <span className="text-red-500 font-semibold"> · มีปัญหา {bulkRows.filter((r) => !r.ok).length} บรรทัด</span>}
+                </p>
+                {bulkRows.filter((r) => !r.ok).slice(0, 5).map((r) => (
+                  <p key={r.line} className="text-red-500">
+                    บรรทัด {r.line}: {r.reason}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {bulkDone !== null && (
+              <p className="text-[13px] font-semibold rounded-xl px-4 py-3"
+                style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
+                ✓ บันทึกแล้ว {bulkDone} คลิป
+              </p>
+            )}
+
+            <div className="flex gap-2.5">
+              <button type="button" onClick={() => setShowBulk(false)}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold border"
+                style={{ borderColor: "#E0DFDC", color: "#6B7280" }}>
+                ปิด
+              </button>
+              <button type="button" onClick={handleBulkSave}
+                disabled={bulkBusy || bulkRows.filter((r) => r.ok).length === 0}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-50"
+                style={{ backgroundColor: "#0B6E65" }}>
+                {bulkBusy ? "กำลังบันทึก…" : `บันทึก ${bulkRows.filter((r) => r.ok).length} คลิป`}
+              </button>
+            </div>
           </div>
         )}
 
