@@ -22,3 +22,12 @@ export const PRICING = {
 
 /** ช่องทางติดต่อสั่งซื้อ — LINE OA ของ Aj */
 export const CONTACT_URL = "https://line.me/R/ti/p/@481ccrkj";
+
+/**
+ * ทรัพยากรสำหรับสมาชิก "คอร์สเต็ม" (แสดงหลังซื้อ/อัปเกรด)
+ * เว้นว่าง = ปุ่มไม่แสดง — ใส่ลิงก์จริงของ Aj แล้วจะโผล่อัตโนมัติ
+ */
+export const COURSE_RESOURCES = {
+  lineOpenChat: "", // TODO: ลิงก์เชิญเข้า LINE OpenChat กลุ่มผู้เรียน
+  driveDocs:    "", // TODO: ลิงก์ Google Drive ชีทสรุป ~500 หน้า
+};

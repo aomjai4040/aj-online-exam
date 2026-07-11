@@ -6,11 +6,12 @@ import { useLoginGuard } from "@/lib/use-login-guard";
 import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 import { getPublishedVideos, type CourseVideo } from "@/lib/video-firestore";
 import { getAllVideoProgress, saveVideoProgress, type VideoProgress } from "@/lib/video-progress";
-import { PRICING, CONTACT_URL } from "@/lib/pricing";
+import { PRICING } from "@/lib/pricing";
 import { BRAND } from "@/lib/subjects";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
 import CourseVideoPlayer from "@/components/CourseVideoPlayer";
+import CourseResources from "@/components/CourseResources";
 
 // ─── /videos — คอร์สวิดีโอ (เฉพาะคอร์สเต็ม) ───────────────────────────────────
 // player ควบคุมเองทั้งหมด (ดู components/CourseVideoPlayer) — ปิดทุกทางที่
@@ -108,10 +109,12 @@ export default function VideosPage() {
               : ` — คอร์สเต็ม ฿${PRICING.full.price} รวมทุกอย่างในแอปด้วย`}
           </p>
           <div className="space-y-3 max-w-xs mx-auto">
-            <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
+            <Link href={access.hasAny ? "/checkout/upgrade" : "/checkout/full"}
               className="btn-primary w-full py-3.5 text-[15px] block text-center">
-              {access.hasAny ? `อัปเกรด ฿${PRICING.upgradePrice} — ทัก LINE` : "สั่งซื้อคอร์สเต็ม — ทัก LINE"}
-            </a>
+              {access.hasAny
+                ? `อัปเกรดจ่ายเพิ่ม ฿${PRICING.upgradePrice} — ปลดล็อกทันที`
+                : `สั่งซื้อคอร์สเต็ม ฿${PRICING.full.price}`}
+            </Link>
             <Link href="/packages" className="btn-secondary w-full py-3.5 text-[15px] block text-center">
               ดูรายละเอียดแพ็กเกจ
             </Link>
@@ -164,6 +167,11 @@ export default function VideosPage() {
           </h1>
         </div>
       )}
+
+      {/* ทรัพยากรคอร์สเต็ม: ชีทสรุป + กลุ่ม LINE (โผล่เมื่อ Aj ใส่ลิงก์) */}
+      <div className="max-w-2xl mx-auto px-5 pt-4">
+        <CourseResources />
+      </div>
 
       {/* Playlist */}
       <div className="max-w-2xl mx-auto px-5 py-5 space-y-6">

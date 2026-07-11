@@ -23,10 +23,29 @@ export async function makePromptPayQR(amount: number): Promise<string> {
   return QRCode.toDataURL(payload, { margin: 1, width: 320 });
 }
 
+/** สิทธิ์ปัจจุบันของผู้ใช้ (ฝั่ง server) */
+async function serverAccess(uid: string): Promise<{ hasAny: boolean; hasFull: boolean }> {
+  const snap = await adminDb().collection("userCourses").where("userId", "==", uid).get();
+  const ids  = snap.docs.map((d) => String(d.data().courseId ?? ""));
+  return {
+    hasAny:  ids.length > 0,
+    hasFull: ids.some((id) => !id.toLowerCase().startsWith("app-")),
+  };
+}
+
+export class CheckoutError extends Error {}
+
 /** สร้างออเดอร์ pending — คืน orderId + QR */
 export async function createOrder(
   uid: string, email: string, tier: OrderTier
 ): Promise<{ orderId: string; amount: number; qr: string; courseName: string }> {
+  // กันซื้อซ้ำ / อัปเกรดผิดเงื่อนไข
+  const acc = await serverAccess(uid);
+  if (acc.hasFull) throw new CheckoutError("บัญชีนี้มีคอร์สเต็มอยู่แล้ว");
+  if (tier === "app" && acc.hasAny) throw new CheckoutError("บัญชีนี้มีสิทธิ์ App อยู่แล้ว");
+  if (tier === "upgrade" && !acc.hasAny)
+    throw new CheckoutError("อัปเกรดได้เฉพาะผู้ที่มี App Only อยู่แล้ว — กรุณาเลือกคอร์สเต็ม");
+
   const plan = tierPlan(tier);
   const ref  = adminDb().collection("orders").doc();
   await ref.set({

@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
 import BottomNav from "@/components/BottomNav";
+import CourseResources from "@/components/CourseResources";
 import { BRAND } from "@/lib/subjects";
-import { PRICING, CONTACT_URL } from "@/lib/pricing";
+import { PRICING } from "@/lib/pricing";
+import { useAuth } from "@/lib/auth-context";
+import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 
 // ─── /packages — แพ็กเกจ + ราคา (Aj ยืนยัน 299/699/+400) ─────────────────────
 // การซื้อตอนนี้: ทักแชทแอดมิน → รับรหัส → กรอกที่ /activate
@@ -21,9 +24,11 @@ function Check({ color = BRAND.primary }: { color?: string }) {
 }
 
 export default function PackagesPage() {
+  const { user } = useAuth();
   const [total,     setTotal]     = useState<number | null>(null);
   const [questions, setQuestions] = useState(0);
   const [freeCount, setFreeCount] = useState(0);
+  const [access,    setAccess]    = useState<UserAccess>(EMPTY_ACCESS);
 
   useEffect(() => {
     getPublishedExams()
@@ -34,6 +39,14 @@ export default function PackagesPage() {
       })
       .catch(() => setTotal(0));
   }, []);
+
+  useEffect(() => {
+    if (user) getUserAccess(user.uid).then(setAccess).catch(() => setAccess(EMPTY_ACCESS));
+  }, [user]);
+
+  const hasApp  = access.hasAny;               // มีคอร์สอะไรก็ได้ (รวม App Only)
+  const hasFull = access.hasFull;              // มีคอร์สเต็ม
+  const appOnly = hasApp && !hasFull;          // มีแค่ App Only → เสนออัปเกรด
 
   const appFeatures = [
     total !== null
@@ -99,17 +112,26 @@ export default function PackagesPage() {
               ))}
             </div>
 
-            <Link href="/checkout/app"
-              className="btn-primary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
-              สั่งซื้อ ฿{PRICING.app.price}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </Link>
-            <p className="text-center text-[11.5px] mt-2" style={{ color: "#C4C4C0" }}>
-              {PRICING.app.period} · จ่ายผ่านพร้อมเพย์ ปลดล็อกอัตโนมัติทันที
-            </p>
+            {hasApp ? (
+              <div className="w-full py-3 rounded-xl text-[14px] font-bold text-center"
+                style={{ backgroundColor: "#EBF5F3", color: BRAND.primary }}>
+                ✓ คุณมีสิทธิ์นี้แล้ว
+              </div>
+            ) : (
+              <>
+                <Link href="/checkout/app"
+                  className="btn-primary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
+                  สั่งซื้อ ฿{PRICING.app.price}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </Link>
+                <p className="text-center text-[11.5px] mt-2" style={{ color: "#C4C4C0" }}>
+                  {PRICING.app.period} · จ่ายผ่านพร้อมเพย์ ปลดล็อกอัตโนมัติทันที
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -134,22 +156,43 @@ export default function PackagesPage() {
             ))}
           </div>
 
-          <Link href="/checkout/full"
-            className="btn-secondary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
-            สั่งซื้อคอร์สเต็ม ฿{PRICING.full.price}
-          </Link>
+          {hasFull ? (
+            <>
+              <div className="w-full py-3 rounded-xl text-[14px] font-bold text-center mb-3"
+                style={{ backgroundColor: "#EBF5F3", color: BRAND.primary }}>
+                ✓ คุณเป็นสมาชิกคอร์สเต็มแล้ว
+              </div>
+              <CourseResources compact />
+            </>
+          ) : appOnly ? (
+            <Link href="/checkout/upgrade"
+              className="btn-primary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
+              อัปเกรดเป็นคอร์สเต็ม จ่ายเพิ่ม ฿{PRICING.upgradePrice}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Link>
+          ) : (
+            <Link href="/checkout/full"
+              className="btn-secondary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
+              สั่งซื้อคอร์สเต็ม ฿{PRICING.full.price}
+            </Link>
+          )}
         </div>
 
-        {/* ── Upgrade note ─────────────────────────────────────────────────── */}
-        <div className="rounded-2xl px-4 py-3.5 flex items-start gap-3"
-          style={{ backgroundColor: "#EBF5F3", border: "1px solid #C3E5DE" }}>
-          <span className="text-[18px] leading-none mt-0.5">💡</span>
-          <p className="text-[12.5px] leading-relaxed" style={{ color: "#0B6E65" }}>
-            ซื้อ App Only ไปแล้ว อยากได้วิดีโอ + ชีทสรุปเพิ่มทีหลัง?
-            <span className="font-bold"> อัปเกรดได้โดยจ่ายส่วนต่าง ฿{PRICING.upgradePrice} เท่านั้น</span>
-            {" "}— ไม่ต้องซื้อใหม่
-          </p>
-        </div>
+        {/* ── Upgrade note (ซ่อนถ้ามีคอร์สเต็มแล้ว) ─────────────────────────── */}
+        {!hasFull && (
+          <div className="rounded-2xl px-4 py-3.5 flex items-start gap-3"
+            style={{ backgroundColor: "#EBF5F3", border: "1px solid #C3E5DE" }}>
+            <span className="text-[18px] leading-none mt-0.5">💡</span>
+            <p className="text-[12.5px] leading-relaxed" style={{ color: "#0B6E65" }}>
+              ซื้อ App Only ไปแล้ว อยากได้วิดีโอ + ชีทสรุปเพิ่มทีหลัง?
+              <span className="font-bold"> อัปเกรดได้โดยจ่ายส่วนต่าง ฿{PRICING.upgradePrice} เท่านั้น</span>
+              {" "}— ไม่ต้องซื้อใหม่
+            </p>
+          </div>
+        )}
 
         {/* ── Free trial ──────────────────────────────────────────────────── */}
         {freeCount > 0 && (

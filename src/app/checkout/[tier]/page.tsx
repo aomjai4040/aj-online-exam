@@ -8,6 +8,7 @@ import { useLoginGuard } from "@/lib/use-login-guard";
 import { tierPlan, type OrderTier } from "@/lib/order-types";
 import { BRAND } from "@/lib/subjects";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
+import CourseResources from "@/components/CourseResources";
 
 // ─── /checkout/[tier] — จ่ายเงินในเว็บ (PromptPay + อัปสลิป → ตรวจอัตโนมัติ) ────
 
@@ -49,8 +50,9 @@ export default function CheckoutPage() {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ tier }),
         });
-        if (!res.ok) throw new Error();
-        setOrder(await res.json());
+        const data = await res.json();
+        if (!res.ok) { setError(data.error ?? "สร้างคำสั่งซื้อไม่สำเร็จ"); setPhase("error"); return; }
+        setOrder(data);
         setPhase("qr");
       } catch { setError("สร้างคำสั่งซื้อไม่สำเร็จ กรุณาลองใหม่"); setPhase("error"); }
     })();
@@ -98,13 +100,20 @@ export default function CheckoutPage() {
         </div>
         <h1 className="text-[22px] font-bold text-gray-900 mb-2">ชำระเงินสำเร็จ!</h1>
         <p className="text-[14px] mb-1" style={{ color: "#A8A8A6" }}>ปลดล็อกเรียบร้อยแล้ว</p>
-        <p className="text-[16px] font-bold mb-8" style={{ color: BRAND.primary }}>{okName}</p>
+        <p className="text-[16px] font-bold mb-6" style={{ color: BRAND.primary }}>{okName}</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
-          <button onClick={() => router.push("/exams")}
-            className="btn-primary w-full py-3 text-[14px]">เริ่มทำข้อสอบเลย</button>
-          {tier !== "app" && (
-            <button onClick={() => router.push("/videos")}
-              className="btn-secondary w-full py-3 text-[14px]">ดูคอร์สวิดีโอ</button>
+          {tier !== "app" ? (
+            <>
+              <button onClick={() => router.push("/videos")}
+                className="btn-primary w-full py-3 text-[14px]">ไปดูคอร์สวิดีโอ</button>
+              <button onClick={() => router.push("/exams")}
+                className="btn-secondary w-full py-3 text-[14px]">ทำข้อสอบ</button>
+              {/* ชีทสรุป + กลุ่ม LINE สำหรับคอร์สเต็ม */}
+              <div className="pt-2"><CourseResources compact /></div>
+            </>
+          ) : (
+            <button onClick={() => router.push("/exams")}
+              className="btn-primary w-full py-3 text-[14px]">เริ่มทำข้อสอบเลย</button>
           )}
         </div>
       </div>
