@@ -157,13 +157,10 @@ export default function PackagesPage() {
           </div>
 
           {hasFull ? (
-            <>
-              <div className="w-full py-3 rounded-xl text-[14px] font-bold text-center mb-3"
-                style={{ backgroundColor: "#EBF5F3", color: BRAND.primary }}>
-                ✓ คุณเป็นสมาชิกคอร์สเต็มแล้ว
-              </div>
-              <CourseResources compact />
-            </>
+            <div className="w-full py-3 rounded-xl text-[14px] font-bold text-center"
+              style={{ backgroundColor: "#EBF5F3", color: BRAND.primary }}>
+              ✓ คุณเป็นสมาชิกคอร์สเต็มแล้ว
+            </div>
           ) : appOnly ? (
             <Link href="/checkout/upgrade"
               className="btn-primary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
@@ -179,6 +176,11 @@ export default function PackagesPage() {
               สั่งซื้อคอร์สเต็ม ฿{PRICING.full.price}
             </Link>
           )}
+
+          {/* สิทธิพิเศษ: ชีทสรุป + กลุ่ม LINE — โชว์ทุกคน (ล็อกถ้ายังไม่ใช่คอร์สเต็ม) */}
+          <div className="mt-4 pt-4" style={{ borderTop: "1px solid #F3F2F0" }}>
+            <CourseResources compact hideCta lock={hasFull ? undefined : appOnly ? "upgrade" : "full"} />
+          </div>
         </div>
 
         {/* ── Upgrade note (ซ่อนถ้ามีคอร์สเต็มแล้ว) ─────────────────────────── */}
@@ -239,9 +241,9 @@ export default function PackagesPage() {
         </Link>
 
         <p className="text-center text-[11.5px] pt-1" style={{ color: "#C4C4C0" }}>
-          ขั้นตอนซื้อ: ทักแชทแอดมิน → ชำระเงิน → รับรหัส → กรอกรหัสในแอป
+          ขั้นตอนซื้อ: กดสั่งซื้อ → สแกน QR พร้อมเพย์ → อัปสลิป → ปลดล็อกอัตโนมัติทันที
           <br />
-          (ระบบชำระเงินในเว็บกำลังพัฒนา เร็ว ๆ นี้)
+          มีปัญหาการชำระเงิน? ทัก LINE แอดมินได้ตลอด
         </p>
       </section>
 

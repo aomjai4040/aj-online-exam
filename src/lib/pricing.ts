@@ -28,6 +28,6 @@ export const CONTACT_URL = "https://line.me/R/ti/p/@481ccrkj";
  * เว้นว่าง = ปุ่มไม่แสดง — ใส่ลิงก์จริงของ Aj แล้วจะโผล่อัตโนมัติ
  */
 export const COURSE_RESOURCES = {
-  lineOpenChat: "", // TODO: ลิงก์เชิญเข้า LINE OpenChat กลุ่มผู้เรียน
-  driveDocs:    "", // TODO: ลิงก์ Google Drive ชีทสรุป ~500 หน้า
+  lineOpenChat: "https://line.me/ti/g2/YrFWnValWt4n1raglN3PZ88YlOaiRa7l4HYFIw?utm_source=invitation&utm_medium=link_copy&utm_campaign=default",
+  driveDocs:    "https://drive.google.com/drive/folders/1bVYpGvSQXr_KRpDnRlR4F8S2Zv19LlkL?usp=sharing",
 };
