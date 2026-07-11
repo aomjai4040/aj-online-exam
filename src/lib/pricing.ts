@@ -20,5 +20,5 @@ export const PRICING = {
   upgradePrice: 400,          // App → คอร์สเต็ม จ่ายส่วนต่าง
 } as const;
 
-/** ช่องทางติดต่อสั่งซื้อ (แก้เป็นลิงก์เพจ/LINE OA จริงของ Aj) */
-export const CONTACT_URL = "https://www.facebook.com"; // TODO: รอลิงก์จริงจาก Aj
+/** ช่องทางติดต่อสั่งซื้อ — LINE OA ของ Aj */
+export const CONTACT_URL = "https://line.me/R/ti/p/@481ccrkj";
