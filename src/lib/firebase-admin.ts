@@ -1,60 +1,62 @@
 /**
- * firebase-admin.ts — Firebase Admin SDK (ฝั่ง server เท่านั้น)
+ * firebase-admin.ts — Firebase Admin (ฝั่ง server เท่านั้น)
  *
- * ⚠️ ห้าม import ไฟล์นี้จาก component ฝั่ง client เด็ดขาด —
- *    ใช้ได้เฉพาะใน API routes (src/app/api/**) และสคริปต์
+ * ⚠️ ห้าม import จาก component ฝั่ง client — ใช้ได้เฉพาะ API routes + สคริปต์
  *
- * ลำดับการหา credential:
- *   1. env FIREBASE_SERVICE_ACCOUNT (Vercel — เนื้อหา JSON ทั้งไฟล์)
- *   2. ไฟล์ในเครื่อง Aj: C:\Users\UNS_CT\.secrets\aj-online-exam-sa.json (dev เท่านั้น)
+ * ตั้งใจใช้ firebase-admin เฉพาะ Firestore (adminDb) — ไม่แตะ firebase-admin/auth
+ * เพราะมันลาก jwks-rsa → jose (ESM) ที่ require() พังบน Vercel runtime
+ * การตรวจ ID token จึงทำเองด้วย jose (Next รองรับ ESM ปกติ)
+ *
+ * credential: env FIREBASE_SERVICE_ACCOUNT (Vercel) หรือไฟล์ .secrets ในเครื่อง Aj
  */
 
 import "server-only";
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
 import { existsSync, readFileSync } from "fs";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 const LOCAL_KEY_PATH = "C:\\Users\\UNS_CT\\.secrets\\aj-online-exam-sa.json";
+const PROJECT_ID = "aj-online-exam";
 
 function loadServiceAccount(): Record<string, string> {
   const fromEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (fromEnv) return JSON.parse(fromEnv);
-
-  // fallback สำหรับรันในเครื่อง Aj เท่านั้น (path นี้ไม่มีบน Vercel)
-  if (existsSync(LOCAL_KEY_PATH)) {
-    return JSON.parse(readFileSync(LOCAL_KEY_PATH, "utf8"));
-  }
-  throw new Error(
-    "FIREBASE_SERVICE_ACCOUNT is not configured (Vercel env var หรือไฟล์ .secrets ในเครื่อง)"
-  );
+  if (existsSync(LOCAL_KEY_PATH)) return JSON.parse(readFileSync(LOCAL_KEY_PATH, "utf8"));
+  throw new Error("FIREBASE_SERVICE_ACCOUNT ไม่ได้ตั้งค่า (Vercel env หรือไฟล์ .secrets)");
 }
 
 function getAdminApp(): App {
-  const existing = getApps().find((a) => a.name === "admin");
-  if (existing) return existing;
-  return initializeApp({ credential: cert(loadServiceAccount()) }, "admin");
+  return getApps().find((a) => a.name === "admin")
+    ?? initializeApp({ credential: cert(loadServiceAccount()) }, "admin");
 }
 
 export function adminDb() {
   return getFirestore(getAdminApp());
 }
 
-export function adminAuth() {
-  return getAuth(getAdminApp());
-}
+// ── ตรวจ Firebase ID token ด้วย jose (ไม่พึ่ง firebase-admin/auth) ─────────────
+
+const JWKS = createRemoteJWKSet(
+  new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
+);
 
 /**
- * ตรวจ Firebase ID token จาก Authorization: Bearer <token>
- * คืน uid + email หรือ null ถ้าไม่ถูกต้อง — ทุก API ที่ต้องรู้ตัวตนใช้ตัวนี้
+ * ตรวจ Authorization: Bearer <Firebase ID token>
+ * คืน uid + email หรือ null ถ้าไม่ถูกต้อง
  */
 export async function verifyBearer(
   authorization: string | null
 ): Promise<{ uid: string; email: string } | null> {
   if (!authorization?.startsWith("Bearer ")) return null;
   try {
-    const decoded = await adminAuth().verifyIdToken(authorization.slice(7));
-    return { uid: decoded.uid, email: decoded.email ?? "" };
+    const { payload } = await jwtVerify(authorization.slice(7), JWKS, {
+      issuer:   `https://securetoken.google.com/${PROJECT_ID}`,
+      audience: PROJECT_ID,
+    });
+    const uid = String(payload.sub ?? "");
+    if (!uid) return null;
+    return { uid, email: String(payload.email ?? "") };
   } catch {
     return null;
   }
