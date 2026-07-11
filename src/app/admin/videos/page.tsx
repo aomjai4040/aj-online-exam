@@ -15,11 +15,13 @@ interface BulkRow {
   title:    string;
   chapter:  string;
   duration: string;
+  order?:   number;   // ระบุลำดับเอง (ทศนิยมได้ — ใช้แทรกกลางลำดับเดิม)
   ok:       boolean;
   reason?:  string;
 }
 
-/** parse บรรทัด "ลิงก์ | ชื่อ | บท | ความยาว" (บทเว้นได้ = ใช้ของบรรทัดก่อน, ความยาวไม่บังคับ) */
+/** parse บรรทัด "ลิงก์ | ชื่อ | บท | ความยาว | ลำดับ"
+ *  บทเว้นได้ = ใช้ของบรรทัดก่อน · ความยาว/ลำดับไม่บังคับ (ไม่ระบุ = ต่อท้ายอัตโนมัติ) */
 function parseBulk(text: string): BulkRow[] {
   const rows: BulkRow[] = [];
   let lastChapter = "";
@@ -31,11 +33,14 @@ function parseBulk(text: string): BulkRow[] {
     const title = parts[1] ?? "";
     const chapter = parts[2] || lastChapter;
     const duration = parts[3] ?? "";
+    const orderNum = parts[4] !== undefined && parts[4] !== "" ? parseFloat(parts[4]) : undefined;
     if (chapter) lastChapter = chapter;
-    const ok = !!ytId && !!title && !!chapter;
+    const ok = !!ytId && !!title && !!chapter
+      && (orderNum === undefined || Number.isFinite(orderNum));
     rows.push({
-      line: i + 1, ytId, title, chapter, duration, ok,
-      reason: !ytId ? "ลิงก์ไม่ถูกต้อง" : !title ? "ไม่มีชื่อคลิป" : !chapter ? "ไม่มีบท" : undefined,
+      line: i + 1, ytId, title, chapter, duration, order: orderNum, ok,
+      reason: !ytId ? "ลิงก์ไม่ถูกต้อง" : !title ? "ไม่มีชื่อคลิป" : !chapter ? "ไม่มีบท"
+        : (orderNum !== undefined && !Number.isFinite(orderNum)) ? "ลำดับไม่ใช่ตัวเลข" : undefined,
     });
   });
   return rows;
@@ -111,13 +116,13 @@ export default function AdminVideosPage() {
     if (good.length === 0) { setError("ยังไม่มีบรรทัดที่ข้อมูลครบ"); return; }
     setBulkBusy(true);
     setError("");
-    let order = (videos.at(-1)?.order ?? 0) + 1;
+    let autoOrder = Math.floor(Math.max(0, ...videos.map((v) => v.order))) + 1;
     let saved = 0;
     try {
       for (const r of good) {
         await saveVideo(null, {
           title: r.title, ytId: r.ytId!, chapter: r.chapter,
-          order: order++, duration: r.duration, isPublished: true,
+          order: r.order ?? autoOrder++, duration: r.duration, isPublished: true,
         });
         saved++;
       }
