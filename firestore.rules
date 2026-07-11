@@ -79,6 +79,11 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
+    // อุปกรณ์ที่แต่ละบัญชีใช้ (log จาก device-session) — admin ตรวจการแชร์บัญชี
+    match /{path=**}/devices/{deviceId} {
+      allow read: if isAdmin();
+    }
+
     // ── Results ─────────────────────────────────────────────────────────────
     // สร้าง/อ่านรายชิ้น: ผู้ที่ login | list/แก้/ลบ: admin (หน้า analytics)
     match /results/{resultId} {

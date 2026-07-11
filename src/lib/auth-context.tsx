@@ -27,6 +27,7 @@ import {
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { getInAppBrowser, escapeInAppBrowser } from "./in-app-browser";
+import { trackDeviceSession } from "./device-session";
 
 // ─── Module-level redirect processing ────────────────────────────────────────
 //
@@ -113,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled  = false;
     let unsubscribe: (() => void) | undefined;
+    let stopSession: (() => void) | undefined;
 
     // Wait for redirect result (resolves instantly if no redirect pending)
     _redirectPromise.then(redirectUser => {
@@ -129,12 +131,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("[Auth] state →", u?.email ?? "null");
         setUser(u);
         setLoading(false);
+
+        // Single-session: log อุปกรณ์ + เฝ้าดู session (เตะเมื่อเปิดบังคับ)
+        stopSession?.();
+        stopSession = undefined;
+        if (u) {
+          stopSession = trackDeviceSession(u.uid, () => {
+            alert("บัญชีนี้ถูกใช้งานบนอุปกรณ์อื่น ระบบจึงออกจากระบบให้อัตโนมัติ");
+            fbSignOut(auth).catch(() => {});
+          });
+        }
       });
     });
 
     return () => {
       cancelled = true;
       unsubscribe?.();
+      stopSession?.();
     };
   }, []);
 

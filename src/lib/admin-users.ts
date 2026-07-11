@@ -19,6 +19,8 @@ export interface MemberRow {
   codes:       string[];  // activation codes ที่ใช้
   examsTaken:  number;    // จำนวนชุดที่เคยทำ (history docs)
   attempts:    number;    // จำนวนครั้งรวม
+  devices:     number;    // จำนวนอุปกรณ์ที่เคยใช้บัญชีนี้ (≥3 = น่าสงสัย)
+  deviceLabels: string[]; // เช่น ["iPhone", "Windows"]
 }
 
 export interface CodeUsage {
@@ -42,11 +44,21 @@ function toDate(v: unknown): Date | null {
 }
 
 export async function getMemberStats(): Promise<MemberStats> {
-  const [usersSnap, coursesSnap, historySnap] = await Promise.all([
+  const [usersSnap, coursesSnap, historySnap, devicesSnap] = await Promise.all([
     getDocs(collection(db, "users")),
     getDocs(collection(db, "userCourses")),
     getDocs(collectionGroup(db, "history")),
+    getDocs(collectionGroup(db, "devices")),
   ]);
+
+  // ── devices → ต่อ uid ──────────────────────────────────────────────────────
+  const deviceMap = new Map<string, string[]>();
+  devicesSnap.docs.forEach((d) => {
+    const seg = d.ref.path.split("/");
+    if (seg[0] !== "users") return;
+    const uid = seg[1];
+    deviceMap.set(uid, [...(deviceMap.get(uid) ?? []), String(d.data().label ?? "?")]);
+  });
 
   // ── history → ต่อ uid: กี่ชุด กี่ครั้ง ─────────────────────────────────────
   const examMap = new Map<string, { exams: number; attempts: number }>();
@@ -90,6 +102,8 @@ export async function getMemberStats(): Promise<MemberStats> {
       codes:       courseMap.get(d.id) ?? [],
       examsTaken:  ex?.exams ?? 0,
       attempts:    ex?.attempts ?? 0,
+      devices:      deviceMap.get(d.id)?.length ?? 0,
+      deviceLabels: deviceMap.get(d.id) ?? [],
     };
   }).sort((a, b) => (b.lastSeenAt?.getTime() ?? 0) - (a.lastSeenAt?.getTime() ?? 0));
 

@@ -138,6 +138,7 @@ export default function AdminUsersPage() {
                         <th className="text-left px-3 py-2.5 font-bold">Code ที่ใช้</th>
                         <th className="text-right px-3 py-2.5 font-bold">ชุดที่ทำ</th>
                         <th className="text-right px-3 py-2.5 font-bold">ครั้ง</th>
+                        <th className="text-right px-3 py-2.5 font-bold">อุปกรณ์</th>
                         <th className="text-right px-4 py-2.5 font-bold">ใช้ล่าสุด</th>
                       </tr>
                     </thead>
@@ -163,6 +164,12 @@ export default function AdminUsersPage() {
                           </td>
                           <td className="px-3 py-2.5 text-right" style={{ color: "#6B7280" }}>
                             {m.attempts}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-bold"
+                            title={m.deviceLabels.join(", ")}
+                            style={{ color: m.devices >= 3 ? "#DC2626" : m.devices > 0 ? "#6B7280" : "#C4C4C0" }}>
+                            {m.devices > 0 ? m.devices : "—"}
+                            {m.devices >= 3 && " ⚠️"}
                           </td>
                           <td className="px-4 py-2.5 text-right" style={{ color: "#6B7280" }}>
                             {fmtDate(m.lastSeenAt)}
