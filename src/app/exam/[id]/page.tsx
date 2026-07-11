@@ -459,6 +459,22 @@ export default function ExamPage() {
               </svg>
             )}
           </button>
+
+          {/* ดาวน์โหลดฉบับพิมพ์ (PDF) */}
+          <Link
+            href={`/exam/${id}/print`}
+            className="flex items-center justify-center gap-2 w-full py-3 mt-3 rounded-2xl
+                       text-[13.5px] font-semibold transition-colors hover:bg-stone-100"
+            style={{ border: "1px dashed #C8C7C3", color: "#6B6B6A" }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            ดาวน์โหลดข้อสอบ + เฉลย (PDF สำหรับปริ๊น)
+          </Link>
         </div>
       </div>
     );
