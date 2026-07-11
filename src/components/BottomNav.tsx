@@ -11,7 +11,7 @@ function active(pathname: string, href: string): boolean {
   if (href === "/")            return pathname === "/" || pathname.startsWith("/exam");
   if (href === "/flashcard")   return pathname.startsWith("/flashcard");
   if (href === "/dashboard")   return pathname.startsWith("/dashboard");
-  if (href === "/moph-focus")  return pathname.startsWith("/moph-focus");
+  if (href === "/mock-exam")   return pathname.startsWith("/mock-exam");
   return pathname === href || pathname.startsWith(href + "/");
 }
 
@@ -57,14 +57,13 @@ export default function BottomNav() {
       ),
     },
     {
-      label: "MOPH Focus",
-      href:  "/moph-focus",
+      label: "Mock Exam",
+      href:  "/mock-exam",
       icon:  (a: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" stroke={a ? ACCENT : MUTED}
           strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={SZ}>
           <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
+          <polyline points="12 6 12 12 16 14" />
         </svg>
       ),
     },

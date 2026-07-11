@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
 import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 import { getPublishedVideos, type CourseVideo } from "@/lib/video-firestore";
+import { getAllVideoProgress, saveVideoProgress, type VideoProgress } from "@/lib/video-progress";
 import { PRICING, CONTACT_URL } from "@/lib/pricing";
 import { BRAND } from "@/lib/subjects";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
@@ -24,6 +25,7 @@ export default function VideosPage() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
   const [current, setCurrent] = useState<CourseVideo | null>(null);
+  const [progress, setProgress] = useState<Map<string, VideoProgress>>(new Map());
 
   useEffect(() => {
     if (guard !== "allowed" || !user) return;
@@ -32,14 +34,40 @@ export default function VideosPage() {
         const a = await getUserAccess(user.uid);
         setAccess(a);
         if (a.hasFull) {
-          const vs = await getPublishedVideos();
+          const [vs, pg] = await Promise.all([
+            getPublishedVideos(),
+            getAllVideoProgress(user.uid).catch(() => new Map<string, VideoProgress>()),
+          ]);
           setVideos(vs);
-          setCurrent(vs[0] ?? null);
+          setProgress(pg);
+          // เปิดที่คลิปแรกที่ยังดูไม่จบ (ต่อจากที่เรียนค้าง)
+          const firstUnfinished = vs.find((v) => !pg.get(v.id)?.completed);
+          setCurrent(firstUnfinished ?? vs[0] ?? null);
         }
       } catch { setError("โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่"); }
       finally { setLoading(false); }
     })();
   }, [guard, user]);
+
+  // map ytId → video (player รายงานความคืบหน้าด้วย ytId)
+  const videosByYtId = useMemo(() => {
+    const m = new Map<string, CourseVideo>();
+    videos.forEach((v) => m.set(v.ytId, v));
+    return m;
+  }, [videos]);
+
+  function handleProgress(ytId: string, seconds: number, duration: number, ended: boolean) {
+    const v = videosByYtId.get(ytId);
+    if (!v || !user) return;
+    const completed = ended || (duration > 0 && seconds / duration >= 0.9)
+      || !!progress.get(v.id)?.completed;
+    setProgress((prev) => {
+      const next = new Map(prev);
+      next.set(v.id, { seconds, duration, completed });
+      return next;
+    });
+    saveVideoProgress(user.uid, v.id, seconds, duration, ended).catch(() => {});
+  }
 
   const chapters = useMemo(() => {
     const map = new Map<string, CourseVideo[]>();
@@ -109,6 +137,12 @@ export default function VideosPage() {
               userLabel={userLabel}
               hasNext={!!nextVideo}
               onNext={() => nextVideo && setCurrent(nextVideo)}
+              initialSeconds={
+                progress.get(current.id)?.completed
+                  ? 0
+                  : progress.get(current.id)?.seconds ?? 0
+              }
+              onProgress={handleProgress}
             />
           ) : (
             <div className="w-full flex items-center justify-center text-white/60 text-[13.5px]"
@@ -134,29 +168,54 @@ export default function VideosPage() {
       {/* Playlist */}
       <div className="max-w-2xl mx-auto px-5 py-5 space-y-6">
         {error && <p className="text-[13.5px] text-red-500">{error}</p>}
-        {chapters.map(([chapter, list]) => (
+        {chapters.map(([chapter, list]) => {
+          const doneCount = list.filter((v) => progress.get(v.id)?.completed).length;
+          return (
           <section key={chapter}>
-            <p className="text-[12.5px] font-bold uppercase tracking-wider mb-2.5"
-              style={{ color: "#A8A8A6" }}>
-              {chapter}
-            </p>
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[12.5px] font-bold uppercase tracking-wider"
+                style={{ color: "#A8A8A6" }}>
+                {chapter}
+              </p>
+              <span className="text-[12px] font-semibold"
+                style={{ color: doneCount === list.length ? "#15803D" : "#A8A8A6" }}>
+                {doneCount === list.length ? "✓ ครบแล้ว" : `${doneCount}/${list.length} จบ`}
+              </span>
+            </div>
             <div className="space-y-2">
               {list.map((v) => {
-                const active = current?.id === v.id;
+                const active    = current?.id === v.id;
+                const pg        = progress.get(v.id);
+                const completed = !!pg?.completed;
+                const partial   = !completed && !!pg && pg.seconds > 5 && pg.duration > 0;
+                const pct       = partial ? Math.min(99, Math.round((pg!.seconds / pg!.duration) * 100)) : 0;
                 return (
                   <button
                     key={v.id}
                     onClick={() => { setCurrent(v); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    className="w-full text-left bg-white rounded-2xl px-4 py-3 flex items-center gap-3.5
+                    className="w-full text-left rounded-2xl px-4 py-3 flex items-center gap-3.5
                                active:scale-[0.99] transition-transform"
-                    style={{ border: active ? `1.5px solid ${BRAND.primary}` : "1px solid #EBEBEA" }}
+                    style={{
+                      backgroundColor: completed && !active ? "#F7FDF9" : "white",
+                      border: active
+                        ? `1.5px solid ${BRAND.primary}`
+                        : completed ? "1px solid #BBF7D0" : "1px solid #EBEBEA",
+                    }}
                   >
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: active ? BRAND.primary : "#EBF5F3" }}>
+                      style={{
+                        backgroundColor: active ? BRAND.primary
+                          : completed ? "#DCFCE7" : "#EBF5F3",
+                      }}>
                       {active ? (
                         <svg viewBox="0 0 24 24" fill="white" className="w-3.5 h-3.5">
                           <rect x="5" y="4" width="4" height="16" rx="1" />
                           <rect x="15" y="4" width="4" height="16" rx="1" />
+                        </svg>
+                      ) : completed ? (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#15803D"
+                          strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                          <polyline points="20 6 9 17 4 12" />
                         </svg>
                       ) : (
                         <svg viewBox="0 0 24 24" fill={BRAND.primary} className="w-3.5 h-3.5">
@@ -166,11 +225,32 @@ export default function VideosPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-[13.5px] leading-snug truncate ${active ? "font-bold" : "font-semibold"}`}
-                        style={{ color: active ? BRAND.primary : "#1F2937" }}>
+                        style={{
+                          color: active ? BRAND.primary
+                            : completed ? "#6B7280" : "#1F2937",
+                        }}>
                         {v.order}. {v.title}
                       </p>
-                      {v.duration && (
-                        <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>{v.duration}</p>
+                      {/* สถานะใต้ชื่อ */}
+                      {completed ? (
+                        <p className="text-[12px] mt-0.5 font-semibold" style={{ color: "#15803D" }}>
+                          ✓ ดูจบแล้ว{v.duration && ` · ${v.duration}`}
+                        </p>
+                      ) : partial ? (
+                        <div className="mt-1.5">
+                          <div className="h-[4px] rounded-full overflow-hidden"
+                            style={{ backgroundColor: "#F0EFEC" }}>
+                            <div className="h-full rounded-full"
+                              style={{ width: `${pct}%`, backgroundColor: "#F59E0B" }} />
+                          </div>
+                          <p className="text-[12px] mt-1 font-semibold" style={{ color: "#B45309" }}>
+                            ดูค้างไว้ {pct}%{v.duration && ` · ${v.duration}`}
+                          </p>
+                        </div>
+                      ) : (
+                        v.duration && (
+                          <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>{v.duration}</p>
+                        )
                       )}
                     </div>
                   </button>
@@ -178,7 +258,8 @@ export default function VideosPage() {
               })}
             </div>
           </section>
-        ))}
+          );
+        })}
       </div>
 
       <BottomNav />

@@ -293,7 +293,7 @@ export default function ExamsPage() {
   useEffect(() => {
     getPublishedExams()
       .then((data) => {
-        setExams(data);
+        setExams(data.filter((e) => !e.isMock)); // Mock แยกไปเมนูของตัวเอง
         setLoadError(false);
       })
       .catch(() => setLoadError(true)) // แสดง error จริง ไม่ใช้ข้อมูลจำลอง

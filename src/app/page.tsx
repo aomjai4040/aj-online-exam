@@ -94,7 +94,10 @@ export default function HomePage() {
   const today = thaiDate();
 
   useEffect(() => {
-    getPublishedExams().then(setExams).finally(() => setLoading(false));
+    getPublishedExams()
+      // Mock Exam มีเมนูของตัวเอง — ไม่ปนในคลังปกติ
+      .then((all) => setExams(all.filter((e) => !e.isMock)))
+      .finally(() => setLoading(false));
   }, []);
 
   // ข้อสอบประจำวัน — หมุนตามวันที่จริง (ทุกคนเห็นชุดเดียวกันตลอดวันนั้น)
@@ -356,15 +359,14 @@ export default function HomePage() {
               ),
             },
             {
-              title: "MOPH Focus",
-              desc: "ประเด็นเน้นกระทรวง",
-              href: "/moph-focus",
+              title: "Mock Exam",
+              desc: "จำลองสอบเสมือนจริง",
+              href: "/mock-exam",
               icon: (
                 <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                   <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                  <polyline points="12 6 12 12 16 14" />
                 </svg>
               ),
             },

@@ -292,6 +292,7 @@ export default function ExamEditor({
     timeLimit:   initial?.timeLimit   ?? 0,
     isPublished: initial?.isPublished ?? false,
     isFree:      initial?.isFree      ?? false,
+    isMock:      initial?.isMock      ?? false,
   });
 
   const [questions, setQuestions] = useState<QuestionForm[]>(
@@ -613,6 +614,26 @@ export default function ExamEditor({
             <Toggle
               checked={meta.isFree}
               onChange={(v) => setMetaField("isFree", v)}
+              disabled={saving}
+            />
+          </div>
+
+          {/* Mock exam toggle */}
+          <div className="flex items-center justify-between gap-4 mt-4 pt-4"
+            style={{ borderTop: "1px solid #F3F2F0" }}>
+            <div className="flex-1">
+              <p className="text-[14px] font-semibold text-gray-900 mb-1">
+                ⏱️ Mock Exam (ข้อสอบเสมือนจริง)
+              </p>
+              <p className="text-[12px] leading-relaxed" style={{ color: "#A8A8A6" }}>
+                {meta.isMock
+                  ? "✅ แสดงในเมนู Mock Exam — ไม่ปนกับคลังข้อสอบปกติ"
+                  : "แสดงในคลังข้อสอบปกติ"}
+              </p>
+            </div>
+            <Toggle
+              checked={meta.isMock ?? false}
+              onChange={(v) => setMetaField("isMock", v)}
               disabled={saving}
             />
           </div>

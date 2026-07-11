@@ -61,17 +61,37 @@ function Watermark({ label }: { label: string }) {
 }
 
 export default function CourseVideoPlayer({
-  ytId, userLabel, hasNext, onNext,
+  ytId, userLabel, hasNext, onNext, initialSeconds = 0, onProgress,
 }: {
-  ytId:      string;
-  userLabel: string;
-  hasNext:   boolean;
-  onNext:    () => void;
+  ytId:            string;
+  userLabel:       string;
+  hasNext:         boolean;
+  onNext:          () => void;
+  /** ตำแหน่งที่ดูค้างไว้ — เล่นต่อจากตรงนี้ */
+  initialSeconds?: number;
+  /** รายงานความคืบหน้า (ทุก ~15 วิ + ตอนหยุด/จบ/สลับคลิป) — ระบุ ytId เสมอ
+   *  เพื่อไม่ให้ความคืบหน้าคลิปเก่าไปบันทึกใต้คลิปใหม่ตอนสลับ */
+  onProgress?:     (ytId: string, seconds: number, duration: number, ended: boolean) => void;
 }) {
   const wrapRef   = useRef<HTMLDivElement>(null);
   const mountRef  = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const pollRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // refs สำหรับรายงานความคืบหน้า (กัน stale closure + flush ตอน unmount)
+  const timeRef        = useRef(0);
+  const durRef         = useRef(0);
+  const lastReportRef  = useRef(0);
+  const activeYtIdRef  = useRef(ytId);
+  const onProgressRef  = useRef(onProgress);
+  onProgressRef.current = onProgress;
+
+  const report = useCallback((ended: boolean, forYtId?: string) => {
+    if (timeRef.current > 3 && durRef.current > 0) {
+      onProgressRef.current?.(forYtId ?? activeYtIdRef.current, timeRef.current, durRef.current, ended);
+    }
+    lastReportRef.current = Date.now();
+  }, []);
 
   const [ready,    setReady]    = useState(false);
   const [playing,  setPlaying]  = useState(false);
@@ -85,10 +105,18 @@ export default function CourseVideoPlayer({
     let cancelled = false;
     setReady(false); setPlaying(false); setEnded(false); setTime(0); setDuration(0);
 
+    // reset refs สำหรับคลิปใหม่ (cleanup ของคลิปเก่า flush ไปแล้วก่อนถึงบรรทัดนี้)
+    activeYtIdRef.current = ytId;
+    timeRef.current = 0;
+    durRef.current = 0;
+    lastReportRef.current = Date.now();
+
+    const startAt = initialSeconds > 5 ? Math.floor(initialSeconds) : 0;
+
     loadYT().then((YT) => {
       if (cancelled || !mountRef.current) return;
       if (playerRef.current) {
-        playerRef.current.loadVideoById(ytId);
+        playerRef.current.loadVideoById({ videoId: ytId, startSeconds: startAt });
         return;
       }
       playerRef.current = new YT.Player(mountRef.current, {
@@ -97,6 +125,7 @@ export default function CourseVideoPlayer({
         playerVars: {
           controls: 0, rel: 0, fs: 0, disablekb: 1,
           playsinline: 1, iv_load_policy: 3, modestbranding: 1,
+          start: startAt,
           origin: window.location.origin,
         },
         events: {
@@ -114,22 +143,37 @@ export default function CourseVideoPlayer({
               setEnded(false);
               setDuration(playerRef.current?.getDuration?.() ?? 0);
             }
-            if (e.data === S?.ENDED) setEnded(true);
+            if (e.data === S?.PAUSED) report(false);
+            if (e.data === S?.ENDED) {
+              timeRef.current = durRef.current || timeRef.current;
+              report(true);
+              setEnded(true);
+            }
           },
         },
       });
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      report(false, ytId); // flush ความคืบหน้าของ "คลิปนี้" ก่อนสลับ/ออกจากหน้า
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ytId]);
 
-  // ── poll เวลาเล่น ───────────────────────────────────────────────────────────
+  // ── poll เวลาเล่น + รายงานความคืบหน้าทุก ~15 วิ ─────────────────────────────
   useEffect(() => {
     if (!playing) { if (pollRef.current) clearInterval(pollRef.current); return; }
     pollRef.current = setInterval(() => {
-      setTime(playerRef.current?.getCurrentTime?.() ?? 0);
+      const t = playerRef.current?.getCurrentTime?.() ?? 0;
+      const d = playerRef.current?.getDuration?.() ?? 0;
+      setTime(t);
+      timeRef.current = t;
+      if (d > 0) durRef.current = d;
+      if (Date.now() - lastReportRef.current > 15_000) report(false);
     }, 500);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [playing]);
+  }, [playing, report]);
+
 
   // ── controls ────────────────────────────────────────────────────────────────
   const toggle = useCallback(() => {

@@ -62,6 +62,7 @@ export interface Exam {
   questionCount: number;
   isPublished: boolean;
   isFree?: boolean;    // true = ทดลองทำฟรี ไม่ต้องมีสิทธิ์คอร์ส
+  isMock?: boolean;    // true = Mock Exam (แสดงในเมนู Mock ไม่ปนคลังข้อสอบปกติ)
   packageId?: string;  // แพ็กเกจที่ชุดนี้สังกัด (per-package entitlement); undefined = ยังไม่ผูก (ใช้ legacy access)
   createdAt: Date;
   updatedAt: Date;
@@ -103,6 +104,7 @@ export interface ExamForm {
   timeLimit: number;
   isPublished: boolean;
   isFree?: boolean;
+  isMock?: boolean;
   packageId?: string;
   questions: QuestionForm[];
 }
