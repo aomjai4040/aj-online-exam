@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
@@ -9,36 +9,11 @@ import { PRICING, CONTACT_URL } from "@/lib/pricing";
 import { BRAND } from "@/lib/subjects";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
+import CourseVideoPlayer from "@/components/CourseVideoPlayer";
 
 // ─── /videos — คอร์สวิดีโอ (เฉพาะคอร์สเต็ม) ───────────────────────────────────
-// YouTube unlisted ฝังในแอป + ลายน้ำชื่อผู้ชมลอยบน player (กันอัดจอไปแชร์)
-// fullscreen ใช้ wrapper ของเราเอง (fs=0) เพื่อให้ลายน้ำติดไปด้วย
-
-function Watermark({ label }: { label: string }) {
-  const [pos, setPos] = useState({ top: "8%", left: "6%" });
-  useEffect(() => {
-    const t = setInterval(() => {
-      setPos({
-        top:  `${8 + Math.random() * 70}%`,
-        left: `${5 + Math.random() * 55}%`,
-      });
-    }, 8000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <span
-      className="absolute z-10 pointer-events-none select-none whitespace-nowrap"
-      style={{
-        ...pos,
-        fontSize: 11, fontWeight: 600, color: "white",
-        opacity: 0.35, textShadow: "0 0 4px rgba(0,0,0,0.8)",
-        transition: "top 2s ease, left 2s ease",
-      }}
-    >
-      {label}
-    </span>
-  );
-}
+// player ควบคุมเองทั้งหมด (ดู components/CourseVideoPlayer) — ปิดทุกทางที่
+// ผู้ใช้จะกดหลุดไป YouTube แล้ว copy ลิงก์ unlisted ไปแชร์ + ลายน้ำผู้ชม
 
 export default function VideosPage() {
   const guard    = useLoginGuard();
@@ -49,7 +24,6 @@ export default function VideosPage() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
   const [current, setCurrent] = useState<CourseVideo | null>(null);
-  const playerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (guard !== "allowed" || !user) return;
@@ -76,12 +50,12 @@ export default function VideosPage() {
     return Array.from(map.entries());
   }, [videos]);
 
-  function toggleFullscreen() {
-    const el = playerRef.current;
-    if (!el) return;
-    if (document.fullscreenElement) document.exitFullscreen();
-    else el.requestFullscreen?.().catch(() => {});
-  }
+  // คลิปถัดไปตามลำดับรวม (สำหรับปุ่ม "คลิปถัดไป" ตอนจบคลิป)
+  const nextVideo = useMemo(() => {
+    if (!current) return null;
+    const i = videos.findIndex((v) => v.id === current.id);
+    return i >= 0 ? videos[i + 1] ?? null : null;
+  }, [videos, current]);
 
   if (guard !== "allowed" || loading) return <AccessGuardSpinner />;
 
@@ -126,33 +100,16 @@ export default function VideosPage() {
   return (
     <div className="min-h-screen bg-stone-50 pb-28">
 
-      {/* Player */}
+      {/* Player (ควบคุมเองทั้งหมด — ไม่มีทางกดหลุดไป YouTube) */}
       <div className="bg-black sticky top-14 z-30">
         <div className="max-w-2xl mx-auto">
           {current ? (
-            <div ref={playerRef} className="relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
-              <iframe
-                key={current.id}
-                className="absolute inset-0 w-full h-full"
-                src={`https://www.youtube-nocookie.com/embed/${current.ytId}?rel=0&modestbranding=1&fs=0&playsinline=1`}
-                title={current.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen={false}
-              />
-              <Watermark label={userLabel} />
-              {/* ปุ่มเต็มจอของเราเอง (ลายน้ำติดไปด้วย) */}
-              <button
-                onClick={toggleFullscreen}
-                className="absolute bottom-2 right-2 z-20 w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
-                title="เต็มจอ"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="white"
-                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
-                </svg>
-              </button>
-            </div>
+            <CourseVideoPlayer
+              ytId={current.ytId}
+              userLabel={userLabel}
+              hasNext={!!nextVideo}
+              onNext={() => nextVideo && setCurrent(nextVideo)}
+            />
           ) : (
             <div className="w-full flex items-center justify-center text-white/60 text-[13.5px]"
               style={{ aspectRatio: "16/9" }}>
