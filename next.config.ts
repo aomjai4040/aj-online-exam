@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { allowedOrigins: ["localhost:3000"] },
   },
+  // firebase-admin ต้องไม่ถูก bundle (มี native/ESM ที่ทำ require() พังบน Vercel)
+  serverExternalPackages: ["firebase-admin"],
   // Proxy Firebase Auth handler ผ่านโดเมนของเราเอง (first-party)
   // แก้ปัญหา signInWithRedirect พังบน iOS Safari / LINE in-app browser
   // เพราะ ITP บล็อก storage ข้ามโดเมนเมื่อ authDomain เป็น firebaseapp.com
