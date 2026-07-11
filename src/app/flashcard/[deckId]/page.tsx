@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
 import { getUserAccess } from "@/lib/access";
+import { PRICING } from "@/lib/pricing";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import {
   getDeckById,
@@ -397,7 +398,7 @@ export default function FlashCardDeckPage() {
           </p>
           <div className="space-y-2.5">
             <Link href="/packages" className="btn-primary w-full py-3 text-[14px] block text-center">
-              ดูแพ็กเกจ & สั่งซื้อ
+              ปลดล็อกทั้งหมด เริ่ม ฿{PRICING.app.price}
             </Link>
             <Link href="/activate" className="btn-secondary w-full py-3 text-[14px] block text-center">
               กรอกรหัสเปิดใช้งาน

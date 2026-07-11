@@ -8,6 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/lib/auth-context";
 import { subjectColor as dotColor, BRAND } from "@/lib/subjects";
 import { getSubjectShort } from "@/lib/types";
+import { PRICING } from "@/lib/pricing";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -200,7 +201,7 @@ export default function HomePage() {
                          active:scale-[0.98] transition-transform text-white"
               style={{ border: "1px solid rgba(255,255,255,0.4)" }}
             >
-              ดูแพ็กเกจ
+              แพ็กเกจ เริ่ม ฿{PRICING.app.price}
             </Link>
           </div>
 

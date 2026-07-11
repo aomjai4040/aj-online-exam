@@ -6,6 +6,7 @@ import { getExam, getQuestions, saveResult } from "@/lib/firestore";
 import { saveRecord } from "@/lib/exam-history";
 import { saveUserRecord } from "@/lib/user-firestore";
 import { recordExamMistakes } from "@/lib/smart-review";
+import { PRICING } from "@/lib/pricing";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, decideExamAccess } from "@/lib/access";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
@@ -284,7 +285,7 @@ export default function ExamPage() {
 
           <div className="space-y-3">
             <Link href="/packages" className="btn-primary w-full py-3.5 text-[15px] text-center block">
-              ดูแพ็กเกจ & สั่งซื้อ
+              ปลดล็อกทั้งหมด เริ่ม ฿{PRICING.app.price}
             </Link>
             <Link href="/activate" className="btn-secondary w-full py-3.5 text-[15px] text-center block">
               กรอกรหัสเปิดใช้งาน

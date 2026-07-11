@@ -2,63 +2,167 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
-import type { Exam } from "@/lib/types";
 import BottomNav from "@/components/BottomNav";
+import { BRAND } from "@/lib/subjects";
+import { PRICING, CONTACT_URL } from "@/lib/pricing";
 
-// ─── /packages — placeholder catalog (Phase 2 จะทำ collection packages เต็ม) ────
-// ตอนนี้: แสดงภาพรวมคลังข้อสอบ + ช่องทางปลดล็อก (กรอกรหัส) กันลิงก์ตายจากหน้า lock
-// เมื่อทำระบบจ่ายเงินเสร็จ หน้านี้จะกลายเป็นแคตตาล็อกแพ็กเกจ + ปุ่มสั่งซื้อจริง
+// ─── /packages — แพ็กเกจ + ราคา (Aj ยืนยัน 299/699/+400) ─────────────────────
+// การซื้อตอนนี้: ทักแชทแอดมิน → รับรหัส → กรอกที่ /activate
+// Phase 3 จะเปลี่ยนปุ่มสั่งซื้อเป็นจ่ายเงินจบในเว็บ (PromptPay + ตรวจสลิป)
+
+function Check({ color = BRAND.primary }: { color?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      className="w-4 h-4 flex-shrink-0 mt-0.5">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
 
 export default function PackagesPage() {
-  const [total,    setTotal]    = useState<number | null>(null);
+  const [total,     setTotal]     = useState<number | null>(null);
+  const [questions, setQuestions] = useState(0);
   const [freeCount, setFreeCount] = useState(0);
 
   useEffect(() => {
     getPublishedExams()
-      .then((all) => { setTotal(all.length); setFreeCount(all.filter((e) => e.isFree).length); })
+      .then((all) => {
+        setTotal(all.length);
+        setQuestions(all.reduce((s, e) => s + (e.questionCount || 0), 0));
+        setFreeCount(all.filter((e) => e.isFree).length);
+      })
       .catch(() => setTotal(0));
   }, []);
 
+  const appFeatures = [
+    total !== null
+      ? `ข้อสอบทั้งหมด ${total} ชุด (${questions.toLocaleString()} ข้อ) พร้อมเฉลยละเอียด`
+      : "ข้อสอบทั้งหมดพร้อมเฉลยละเอียดทุกข้อ",
+    "Smart Review — ระบบทบทวนข้อที่เคยผิดอัตโนมัติ",
+    "Flash Card + MOPH Focus ประเด็นเน้นกระทรวง",
+    "ดาวน์โหลดข้อสอบ + เฉลยเป็น PDF ไปปริ๊นอ่านได้",
+    "อัปเดตข้อสอบใหม่ต่อเนื่อง",
+  ];
+
+  const fullFeatures = [
+    "ทุกอย่างใน App Only ครบ",
+    "วิดีโอติวสอบครบทุกหัวข้อ",
+    "ชีทสรุปเนื้อหา 7 เรื่อง (~500 หน้า) ประกอบการติว",
+  ];
+
   return (
     <div className="min-h-screen bg-stone-50 pb-28">
-      {/* Hero */}
-      <section className="px-5 pt-10 pb-8"
-        style={{ background: "linear-gradient(160deg, #0B6E65 0%, #0d9488 60%, #134e4a 100%)" }}>
+
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="px-5 pt-9 pb-7" style={{ backgroundColor: BRAND.primaryDark }}>
         <div className="max-w-lg mx-auto">
-          <h1 className="text-[1.8rem] font-bold leading-tight tracking-tight mb-3 text-white">
-            แพ็กเกจข้อสอบ
+          <h1 className="text-[1.7rem] font-bold leading-tight tracking-tight mb-2 text-white">
+            แพ็กเกจ & ราคา
           </h1>
-          <p className="text-[15px] leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
-            ปลดล็อกคลังข้อสอบเต็ม พร้อมเฉลยละเอียดทุกข้อ
-            {total !== null && ` · มีข้อสอบ ${total} ชุดในระบบ`}
+          <p className="text-[14px] leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
+            เลือกแบบที่เหมาะกับการเตรียมตัวของคุณ · จ่ายครั้งเดียว {PRICING.app.period}
           </p>
         </div>
       </section>
 
       <section className="max-w-lg mx-auto px-5 py-6 space-y-4">
-        {/* Coming soon notice */}
-        <div className="rounded-2xl p-5" style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A" }}>
-          <p className="text-[14px] font-bold mb-1" style={{ color: "#92400E" }}>
-            🛒 ระบบสั่งซื้อในเว็บกำลังพัฒนา
-          </p>
-          <p className="text-[12.5px] leading-relaxed" style={{ color: "#B45309" }}>
-            เร็ว ๆ นี้จะสามารถซื้อและชำระเงินได้ในเว็บทันที
-            ระหว่างนี้หากมีรหัสเปิดใช้งาน กรอกได้เลยด้านล่าง
+
+        {/* ── App Only (แนะนำสำหรับเริ่มต้น) ─────────────────────────────── */}
+        <div className="bg-white rounded-2xl overflow-hidden"
+          style={{ border: `2px solid ${BRAND.primary}` }}>
+          <div className="px-5 py-2 text-center text-[12px] font-bold text-white"
+            style={{ backgroundColor: BRAND.primary }}>
+            ⭐ เริ่มต้นยอดนิยม
+          </div>
+          <div className="p-5">
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div>
+                <p className="text-[17px] font-bold text-gray-900">{PRICING.app.name}</p>
+                <p className="text-[12.5px]" style={{ color: "#A8A8A6" }}>{PRICING.app.tagline}</p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p className="text-[12.5px] line-through" style={{ color: "#C4C4C0" }}>
+                  ฿{PRICING.app.compareAt}
+                </p>
+                <p className="text-[26px] font-extrabold leading-none" style={{ color: BRAND.primary }}>
+                  ฿{PRICING.app.price}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2 mt-4 mb-5">
+              {appFeatures.map((f) => (
+                <div key={f} className="flex items-start gap-2.5 text-[13.5px] text-gray-700">
+                  <Check /> <span>{f}</span>
+                </div>
+              ))}
+            </div>
+
+            <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
+              className="btn-primary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
+              สั่งซื้อ ฿{PRICING.app.price}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
+            <p className="text-center text-[11.5px] mt-2" style={{ color: "#C4C4C0" }}>
+              {PRICING.app.period} · ทักแชทรับรหัสเปิดใช้งานได้ทันที
+            </p>
+          </div>
+        </div>
+
+        {/* ── คอร์สเต็ม ───────────────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
+          <div className="flex items-start justify-between gap-3 mb-1">
+            <div>
+              <p className="text-[17px] font-bold text-gray-900">{PRICING.full.name}</p>
+              <p className="text-[12.5px]" style={{ color: "#A8A8A6" }}>{PRICING.full.tagline}</p>
+            </div>
+            <p className="text-[26px] font-extrabold leading-none flex-shrink-0 text-gray-900">
+              ฿{PRICING.full.price}
+            </p>
+          </div>
+
+          <div className="space-y-2 mt-4 mb-5">
+            {fullFeatures.map((f, i) => (
+              <div key={f} className="flex items-start gap-2.5 text-[13.5px]"
+                style={{ color: i === 0 ? "#A8A8A6" : "#374151" }}>
+                <Check color={i === 0 ? "#A8A8A6" : BRAND.primary} /> <span>{f}</span>
+              </div>
+            ))}
+          </div>
+
+          <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
+            className="btn-secondary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
+            สั่งซื้อคอร์สเต็ม ฿{PRICING.full.price}
+          </a>
+        </div>
+
+        {/* ── Upgrade note ─────────────────────────────────────────────────── */}
+        <div className="rounded-2xl px-4 py-3.5 flex items-start gap-3"
+          style={{ backgroundColor: "#EBF5F3", border: "1px solid #C3E5DE" }}>
+          <span className="text-[18px] leading-none mt-0.5">💡</span>
+          <p className="text-[12.5px] leading-relaxed" style={{ color: "#0B6E65" }}>
+            ซื้อ App Only ไปแล้ว อยากได้วิดีโอ + ชีทสรุปเพิ่มทีหลัง?
+            <span className="font-bold"> อัปเกรดได้โดยจ่ายส่วนต่าง ฿{PRICING.upgradePrice} เท่านั้น</span>
+            {" "}— ไม่ต้องซื้อใหม่
           </p>
         </div>
 
-        {/* Free trial */}
+        {/* ── Free trial ──────────────────────────────────────────────────── */}
         {freeCount > 0 && (
           <Link href="/free"
-            className="block rounded-2xl p-5 hover:shadow-md active:scale-[0.99] transition-all"
-            style={{ backgroundColor: "#EBF5F3", border: "1px solid #C3E5DE" }}>
+            className="block rounded-2xl p-5 bg-white hover:shadow-md active:scale-[0.99] transition-all"
+            style={{ border: "1px dashed #C3E5DE" }}>
             <div className="flex items-center gap-3">
               <div className="text-2xl">🎁</div>
               <div className="flex-1">
                 <p className="text-[14px] font-bold" style={{ color: "#0B6E65" }}>
-                  ทดลองทำฟรี {freeCount} ชุด
+                  ยังไม่แน่ใจ? ทดลองทำฟรี {freeCount} ชุดก่อน
                 </p>
-                <p className="text-[12px]" style={{ color: "#5DA89F" }}>ลองก่อนตัดสินใจ ไม่มีค่าใช้จ่าย</p>
+                <p className="text-[12px]" style={{ color: "#A8A8A6" }}>ไม่มีค่าใช้จ่าย ไม่ต้องกรอกบัตร</p>
               </div>
               <svg viewBox="0 0 24 24" fill="none" stroke="#0B6E65"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -68,7 +172,7 @@ export default function PackagesPage() {
           </Link>
         )}
 
-        {/* Activate code */}
+        {/* ── Activate code ───────────────────────────────────────────────── */}
         <Link href="/activate"
           className="block rounded-2xl p-5 bg-white hover:shadow-md active:scale-[0.99] transition-all"
           style={{ border: "1px solid #EBEBEA" }}>
@@ -82,7 +186,7 @@ export default function PackagesPage() {
             </div>
             <div className="flex-1">
               <p className="text-[14px] font-bold text-gray-900">มีรหัสเปิดใช้งานแล้ว?</p>
-              <p className="text-[12px]" style={{ color: "#A8A8A6" }}>กรอกรหัสเพื่อปลดล็อกคอร์ส</p>
+              <p className="text-[12px]" style={{ color: "#A8A8A6" }}>กรอกรหัสเพื่อปลดล็อกได้เลย</p>
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="#D4D4D0"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -91,28 +195,11 @@ export default function PackagesPage() {
           </div>
         </Link>
 
-        {/* Contact admin */}
-        <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer"
-          className="block rounded-2xl p-5 bg-white hover:shadow-md active:scale-[0.99] transition-all"
-          style={{ border: "1px solid #EBEBEA" }}>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "#EFF6FF" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.75"
-                strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="text-[14px] font-bold text-gray-900">สอบถาม / สั่งซื้อกับแอดมิน</p>
-              <p className="text-[12px]" style={{ color: "#A8A8A6" }}>ทักแชทเพื่อรับรหัสเปิดใช้งาน</p>
-            </div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="#D4D4D0"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </div>
-        </a>
+        <p className="text-center text-[11.5px] pt-1" style={{ color: "#C4C4C0" }}>
+          ขั้นตอนซื้อ: ทักแชทแอดมิน → ชำระเงิน → รับรหัส → กรอกรหัสในแอป
+          <br />
+          (ระบบชำระเงินในเว็บกำลังพัฒนา เร็ว ๆ นี้)
+        </p>
       </section>
 
       <BottomNav />
