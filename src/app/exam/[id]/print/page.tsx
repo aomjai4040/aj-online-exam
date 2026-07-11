@@ -193,19 +193,13 @@ export default function ExamPrintPage() {
               <p className="text-[14px] font-semibold text-gray-900 leading-relaxed mb-2">
                 {qi + 1}. {q.text}
               </p>
+              {/* ตัวเลือกเป็นกลางเสมอ — ไม่ชี้คำตอบ ให้ฝึกทำเองก่อนแล้วดูเฉลยใต้ข้อ */}
               <div className="space-y-1 ml-5 mb-2">
-                {q.options.map((opt, oi) => {
-                  const isAnswer = showAnswers && oi === q.correctAnswer;
-                  return (
-                    <p key={oi} className="text-[13.5px] leading-relaxed"
-                      style={{
-                        color:      isAnswer ? "#0B6E65" : "#374151",
-                        fontWeight: isAnswer ? 700 : 400,
-                      }}>
-                      {OPTS[oi]}. {opt}{isAnswer && "  ✓"}
-                    </p>
-                  );
-                })}
+                {q.options.map((opt, oi) => (
+                  <p key={oi} className="text-[13.5px] leading-relaxed" style={{ color: "#374151" }}>
+                    {OPTS[oi]}. {opt}
+                  </p>
+                ))}
               </div>
               {showAnswers && (
                 <div className="ml-5 px-3 py-2 rounded-lg text-[12.5px] leading-relaxed"
