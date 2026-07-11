@@ -4,9 +4,10 @@
  *
  * เหตุผล: embed ปกติของ YouTube มีปุ่ม "ดูใน YouTube"/ชื่อคลิป/รูปช่อง
  * ที่กดแล้วหลุดออกไปแชร์ลิงก์ได้ → ปิด UI ของ YouTube ทั้งหมด (controls=0)
- * แล้ววาง "โล่ใส" คลุมทั้งจอ: ทุกการแตะโดนเลเยอร์ของเรา ไม่มีทางแตะโดน
- * ลิงก์ของ YouTube · ควบคุมผ่านแถบปุ่มของเราด้านล่าง · จอจบคลิปเป็นของเรา
- * (ทับ end screen ที่มีคลิปแนะนำของ YouTube) · ลายน้ำผู้ชมลอยตลอด
+ * แล้ววาง "โล่ใส" คลุมทั้งจอ + แถบควบคุม/จอจบคลิปของเราเอง + ลายน้ำผู้ชม
+ *
+ * ความทนทาน: ไม่พึ่ง event ของ YouTube (onStateChange ไม่ยิงในบางสภาพแวดล้อม
+ * ทำให้เวลา/ปุ่มหยุด/seek ตายทั้งแผง) — ใช้ polling ถามสถานะตรงทุก 500ms แทน
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -69,90 +70,78 @@ export default function CourseVideoPlayer({
   onNext:          () => void;
   /** ตำแหน่งที่ดูค้างไว้ — เล่นต่อจากตรงนี้ */
   initialSeconds?: number;
-  /** รายงานความคืบหน้า (ทุก ~15 วิ + ตอนหยุด/จบ/สลับคลิป) — ระบุ ytId เสมอ
-   *  เพื่อไม่ให้ความคืบหน้าคลิปเก่าไปบันทึกใต้คลิปใหม่ตอนสลับ */
+  /** รายงานความคืบหน้า (ทุก ~15 วิ + หยุด/จบ/สลับคลิป) — ระบุ ytId เสมอ */
   onProgress?:     (ytId: string, seconds: number, duration: number, ended: boolean) => void;
 }) {
   const wrapRef   = useRef<HTMLDivElement>(null);
   const mountRef  = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
-  const pollRef   = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // refs สำหรับรายงานความคืบหน้า (กัน stale closure + flush ตอน unmount)
   const timeRef        = useRef(0);
   const durRef         = useRef(0);
   const lastReportRef  = useRef(0);
+  const endedRef       = useRef(false);
   const activeYtIdRef  = useRef(ytId);
   const onProgressRef  = useRef(onProgress);
   onProgressRef.current = onProgress;
 
-  const report = useCallback((ended: boolean, forYtId?: string) => {
-    if (timeRef.current > 3 && durRef.current > 0) {
-      onProgressRef.current?.(forYtId ?? activeYtIdRef.current, timeRef.current, durRef.current, ended);
-    }
-    lastReportRef.current = Date.now();
-  }, []);
-
-  const [ready,    setReady]    = useState(false);
   const [playing,  setPlaying]  = useState(false);
   const [ended,    setEnded]    = useState(false);
   const [time,     setTime]     = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed,    setSpeed]    = useState(1);
 
+  const report = useCallback((isEnded: boolean, forYtId?: string) => {
+    if (timeRef.current > 3 && durRef.current > 0) {
+      onProgressRef.current?.(forYtId ?? activeYtIdRef.current, timeRef.current, durRef.current, isEnded);
+    }
+    lastReportRef.current = Date.now();
+  }, []);
+
   // ── สร้าง / เปลี่ยนคลิป ─────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
-    setReady(false); setPlaying(false); setEnded(false); setTime(0); setDuration(0);
+    setPlaying(false); setEnded(false); setTime(0); setDuration(0);
 
-    // reset refs สำหรับคลิปใหม่ (cleanup ของคลิปเก่า flush ไปแล้วก่อนถึงบรรทัดนี้)
     activeYtIdRef.current = ytId;
     timeRef.current = 0;
     durRef.current = 0;
+    endedRef.current = false;
     lastReportRef.current = Date.now();
 
     const startAt = initialSeconds > 5 ? Math.floor(initialSeconds) : 0;
 
-    loadYT().then((YT) => {
+    loadYT().then(() => {
       if (cancelled || !mountRef.current) return;
       if (playerRef.current) {
+        // สลับจาก playlist/ปุ่มถัดไป = ผู้ใช้ตั้งใจดู → เล่นเลย
         playerRef.current.loadVideoById({ videoId: ytId, startSeconds: startAt });
         return;
       }
-      playerRef.current = new YT.Player(mountRef.current, {
+      playerRef.current = new window.YT.Player(mountRef.current, {
         videoId: ytId,
-        host: "https://www.youtube-nocookie.com",
+        width: "100%",
+        height: "100%",
         playerVars: {
           controls: 0, rel: 0, fs: 0, disablekb: 1,
           playsinline: 1, iv_load_policy: 3, modestbranding: 1,
           start: startAt,
           origin: window.location.origin,
         },
-        events: {
-          onReady: () => {
-            if (cancelled) return;
-            setReady(true);
-            setDuration(playerRef.current?.getDuration?.() ?? 0);
-          },
-          onStateChange: (e: any) => {
-            if (cancelled) return;
-            const S = window.YT?.PlayerState;
-            setPlaying(e.data === S?.PLAYING);
-            if (e.data === S?.PLAYING) {
-              setReady(true);
-              setEnded(false);
-              setDuration(playerRef.current?.getDuration?.() ?? 0);
-            }
-            if (e.data === S?.PAUSED) report(false);
-            if (e.data === S?.ENDED) {
-              timeRef.current = durRef.current || timeRef.current;
-              report(true);
-              setEnded(true);
-            }
-          },
-        },
       });
+      // ให้ iframe เต็มกรอบเสมอ
+      const fix = setInterval(() => {
+        const f = playerRef.current?.getIframe?.();
+        if (f) {
+          f.style.position = "absolute";
+          f.style.inset = "0";
+          f.style.width = "100%";
+          f.style.height = "100%";
+          clearInterval(fix);
+        }
+      }, 200);
     });
+
     return () => {
       cancelled = true;
       report(false, ytId); // flush ความคืบหน้าของ "คลิปนี้" ก่อนสลับ/ออกจากหน้า
@@ -160,36 +149,64 @@ export default function CourseVideoPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ytId]);
 
-  // ── poll เวลาเล่น + รายงานความคืบหน้าทุก ~15 วิ ─────────────────────────────
+  // ── Polling: แหล่งความจริงเดียวของสถานะ (ไม่พึ่ง event) ────────────────────
   useEffect(() => {
-    if (!playing) { if (pollRef.current) clearInterval(pollRef.current); return; }
-    pollRef.current = setInterval(() => {
-      const t = playerRef.current?.getCurrentTime?.() ?? 0;
-      const d = playerRef.current?.getDuration?.() ?? 0;
+    const iv = setInterval(() => {
+      const p = playerRef.current;
+      if (!p?.getPlayerState) return;
+      let state = -1;
+      try { state = p.getPlayerState(); } catch { return; }
+
+      const t = (() => { try { return p.getCurrentTime?.() ?? 0; } catch { return 0; } })();
+      const d = (() => { try { return p.getDuration?.() ?? 0; } catch { return 0; } })();
+
+      if (d > 0) { durRef.current = d; setDuration(d); }
+      if (t > 0) { timeRef.current = t; }
       setTime(t);
-      timeRef.current = t;
-      if (d > 0) durRef.current = d;
-      if (Date.now() - lastReportRef.current > 15_000) report(false);
+
+      const isPlaying = state === 1 || state === 3; // playing / buffering
+      setPlaying(isPlaying);
+
+
+      if (state === 0 && durRef.current > 0) {       // ended
+        if (!endedRef.current) {
+          endedRef.current = true;
+          timeRef.current = durRef.current;
+          report(true);
+        }
+        setEnded(true);
+      } else if (state === 1) {
+        endedRef.current = false;
+        setEnded(false);
+        if (Date.now() - lastReportRef.current > 15_000) report(false);
+      } else if (state === 2) {                       // paused
+        if (Date.now() - lastReportRef.current > 3_000) report(false);
+      }
     }, 500);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [playing, report]);
+    return () => clearInterval(iv);
+  }, [report]);
 
-
-  // ── controls ────────────────────────────────────────────────────────────────
+  // ── controls (ถามสถานะจริงจาก player — ไม่พึ่ง state ที่อาจค้าง) ─────────────
   const toggle = useCallback(() => {
     const p = playerRef.current;
-    if (!p) return;
-    if (playing) p.pauseVideo?.(); else p.playVideo?.();
-  }, [playing]);
+    if (!p?.getPlayerState) return;
+    let state = -1;
+    try { state = p.getPlayerState(); } catch { /* noop */ }
+    if (state === 1 || state === 3) p.pauseVideo?.();
+    else p.playVideo?.();
+  }, []);
 
   function seekTo(v: number) {
     playerRef.current?.seekTo?.(v, true);
     setTime(v);
+    timeRef.current = v;
+    endedRef.current = false;
     setEnded(false);
   }
 
   function skip(delta: number) {
-    seekTo(Math.max(0, Math.min(duration, time + delta)));
+    const d = durRef.current || duration;
+    seekTo(Math.max(0, Math.min(d > 0 ? d - 1 : timeRef.current + delta, timeRef.current + delta)));
   }
 
   function cycleSpeed() {
@@ -210,7 +227,7 @@ export default function CourseVideoPlayer({
   return (
     <div ref={wrapRef} className="relative w-full bg-black select-none" style={{ aspectRatio: "16/9" }}>
       {/* iframe ของ YouTube (โดนโล่คลุม — แตะไม่โดน) */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 overflow-hidden">
         <div ref={mountRef} className="w-full h-full" />
       </div>
 
@@ -219,8 +236,8 @@ export default function CourseVideoPlayer({
 
       <Watermark label={userLabel} />
 
-      {/* ปุ่มเล่นใหญ่ตอนหยุด */}
-      {ready && !playing && !ended && (
+      {/* ปุ่มเล่นใหญ่ตอนยังไม่เล่น/หยุดพัก */}
+      {!playing && !ended && (
         <button onClick={toggle}
           className="absolute inset-0 z-20 m-auto w-16 h-16 rounded-full flex items-center justify-center"
           style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
@@ -234,7 +251,7 @@ export default function CourseVideoPlayer({
       {ended && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4"
           style={{ backgroundColor: "rgba(0,0,0,0.92)" }}>
-          <p className="text-white/80 text-[14px]">จบคลิปแล้ว</p>
+          <p className="text-white/80 text-[14px]">จบคลิปแล้ว ✓</p>
           <div className="flex gap-3">
             <button onClick={replay}
               className="px-5 py-2.5 rounded-xl text-[13.5px] font-semibold text-white"
@@ -257,9 +274,11 @@ export default function CourseVideoPlayer({
         style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.75))" }}>
         {/* seek */}
         <input
-          type="range" min={0} max={Math.max(duration, 1)} step={1} value={Math.min(time, duration)}
+          type="range" min={0} max={Math.max(duration, 1)} step={1}
+          value={Math.min(time, Math.max(duration, 1))}
           onChange={(e) => seekTo(Number(e.target.value))}
-          className="w-full h-1 cursor-pointer accent-[#5DCAA5]"
+          disabled={duration <= 0}
+          className="w-full h-1 cursor-pointer accent-[#5DCAA5] disabled:opacity-40"
         />
         <div className="flex items-center gap-3 mt-1">
           <button onClick={toggle} className="text-white" aria-label={playing ? "หยุด" : "เล่น"}>
@@ -284,7 +303,7 @@ export default function CourseVideoPlayer({
           </button>
           <button onClick={toggleFullscreen} className="text-white" aria-label="เต็มจอ">
             <svg viewBox="0 0 24 24" fill="none" stroke="white"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5" style={{ width: 18, height: 18 }}>
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
               <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
             </svg>
           </button>
