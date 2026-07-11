@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
+import { isMockExam } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
 import { getUserAccess, decideExamAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
@@ -31,7 +32,7 @@ export default function MockExamPage() {
           getPublishedExams(),
           getUserAccess(user.uid),
         ]);
-        setMocks(all.filter((e) => e.isMock));
+        setMocks(all.filter(isMockExam));
         setAccess(a);
       } catch { setError("โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่"); }
       finally { setLoading(false); }

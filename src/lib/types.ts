@@ -55,6 +55,11 @@ export function getSubjectShort(code: string): string {
   return SUBJECT_DISPLAY[normalizeSubject(code)] ?? code;
 }
 
+/** ชุดนี้เป็น Mock Exam ไหม — เชื่อทั้งธง isMock และ subject=MOCK (กันธงหลุด) */
+export function isMockExam(e: { isMock?: boolean; subject?: string }): boolean {
+  return e.isMock === true || normalizeSubject(e.subject ?? "") === "MOCK";
+}
+
 export interface Exam {
   id: string;
   title: string;       // ชื่อชุดข้อสอบ (= set_name)

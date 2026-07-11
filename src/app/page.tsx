@@ -7,7 +7,7 @@ import type { Exam } from "@/lib/types";
 import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/lib/auth-context";
 import { subjectColor as dotColor, BRAND } from "@/lib/subjects";
-import { getSubjectShort } from "@/lib/types";
+import { getSubjectShort, isMockExam } from "@/lib/types";
 import { PRICING } from "@/lib/pricing";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ export default function HomePage() {
   useEffect(() => {
     getPublishedExams()
       // Mock Exam มีเมนูของตัวเอง — ไม่ปนในคลังปกติ
-      .then((all) => setExams(all.filter((e) => !e.isMock)))
+      .then((all) => setExams(all.filter((e) => !isMockExam(e))))
       .finally(() => setLoading(false));
   }, []);
 
