@@ -106,6 +106,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── Orders (คำสั่งซื้อในเว็บ) ────────────────────────────────────────────
+    // สร้าง/ยืนยันทำผ่าน server (Admin SDK) เท่านั้น — client อ่านของตัวเองได้
+    match /orders/{orderId} {
+      allow read:  if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if isAdmin(); // server ใช้ Admin SDK ข้าม rules; ปิด client write
+    }
+    // กันสลิปซ้ำ — server เท่านั้น
+    match /usedSlips/{ref} {
+      allow read, write: if isAdmin();
+    }
+
     // ── Course Videos ───────────────────────────────────────────────────────
     // เก็บ YouTube id ของวิดีโอคอร์สเต็ม — อ่านได้เมื่อ login
     // NOTE: การกรอง tier (App Only ห้ามดู) ทำฝั่ง client ตอนนี้;

@@ -99,16 +99,16 @@ export default function PackagesPage() {
               ))}
             </div>
 
-            <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
+            <Link href="/checkout/app"
               className="btn-primary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
               สั่งซื้อ ฿{PRICING.app.price}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-            </a>
+            </Link>
             <p className="text-center text-[11.5px] mt-2" style={{ color: "#C4C4C0" }}>
-              {PRICING.app.period} · ทักแชทรับรหัสเปิดใช้งานได้ทันที
+              {PRICING.app.period} · จ่ายผ่านพร้อมเพย์ ปลดล็อกอัตโนมัติทันที
             </p>
           </div>
         </div>
@@ -134,10 +134,10 @@ export default function PackagesPage() {
             ))}
           </div>
 
-          <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
+          <Link href="/checkout/full"
             className="btn-secondary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
             สั่งซื้อคอร์สเต็ม ฿{PRICING.full.price}
-          </a>
+          </Link>
         </div>
 
         {/* ── Upgrade note ─────────────────────────────────────────────────── */}
