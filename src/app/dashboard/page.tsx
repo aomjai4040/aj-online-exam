@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
@@ -8,6 +9,8 @@ import {
   type UserExamSummary, type UserResult,
 } from "@/lib/user-firestore";
 import { getUserCourses, type UserCourse } from "@/lib/activation";
+import { listInProgress } from "@/lib/exam-progress";
+import { countWrongQuestions } from "@/lib/smart-review";
 import { useLoginGuard } from "@/lib/use-login-guard";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
@@ -311,25 +314,36 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const guard = useLoginGuard();
-  const { user } = useAuth();
+  const guard  = useLoginGuard();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+
+  async function handleSignOut() {
+    if (!confirm("ออกจากระบบ?")) return;
+    await signOut();
+    router.replace("/");
+  }
 
   const [summaries,   setSummaries]   = useState<UserExamSummary[]>([]);
   const [results,     setResults]     = useState<UserResult[]>([]);
   const [courses,     setCourses]     = useState<UserCourse[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
+  const [wrongCount,  setWrongCount]  = useState(0);
+  const [inProgress,  setInProgress]  = useState<ReturnType<typeof listInProgress>>([]);
 
   const load = useCallback(async (uid: string) => {
     setDataLoading(true);
     try {
-      const [s, r, c] = await Promise.all([
+      const [s, r, c, w] = await Promise.all([
         getUserSummaries(uid),
         getRecentResults(uid, 30),
         getUserCourses(uid),
+        countWrongQuestions(uid).catch(() => 0),
       ]);
       setSummaries(s);
       setResults(r);
       setCourses(c);
+      setWrongCount(w);
     } finally {
       setDataLoading(false);
     }
@@ -338,6 +352,38 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) load(user.uid);
   }, [user, load]);
+
+  // ข้อสอบที่ค้างกลางคันบนเครื่องนี้ (localStorage — อ่านหลัง mount เท่านั้น)
+  useEffect(() => { setInProgress(listInProgress()); }, []);
+
+  // การ์ด "เรียนต่อ": ① ข้อสอบค้างกลางคัน (แรงสุด) ② ชุดล่าสุดที่ยังไม่ผ่าน
+  const continueTarget = useMemo(() => {
+    if (inProgress.length > 0) {
+      const p = inProgress[0];
+      return {
+        type:   "resume" as const,
+        examId: p.examId,
+        title:  p.examTitle || "ข้อสอบที่ทำค้างไว้",
+        done:   p.answers.filter((a) => a !== -1).length,
+        total:  p.qCount,
+        pct:    undefined as number | undefined,
+      };
+    }
+    const recentFailed = [...summaries]
+      .sort((a, b) => new Date(b.lastDoneAt).getTime() - new Date(a.lastDoneAt).getTime())
+      .find((s) => (s.bestPercentage ?? s.percentage) < 60);
+    if (recentFailed) {
+      return {
+        type:   "retry" as const,
+        examId: recentFailed.examId,
+        title:  recentFailed.examTitle,
+        done:   0,
+        total:  0,
+        pct:    recentFailed.bestPercentage ?? recentFailed.percentage,
+      };
+    }
+    return null;
+  }, [inProgress, summaries]);
 
   // ── Computed analytics ──────────────────────────────────────────────────────
 
@@ -445,11 +491,97 @@ export default function DashboardPage() {
                 <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
               </svg>
             </button>
+            {/* Logout */}
+            <button
+              onClick={handleSignOut}
+              title="ออกจากระบบ"
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-red-100"
+              style={{ backgroundColor: "#FEF2F2" }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-5 py-5 space-y-5">
+
+        {/* ═══ เรียนต่อ (Continue + Smart Review) ══════════════════════ */}
+        {(continueTarget || wrongCount > 0) && (
+          <div className="space-y-2.5">
+            {continueTarget && (
+              <Link
+                href={`/exam/${continueTarget.examId}`}
+                className="block bg-white rounded-2xl px-4 py-4 active:scale-[0.99] transition-transform"
+                style={{ border: "1.5px solid #0B6E65" }}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: "#0B6E65" }}>
+                    <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4">
+                      <polygon points="6 3 20 12 6 21 6 3" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11.5px] font-bold uppercase tracking-wider mb-0.5"
+                      style={{ color: "#0B6E65" }}>
+                      {continueTarget.type === "resume" ? "ทำต่อจากที่ค้างไว้" : "พิชิตชุดที่ยังไม่ผ่าน"}
+                    </p>
+                    <p className="text-[14.5px] font-bold text-gray-900 truncate">
+                      {continueTarget.title}
+                    </p>
+                    <p className="text-[12.5px] mt-0.5" style={{ color: "#A8A8A6" }}>
+                      {continueTarget.type === "resume"
+                        ? `ตอบแล้ว ${continueTarget.done}/${continueTarget.total} ข้อ`
+                        : `รอบที่แล้วได้ ${continueTarget.pct}% — อีก ${Math.max(60 - (continueTarget.pct ?? 0), 1)}% ถึงเกณฑ์ผ่าน`}
+                    </p>
+                  </div>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#0B6E65"
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    className="w-5 h-5 flex-shrink-0">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              </Link>
+            )}
+
+            {wrongCount > 0 && (
+              <Link
+                href="/review"
+                className="block rounded-2xl px-4 py-3.5 active:scale-[0.99] transition-transform"
+                style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A" }}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: "#F59E0B" }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13.5px] font-bold" style={{ color: "#92400E" }}>
+                      Smart Review — ทบทวนข้อที่เคยผิด
+                    </p>
+                    <p className="text-[12px] mt-0.5" style={{ color: "#B45309" }}>
+                      มี {wrongCount} ข้อรอทบทวน · ตอบถูกแล้วหลุดจากคิวทันที
+                    </p>
+                  </div>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    className="w-5 h-5 flex-shrink-0">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* ═══ KPI Cards ════════════════════════════════════════════════ */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

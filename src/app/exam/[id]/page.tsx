@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getExam, getQuestions, saveResult } from "@/lib/firestore";
 import { saveRecord } from "@/lib/exam-history";
 import { saveUserRecord } from "@/lib/user-firestore";
+import { recordExamMistakes } from "@/lib/smart-review";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, decideExamAccess } from "@/lib/access";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
@@ -15,38 +16,11 @@ import type { Exam, Question } from "@/lib/types";
 type Phase = "loading" | "intro" | "exam" | "result" | "error" | "locked";
 
 // ─── Autosave (กันคำตอบหายเมื่อ refresh / สลับแอปบนมือถือ) ────────────────────
+// helpers อยู่ที่ lib/exam-progress — dashboard ใช้ทำการ์ด "ทำต่อจากเดิม" ด้วย
 
-interface SavedProgress {
-  answers: number[];
-  current: number;
-  elapsed: number;  // วินาทีที่ใช้ไปแล้ว
-  qCount:  number;  // ไว้เช็คว่าชุดข้อสอบยังเป็นชุดเดิม
-  savedAt: number;
-}
-
-const PROGRESS_TTL = 24 * 60 * 60 * 1000; // เก็บไม่เกิน 24 ชม.
-
-function progressKey(id: string) { return `exam-progress-${id}`; }
-
-function loadProgress(id: string, qCount: number): SavedProgress | null {
-  try {
-    const raw = localStorage.getItem(progressKey(id));
-    if (!raw) return null;
-    const p = JSON.parse(raw) as SavedProgress;
-    if (p.qCount !== qCount) return null;                 // ชุดข้อสอบถูกแก้ไประหว่างทาง
-    if (Date.now() - p.savedAt > PROGRESS_TTL) return null;
-    if (!p.answers.some((a) => a !== -1)) return null;    // ยังไม่ได้ตอบอะไรเลย
-    return p;
-  } catch { return null; }
-}
-
-function saveProgress(id: string, p: SavedProgress) {
-  try { localStorage.setItem(progressKey(id), JSON.stringify(p)); } catch { /* quota */ }
-}
-
-function clearProgress(id: string) {
-  try { localStorage.removeItem(progressKey(id)); } catch { /* noop */ }
-}
+import {
+  loadProgress, saveProgress, clearProgress, type SavedProgress,
+} from "@/lib/exam-progress";
 
 const OPTS = ["ก", "ข", "ค", "ง"] as const;
 
@@ -152,10 +126,13 @@ export default function ExamPage() {
     saveProgress(id, {
       answers,
       current,
-      elapsed: Math.round((Date.now() - startRef.current) / 1000),
-      qCount:  questions.length,
-      savedAt: Date.now(),
+      elapsed:   Math.round((Date.now() - startRef.current) / 1000),
+      qCount:    questions.length,
+      savedAt:   Date.now(),
+      examTitle: exam?.title,
+      subject:   exam?.subject,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, current, phase, id, questions.length]);
 
   // ── Stopwatch ──────────────────────────────────────────────────────────────
@@ -226,6 +203,10 @@ export default function ExamPage() {
         totalQuestions: questions.length,
         percentage:     pct,
       }).catch(console.error); // fire-and-forget
+
+      // Smart Review: เก็บข้อที่ผิด/ข้ามเข้าคลังทบทวน (ตอบถูกรอบนี้ = เอาออก)
+      recordExamMistakes(user.uid, { id, title: exam.title, subject: exam.subject },
+        questions, finalAnswers).catch(console.error);
     }
 
     if (exam) {
