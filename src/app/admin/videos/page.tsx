@@ -10,15 +10,16 @@ import {
 const EMPTY_FORM = { title: "", url: "", chapter: "", order: "", duration: "" };
 
 interface BulkRow {
-  line:    number;
-  ytId:    string | null;
-  title:   string;
-  chapter: string;
-  ok:      boolean;
-  reason?: string;
+  line:     number;
+  ytId:     string | null;
+  title:    string;
+  chapter:  string;
+  duration: string;
+  ok:       boolean;
+  reason?:  string;
 }
 
-/** parse บรรทัด "ลิงก์ | ชื่อ | บท" (บทเว้นได้ = ใช้บทของบรรทัดก่อนหน้า) */
+/** parse บรรทัด "ลิงก์ | ชื่อ | บท | ความยาว" (บทเว้นได้ = ใช้ของบรรทัดก่อน, ความยาวไม่บังคับ) */
 function parseBulk(text: string): BulkRow[] {
   const rows: BulkRow[] = [];
   let lastChapter = "";
@@ -29,10 +30,11 @@ function parseBulk(text: string): BulkRow[] {
     const ytId = parseYouTubeId(parts[0] ?? "");
     const title = parts[1] ?? "";
     const chapter = parts[2] || lastChapter;
+    const duration = parts[3] ?? "";
     if (chapter) lastChapter = chapter;
     const ok = !!ytId && !!title && !!chapter;
     rows.push({
-      line: i + 1, ytId, title, chapter, ok,
+      line: i + 1, ytId, title, chapter, duration, ok,
       reason: !ytId ? "ลิงก์ไม่ถูกต้อง" : !title ? "ไม่มีชื่อคลิป" : !chapter ? "ไม่มีบท" : undefined,
     });
   });
@@ -115,7 +117,7 @@ export default function AdminVideosPage() {
       for (const r of good) {
         await saveVideo(null, {
           title: r.title, ytId: r.ytId!, chapter: r.chapter,
-          order: order++, duration: "", isPublished: true,
+          order: order++, duration: r.duration, isPublished: true,
         });
         saved++;
       }
