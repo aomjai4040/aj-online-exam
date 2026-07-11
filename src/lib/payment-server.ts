@@ -47,29 +47,43 @@ interface SlipOkResult {
   transRef?: string;
 }
 
-/** ส่งสลิปให้ SlipOK ตรวจ (แนบไฟล์ base64 หรือ url) */
-async function verifyWithSlipOk(slipBase64: string, amount: number): Promise<SlipOkResult> {
+/** แปลง data URL (data:image/png;base64,....) → Blob สำหรับ multipart */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [head, b64] = dataUrl.split(",");
+  const mime = /data:(.*?);/.exec(head)?.[1] ?? "image/jpeg";
+  const bin  = Buffer.from(b64, "base64");
+  return new Blob([bin], { type: mime });
+}
+
+/** ส่งสลิปให้ SlipOK ตรวจ — multipart/form-data ฟิลด์ files (ภาพสลิป) */
+async function verifyWithSlipOk(slipDataUrl: string, amount: number): Promise<SlipOkResult> {
   if (!SLIPOK_API_KEY || !SLIPOK_BRANCH) return { ok: false, reason: "SLIPOK_NOT_CONFIGURED" };
   try {
+    const form = new FormData();
+    form.append("files", dataUrlToBlob(slipDataUrl), "slip.jpg");
+    form.append("amount", String(amount)); // ให้ SlipOK เทียบยอดให้ด้วย
+    form.append("log", "true");
+
     const res = await fetch(`https://api.slipok.com/api/line/apikey/${SLIPOK_BRANCH}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-authorization": SLIPOK_API_KEY,
-      },
-      body: JSON.stringify({ files: slipBase64, log: true, amount }),
+      headers: { "x-authorization": SLIPOK_API_KEY }, // อย่าตั้ง Content-Type เอง — ให้ fetch ใส่ boundary
+      body: form,
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok || data?.success === false) {
-      return { ok: false, reason: data?.message ?? data?.code ?? "SLIP_INVALID" };
+      // SlipOK คืน code/message เมื่อสลิปปลอม/ซ้ำ/ยอดไม่ตรง
+      return { ok: false, reason: data?.message ?? data?.code ?? `ตรวจสลิปไม่ผ่าน (${res.status})` };
     }
-    // SlipOK คืน data.transRef/amount ให้ตรวจซ้ำ
-    const paid = Number(data?.data?.amount ?? 0);
-    if (paid + 0.001 < amount) return { ok: false, reason: `ยอดโอน ${paid} น้อยกว่า ${amount}` };
-    return { ok: true, transRef: String(data?.data?.transRef ?? "") };
+    const d = data?.data ?? data;
+    const paid = Number(d?.amount ?? 0);
+    if (paid > 0 && paid + 0.001 < amount) {
+      return { ok: false, reason: `ยอดโอน ${paid} บาท น้อยกว่า ${amount} บาท` };
+    }
+    return { ok: true, transRef: String(d?.transRef ?? d?.transR ?? "") };
   } catch (e) {
     console.error("[slipok]", e);
-    return { ok: false, reason: "SLIPOK_ERROR" };
+    return { ok: false, reason: "เชื่อมต่อ SlipOK ไม่สำเร็จ" };
   }
 }
 
