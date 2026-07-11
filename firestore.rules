@@ -73,6 +73,12 @@ service cloud.firestore {
       }
     }
 
+    // ── Admin analytics: อ่าน history ทุกคนแบบ collection group ─────────────
+    // ใช้นับ "มีกี่คนที่ทำข้อสอบแล้ว" ในหน้า /admin/users
+    match /{path=**}/history/{docId} {
+      allow read: if isAdmin();
+    }
+
     // ── Results ─────────────────────────────────────────────────────────────
     // สร้าง/อ่านรายชิ้น: ผู้ที่ login | list/แก้/ลบ: admin (หน้า analytics)
     match /results/{resultId} {

@@ -672,7 +672,10 @@ export default function AdminDashboard() {
                   <Link href="/admin/seed" className="btn-secondary text-sm">
                     📥 Seed ข้อสอบ
                   </Link>
-                  <Link href="/admin/videos" className="btn-secondary text-sm">
+                  <Link href="/admin/users" className="btn-secondary text-sm">
+                  👥 สมาชิก
+                </Link>
+                <Link href="/admin/videos" className="btn-secondary text-sm">
                   🎬 คอร์สวิดีโอ
                 </Link>
                 <Link href="/admin/flashcards" className="btn-secondary text-sm">
@@ -746,6 +749,9 @@ export default function AdminDashboard() {
                 </Link>
                 <Link href="/admin/seed" className="btn-secondary text-sm">
                   📥 Seed ข้อสอบ
+                </Link>
+                <Link href="/admin/users" className="btn-secondary text-sm">
+                  👥 สมาชิก
                 </Link>
                 <Link href="/admin/videos" className="btn-secondary text-sm">
                   🎬 คอร์สวิดีโอ
