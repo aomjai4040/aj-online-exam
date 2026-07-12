@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["next", "start", "-p", "3470"],
       "port": 3470
+    },
+    {
+      "name": "thongthin101",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "C:\\Users\\UNS_CT\\Desktop\\thongthin101"],
+      "port": 3000
     }
   ]
 }

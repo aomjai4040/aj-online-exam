@@ -12,7 +12,7 @@ interface Insights {
   paid: { app: number; full: number; upgrade: number };
   pending: number;
   rejected: number;
-  pendingList: { id: string; email: string; tier: string; amount: number; createdAt: string | null }[];
+  pendingList: { id: string; email: string; tier: string; amount: number; createdAt: string | null; hasAccess: boolean }[];
   daily: { day: string; people: number; attempts: number; newGrants: number }[];
   generatedAt: string;
 }
@@ -170,23 +170,44 @@ export default function AdminInsights() {
             </div>
 
             {/* ── สลิปค้าง ── */}
-            {data.pendingList.length > 0 && (
+            {data.pendingList.length > 0 && (() => {
+              const needHelp = data.pendingList.filter((o) => !o.hasAccess).length;
+              return (
               <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-1">
                   <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">ออเดอร์ค้าง (รอตรวจสลิป)</p>
                   <span className="text-[12px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>{data.pending} รายการ</span>
                 </div>
-                <div className="space-y-2">
+                <p className="text-[12px] mb-3" style={{ color: needHelp > 0 ? "#DC2626" : "#15803D" }}>
+                  {needHelp > 0
+                    ? `🔴 ${needHelp} รายการยังไม่มีสิทธิ์ — อาจจ่ายจริงแต่สลิปไม่ผ่าน ควรเช็ค`
+                    : "🟢 ทุกรายการได้สิทธิ์ทางอื่นแล้ว — ปิดออเดอร์ได้"}
+                </p>
+                <div className="space-y-2.5">
                   {data.pendingList.map((o) => (
-                    <div key={o.id} className="flex items-center justify-between text-[13px] py-1.5" style={{ borderBottom: "1px solid #F3F2F0" }}>
-                      <span className="text-gray-700 truncate flex-1">{o.email}</span>
-                      <span className="font-semibold mx-3" style={{ color: "#0B6E65" }}>{o.tier} {o.amount}฿</span>
-                      <span style={{ color: "#C4C4C0" }}>{fmtTime(o.createdAt)}</span>
+                    <div key={o.id} className="py-1.5" style={{ borderBottom: "1px solid #F3F2F0" }}>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-gray-800 text-[13px] font-medium truncate flex-1">{o.email}</span>
+                        {o.hasAccess ? (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}>🟢 มีสิทธิ์แล้ว</span>
+                        ) : (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}>🔴 ยังไม่มีสิทธิ์</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-[12px]" style={{ color: "#A8A8A6" }}>
+                        <span className="font-semibold" style={{ color: "#0B6E65" }}>{o.tier} {o.amount}฿</span>
+                        <span>·</span>
+                        <span>{fmtTime(o.createdAt)}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
+                <p className="text-[11.5px] mt-3 leading-relaxed" style={{ color: "#C4C4C0" }}>
+                  🟢 = ได้สิทธิ์จากโค้ด/ออเดอร์อื่นแล้ว ปิดได้เลย · 🔴 = เช็คบัญชีพร้อมเพย์ว่าเงินเข้าไหม ถ้าเข้าจริงให้ช่วยเปิดสิทธิ์
+                </p>
               </div>
-            )}
+              );
+            })()}
 
             <p className="text-[11px] text-center" style={{ color: "#C4C4C0" }}>
               อัปเดต {fmtTime(data.generatedAt)} · เวลาไทย
