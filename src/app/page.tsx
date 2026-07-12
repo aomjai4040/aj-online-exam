@@ -267,6 +267,24 @@ export default function HomePage() {
           </svg>
         </Link>
 
+        {/* Daily Quiz — วันละ 10 ข้อ เก็บ streak (การ์ดบางไม่รก) */}
+        <Link
+          href="/daily"
+          className="flex items-center gap-3 w-full rounded-2xl px-4 py-3 mb-3
+                     active:scale-[0.98] transition-transform bg-white"
+          style={{ border: "1.5px solid #FCD34D" }}
+        >
+          <span className="text-[20px] flex-shrink-0">🔥</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-bold text-gray-900 leading-tight">Daily Quiz วันนี้</p>
+            <p className="text-[12px]" style={{ color: "#B45309" }}>10 ข้อใหม่ทุกวัน · เก็บ streak ต่อเนื่อง</p>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
+
         {/* Secondary 2 × 2 — โทนแบรนด์เดียวกันทุกใบ ทุกปุ่มมีปลายทางจริง */}
         <div className="grid grid-cols-2 gap-3">
           {[

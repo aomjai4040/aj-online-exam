@@ -9,6 +9,8 @@ import {
   type UserExamSummary, type UserResult,
 } from "@/lib/user-firestore";
 import { getUserCourses, type UserCourse } from "@/lib/activation";
+import { isAppOnlyCourse } from "@/lib/access";
+import { PRICING } from "@/lib/pricing";
 import { getPublishedExams } from "@/lib/firestore";
 import { normalizeSubject, isMockExam, getSubjectShort } from "@/lib/types";
 import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
@@ -294,6 +296,7 @@ export default function DashboardPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [wrongCount,  setWrongCount]  = useState(0);
   const [totalSets,   setTotalSets]   = useState(0); // จำนวนชุดข้อสอบทั้งหมด (ไม่รวม mock) — ตัวหารความครอบคลุม
+  const [freeSets,    setFreeSets]    = useState(0); // ชุดทดลองฟรี — ใช้คำนวณจำนวนชุดที่ล็อกบนการ์ด upsell
   const [inProgress,  setInProgress]  = useState<ReturnType<typeof listInProgress>>([]);
 
   const load = useCallback(async (uid: string) => {
@@ -306,7 +309,9 @@ export default function DashboardPage() {
         countWrongQuestions(uid).catch(() => 0),
         getPublishedExams().catch(() => []),
       ]);
-      setTotalSets(all.filter((e) => !isMockExam(e)).length);
+      const realSets = all.filter((e) => !isMockExam(e));
+      setTotalSets(realSets.length);
+      setFreeSets(realSets.filter((e) => e.isFree).length);
       setSummaries(s);
       setResults(r);
       setCourses(c);
@@ -575,6 +580,56 @@ export default function DashboardPage() {
             </div>
           );
         })()}
+
+        {/* ═══ Upsell: คนทดลอง → ปลดล็อก / App Only → อัปเกรด ═══════════ */}
+        {!dataLoading && totalSets > 0 && courses.length === 0 && (
+          <Link href="/packages"
+            className="block rounded-2xl p-4 active:scale-[0.99] transition-transform"
+            style={{ backgroundColor: "#FEF9EC", border: "1.5px solid #FCD34D" }}>
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-[20px] flex-shrink-0"
+                style={{ backgroundColor: "#FDE68A" }}>
+                🔓
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-bold text-gray-900 leading-snug">
+                  ปลดล็อกอีก {Math.max(totalSets - freeSets, 0)} ชุดที่ยังล็อกอยู่
+                </p>
+                <p className="text-[12px] mt-0.5 leading-relaxed" style={{ color: "#B45309" }}>
+                  เห็นจุดอ่อน-จุดแข็งครบทุกหมวด + Smart Review เต็มระบบ · เริ่ม ฿{PRICING.app.price}
+                </p>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </Link>
+        )}
+        {!dataLoading && courses.length > 0 && !courses.some((c) => !isAppOnlyCourse(c.courseId)) && (
+          <Link href="/checkout/upgrade"
+            className="block rounded-2xl p-4 active:scale-[0.99] transition-transform bg-white"
+            style={{ border: "1px solid #EBEBEA" }}>
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-[20px] flex-shrink-0"
+                style={{ backgroundColor: "#EBF5F3" }}>
+                🎬
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-bold text-gray-900 leading-snug">
+                  อัปเกรดคอร์สเต็ม จ่ายเพิ่ม ฿{PRICING.upgradePrice}
+                </p>
+                <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
+                  วิดีโอติว 65 คลิป ~45 ชม. + ชีทสรุป ~500 หน้า
+                </p>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0B6E65"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </Link>
+        )}
 
         {/* ═══ ทำตอนนี้เพื่อขยับความพร้อม ══════════════════════════════ */}
         {(() => {
