@@ -10,6 +10,15 @@ import { BRAND } from "@/lib/subjects";
 
 type Lock = "full" | "upgrade";
 
+/** สัญลักษณ์ LINE — ฟองแชทขาวบนพื้นเขียว (สื่อถึงแอป LINE) */
+function LineMark() {
+  return (
+    <svg viewBox="0 0 24 24" fill="white" className="w-3.5 h-3.5">
+      <path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.07.7.2.8.5.07.25.05.6.02.85l-.13.8c-.04.24-.19.94.82.51 1.01-.42 5.45-3.2 7.43-5.48C20.6 14.6 22 12.9 22 11c0-4.4-4.5-8-10-8z" />
+    </svg>
+  );
+}
+
 function ChevronOrLock({ locked }: { locked: boolean }) {
   return locked ? (
     <svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"
@@ -83,16 +92,15 @@ export default function CourseResources({
       ))}
 
       {lineOpenChat && (locked ? (
-        <Row locked bg="#EAF7EE" iconColor="#06C755"
-          icon={<span className="text-[10px] font-bold">L</span>}
+        <Row locked bg="#EAF7EE" iconColor="#06C755" icon={<LineMark />}
           title="กลุ่ม LINE ผู้เรียน" sub="ถาม-ตอบ + อัปเดตข่าวสอบ" textColor="#067A38" />
       ) : (
         <a href={lineOpenChat} target="_blank" rel="noopener noreferrer"
           className="block active:scale-[0.99] transition-transform">
           <div className="flex items-center gap-3 rounded-xl px-4 py-3" style={{ backgroundColor: "#EAF7EE" }}>
-            <div className="w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center"
+            <div className="w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center"
               style={{ backgroundColor: "#06C755" }}>
-              <span className="text-white text-[10px] font-bold">L</span>
+              <LineMark />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13.5px] font-bold" style={{ color: "#067A38" }}>เข้ากลุ่ม LINE ผู้เรียน</p>

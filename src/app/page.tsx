@@ -12,11 +12,6 @@ import { PRICING } from "@/lib/pricing";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function thaiDate(): string {
-  const d = new Date();
-  const m = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-  return `${d.getDate()} ${m[d.getMonth()]} ${d.getFullYear() + 543}`;
-}
 
 function isNewExam(exam: Exam): boolean {
   if (!exam.createdAt) return false;
@@ -89,9 +84,6 @@ export default function HomePage() {
   const { user, signInWithGoogle } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState("ทั้งหมด");
-  const today = thaiDate();
 
   useEffect(() => {
     getPublishedExams()
@@ -100,26 +92,11 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // ข้อสอบประจำวัน — หมุนตามวันที่จริง (ทุกคนเห็นชุดเดียวกันตลอดวันนั้น)
-  const dayIndex     = Math.floor(Date.now() / 86_400_000);
-  const featuredExam = exams.length > 0 ? exams[dayIndex % exams.length] : null;
-  const latestExams  = exams.slice(0, 5);
+  const latestExams = exams.slice(0, 5);
 
   // ตัวเลขความน่าเชื่อถือใน hero — คำนวณจากข้อมูลจริง
   const totalQuestions = exams.reduce((s, e) => s + (e.questionCount || 0), 0);
   const subjectCount   = new Set(exams.map((e) => e.subject)).size;
-
-  // chips ตัวกรองหมวด — สร้างจากหมวดที่มีข้อสอบจริงเท่านั้น (กันกดแล้วว่าง)
-  const subjectChips = ["ทั้งหมด", ...Array.from(new Set(exams.map((e) => e.subject))).sort()];
-
-  const filtered = exams.filter((e) => {
-    const q = search.toLowerCase().trim();
-    const bySubject = selectedSubject === "ทั้งหมด" || e.subject === selectedSubject;
-    const bySearch  = !q || e.title.toLowerCase().includes(q) || e.subject.toLowerCase().includes(q);
-    return bySubject && bySearch;
-  });
-
-  const isFiltering = search !== "" || selectedSubject !== "ทั้งหมด";
 
   return (
     <div className="min-h-screen bg-stone-50 font-sans pb-28">
@@ -228,76 +205,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Daily Quiz card ────────────────────────────────────────────────── */}
-      <section className="max-w-lg mx-auto px-5 py-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-[15px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
-            ข้อสอบประจำวัน
-          </p>
-          <p className="text-[14px]" style={{ color: "#A8A8A6" }}>{today}</p>
-        </div>
-
-        {loading ? (
-          <div className="bg-white rounded-2xl p-4 animate-pulse" style={{ border: "1px solid #EBEBEA", borderLeft: "3px solid #E0DFDC" }}>
-            <div className="flex gap-4 items-center">
-              <div className="flex-1 space-y-2">
-                <div className="h-2.5 bg-gray-100 rounded-full w-1/3" />
-                <div className="h-4 bg-gray-100 rounded-full w-4/5" />
-                <div className="h-3 bg-gray-100 rounded-full w-1/2" />
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex-shrink-0" />
-            </div>
-          </div>
-        ) : featuredExam ? (
-          <Link
-            href={`/exam/${featuredExam.id}`}
-            className="flex items-center gap-4 bg-white rounded-2xl p-4
-                       hover:bg-stone-50 active:scale-[0.98] transition-all duration-150"
-            style={{ border: "1px solid #EBEBEA", borderLeft: "3px solid #0B6E65" }}
-          >
-            <div className="flex-1 min-w-0">
-              {/* Subject */}
-              <div className="flex items-center gap-2 mb-1.5">
-                <span
-                  className="text-[14px] font-semibold"
-                  style={{ color: dotColor(featuredExam.subject) }}
-                >
-                  {featuredExam.subject}
-                </span>
-              </div>
-              <p className="font-bold text-[18px] text-gray-900 leading-snug line-clamp-2">
-                {featuredExam.title}
-              </p>
-              <p className="text-[15px] mt-1" style={{ color: "#A8A8A6" }}>
-                {featuredExam.questionCount} ข้อ
-                {featuredExam.timeLimit > 0 && ` · ${featuredExam.timeLimit} นาที`}
-              </p>
-            </div>
-            {/* CTA circle */}
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "#0B6E65" }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="white"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </div>
-          </Link>
-        ) : (
-          <div
-            className="rounded-2xl p-4 text-center"
-            style={{ border: "1px dashed #E0DFDC", color: "#A8A8A6" }}
-          >
-            <p className="text-[13px]">ยังไม่มีข้อสอบในระบบ</p>
-          </div>
-        )}
-      </section>
-
-      {/* ── Section divider ────────────────────────────────────────────────── */}
-      <div className="max-w-lg mx-auto px-5">
-        <div className="h-px" style={{ backgroundColor: "#EBEBEA" }} />
-      </div>
 
       {/* ── Feature menu ──────────────────────────────────────────────────── */}
       <section className="max-w-lg mx-auto px-5 py-5">
@@ -464,190 +371,6 @@ export default function HomePage() {
         <div className="h-px" style={{ backgroundColor: "#EBEBEA" }} />
       </div>
 
-      {/* ── All Exams list ────────────────────────────────────────────────── */}
-      <section className="max-w-lg mx-auto px-5 py-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-[12px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
-            ชุดข้อสอบทั้งหมด
-          </p>
-          {isFiltering && !loading && (
-            <button
-              onClick={() => { setSearch(""); setSelectedSubject("ทั้งหมด"); }}
-              className="text-[12.5px] font-medium transition-colors"
-              style={{ color: "#A8A8A6" }}
-            >
-              ล้างตัวกรอง ×
-            </button>
-          )}
-        </div>
-
-        {/* Search */}
-        <div className="relative mb-3">
-          <svg
-            viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
-            strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
-            className="w-[16px] h-[16px] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            className="w-full bg-white rounded-2xl pl-10 pr-9 py-3 text-[15px]
-                       text-gray-900 placeholder-gray-400 focus:outline-none transition-all"
-            style={{ border: "1px solid #E0DFDC" }}
-            onFocus={(e) => { e.currentTarget.style.border = `1.5px solid ${BRAND.primary}`; }}
-            onBlur={(e) => { e.currentTarget.style.border = "1px solid #E0DFDC"; }}
-            placeholder="ค้นหาชุดข้อสอบ..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full
-                         bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {/* Subject chips */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-3">
-          {subjectChips.map((chip) => {
-            const active = selectedSubject === chip;
-            return (
-              <button
-                key={chip}
-                onClick={() => setSelectedSubject(chip)}
-                className="flex-shrink-0 text-[13.5px] font-medium px-3.5 py-1.5 rounded-full
-                           transition-all duration-150 whitespace-nowrap"
-                style={{
-                  backgroundColor: active ? BRAND.primary : "white",
-                  color:           active ? "white" : "#6B6B6A",
-                  border:          active ? `1px solid ${BRAND.primary}` : "1px solid #E0DFDC",
-                }}
-              >
-                {chip === "ทั้งหมด" ? chip : getSubjectShort(chip)}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Count note */}
-        {!loading && (
-          <p className="text-[12px] mb-3" style={{ color: "#C4C4C0" }}>
-            {isFiltering
-              ? `${filtered.length} จาก ${exams.length} ชุด`
-              : `ทั้งหมด ${exams.length} ชุด`}
-          </p>
-        )}
-
-        {/* Skeleton */}
-        {loading && (
-          <div className="divide-y" style={{ borderColor: "#F3F2F0" }}>
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-4 py-[18px] animate-pulse">
-                <div className="w-2 h-2 rounded-full bg-gray-200 flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3.5 bg-gray-100 rounded-full w-3/4" />
-                  <div className="h-2.5 bg-gray-100 rounded-full w-1/3" />
-                </div>
-                <div className="h-2.5 w-10 bg-gray-100 rounded-full" />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Empty */}
-        {!loading && filtered.length === 0 && (
-          <div className="py-14 text-center">
-            <p className="text-[14px] font-semibold text-gray-700 mb-1.5">
-              {isFiltering ? "ไม่พบชุดข้อสอบ" : "ยังไม่มีชุดข้อสอบ"}
-            </p>
-            <p className="text-[12px] mb-5" style={{ color: "#A8A8A6" }}>
-              {isFiltering ? "ลองเปลี่ยนคำค้นหาหรือเลือกหมวดหมู่อื่น" : "ชุดข้อสอบจะปรากฏที่นี่เมื่อมีการเพิ่มข้อมูล"}
-            </p>
-            {isFiltering && (
-              <button
-                onClick={() => { setSearch(""); setSelectedSubject("ทั้งหมด"); }}
-                className="text-[13px] font-medium"
-                style={{ color: "#0B6E65" }}
-              >
-                ล้างการค้นหา
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Rows */}
-        {!loading && filtered.length > 0 && (
-          <div className="divide-y" style={{ borderColor: "#F3F2F0" }}>
-            {filtered.map((exam, idx) => (
-              <Link
-                key={exam.id}
-                href={`/exam/${exam.id}`}
-                className="flex items-center gap-4 py-[17px] -mx-2 px-2 rounded-xl
-                           hover:bg-white active:bg-[#EEF7F5] transition-colors duration-100"
-              >
-                {/* Index number */}
-                <span
-                  className="text-[12px] font-medium w-5 text-right flex-shrink-0"
-                  style={{ color: "#D4D4D0" }}
-                >
-                  {idx + 1}
-                </span>
-
-                {/* Subject dot */}
-                <div
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: dotColor(exam.subject) }}
-                />
-
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-[13.5px] text-gray-900 truncate leading-snug">
-                    {exam.title}
-                  </p>
-                  <p className="text-[12px] mt-0.5 truncate" style={{ color: "#A8A8A6" }}>
-                    {getSubjectShort(exam.subject)}
-                    {exam.timeLimit > 0 && ` · ${exam.timeLimit} นาที`}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {exam.isFree && (
-                    <span
-                      className="text-[11px] font-bold uppercase tracking-wide px-1.5 py-[3px] rounded"
-                      style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}
-                    >
-                      ฟรี
-                    </span>
-                  )}
-                  {isNewExam(exam) && !exam.isFree && (
-                    <span
-                      className="text-[11px] font-bold uppercase tracking-wide px-1.5 py-[3px] rounded"
-                      style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
-                    >
-                      ใหม่
-                    </span>
-                  )}
-                  <span className="text-[12px] font-medium" style={{ color: "#A8A8A6" }}>
-                    {exam.questionCount}&nbsp;ข้อ
-                  </span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#D4D4D0"
-                    strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
 
       <BottomNav />
     </div>

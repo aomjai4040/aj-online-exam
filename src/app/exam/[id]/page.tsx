@@ -48,7 +48,6 @@ export default function ExamPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [phase,     setPhase]     = useState<Phase>("loading");
   const [locked,    setLocked]    = useState<Exam | null>(null); // ชุดที่ยังไม่มีสิทธิ์ (แสดงหน้าปลดล็อก)
-  const [name,      setName]      = useState("");
   const [current,   setCurrent]   = useState(0);
   const [answers,   setAnswers]   = useState<number[]>([]);
   const [timeLeft,  setTimeLeft]  = useState(0);
@@ -215,7 +214,7 @@ export default function ExamPage() {
         await saveResult({
           examId: id,
           examTitle: exam.title,
-          studentName: name.trim() || "ผู้สอบ",
+          studentName: user?.displayName || user?.email || "ผู้สอบ",
           answers: finalAnswers,
           score,
           totalQuestions: questions.length,
@@ -409,18 +408,6 @@ export default function ExamPage() {
             ))}
           </div>
 
-          {/* Name input (optional) */}
-          <div className="mb-7">
-            <label className="label">ชื่อผู้สอบ <span style={{ color: "#C4C4C0" }}>(ไม่บังคับ)</span></label>
-            <input
-              className="input"
-              placeholder="กรอกชื่อ-นามสกุล..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && startExam()}
-            />
-          </div>
-
           {/* Resume banner — มีความคืบหน้าค้างจาก autosave */}
           {saved && (
             <div
@@ -504,7 +491,7 @@ export default function ExamPage() {
               className="text-[12px] font-bold tracking-[0.14em] uppercase mb-4"
               style={{ color: g.accent }}
             >
-              ผลการสอบ{name ? ` · ${name}` : ""}
+              ผลการสอบ{user?.displayName ? ` · ${user.displayName}` : ""}
             </p>
 
             {/* Score display */}
