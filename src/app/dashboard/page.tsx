@@ -11,7 +11,7 @@ import {
 import { getUserCourses, type UserCourse } from "@/lib/activation";
 import { getPublishedExams } from "@/lib/firestore";
 import { normalizeSubject, isMockExam, getSubjectShort } from "@/lib/types";
-import { daysToExam } from "@/lib/exam-config";
+import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
 import { listInProgress } from "@/lib/exam-progress";
 import { countWrongQuestions } from "@/lib/smart-review";
 import { useLoginGuard } from "@/lib/use-login-guard";
@@ -526,7 +526,7 @@ export default function DashboardPage() {
                 {dLeft >= 0 && (
                   <span className="text-[11.5px] font-semibold px-2.5 py-[3px] rounded-full"
                     style={{ backgroundColor: "rgba(255,255,255,0.12)", color: "#fff" }}>
-                    {dLeft === 0 ? "วันสอบแล้ว!" : `อีก ${dLeft} วันถึงสอบ`}
+                    {dLeft === 0 ? `วัน${COUNTDOWN_LABEL}` : `อีก ${dLeft} วัน${COUNTDOWN_LABEL}`}
                   </span>
                 )}
               </div>
