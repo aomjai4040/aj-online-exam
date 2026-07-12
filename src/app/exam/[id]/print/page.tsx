@@ -4,7 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, decideExamAccess } from "@/lib/access";
-import { getExam, getQuestions } from "@/lib/firestore";
+import { getExam } from "@/lib/firestore";
+import { fetchExamFull, ExamApiError } from "@/lib/exam-client";
 import { getSubjectShort } from "@/lib/types";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import type { Exam, Question } from "@/lib/types";
@@ -41,11 +42,13 @@ export default function ExamPrintPage() {
       const verdict = decideExamAccess(e, user.uid, access);
       if (verdict !== "allowed") { setPhase("locked"); return; }
 
-      const qs = await getQuestions(id);
+      // ดึงโจทย์+เฉลยผ่าน API (server ยืนยันสิทธิ์อีกชั้น)
+      const qs = await fetchExamFull(user, id);
       if (qs.length === 0) { setPhase("error"); return; }
       setQuestions(qs);
       setPhase("ready");
-    } catch {
+    } catch (err) {
+      if (err instanceof ExamApiError && err.code === "locked") { setPhase("locked"); return; }
       setPhase("error");
     }
   }, [id, user, authLoading, router]);

@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getExam, getQuestions, saveResult } from "@/lib/firestore";
+import { getExam, saveResult } from "@/lib/firestore";
+import { fetchExamQuestions, gradeExam, ExamApiError } from "@/lib/exam-client";
 import { saveRecord } from "@/lib/exam-history";
 import { saveUserRecord } from "@/lib/user-firestore";
 import { recordExamMistakes } from "@/lib/smart-review";
@@ -53,6 +54,7 @@ export default function ExamPage() {
   const [timeLeft,  setTimeLeft]  = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
   const [saved,     setSaved]     = useState<SavedProgress | null>(null);
+  const [grading,   setGrading]   = useState(false); // กำลังส่งคำตอบให้ server ตรวจ
 
   const startRef    = useRef<number>(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -88,8 +90,8 @@ export default function ExamPage() {
       const verdict = decideExamAccess(e, user.uid, access);
       if (verdict === "locked") { setLocked(e); setPhase("locked"); return; }
 
-      // มีสิทธิ์ → ดึงคำถาม
-      const qs = await getQuestions(id);
+      // มีสิทธิ์ → ดึง "โจทย์ไม่มีเฉลย" จาก API (เฉลยอยู่ฝั่ง server จนกว่าจะส่งคำตอบ)
+      const qs = await fetchExamQuestions(user, id);
       if (qs.length === 0) { setExam(e); setPhase("error"); return; }
       setExam(e);
       setQuestions(qs);
@@ -97,7 +99,12 @@ export default function ExamPage() {
       setAnswers(answersRef.current);
       setSaved(loadProgress(id, qs.length));
       setPhase("intro");
-    } catch {
+    } catch (err) {
+      // server ยืนยันสิทธิ์อีกชั้น — ถ้า client เช็คพลาด server ตอบ locked มา
+      if (err instanceof ExamApiError && err.code === "locked") {
+        const e = await getExam(id).catch(() => null);
+        if (e) { setLocked(e); setPhase("locked"); return; }
+      }
       setPhase("error");      // โหลดไม่สำเร็จ — แสดงปุ่มลองใหม่ ไม่ใช้ข้อมูลจำลอง
     }
   }, [id, user, authLoading, router]);
@@ -185,16 +192,38 @@ export default function ExamPage() {
     const elapsed = Math.round((Date.now() - startRef.current) / 1000);
     setTimeSpent(elapsed);
     setAnswers([...finalAnswers]); // sync state ให้หน้าเฉลยเห็นคำตอบชุดเดียวกัน
-    clearProgress(id);             // ส่งแล้ว — ทิ้ง autosave
 
-    const score = questions.reduce((acc, q, i) => acc + (finalAnswers[i] === q.correctAnswer ? 1 : 0), 0);
-    const pct   = Math.round((score / questions.length) * 100);
+    // ตรวจคะแนนฝั่ง server — เฉลยเปิดหลังส่งคำตอบเท่านั้น
+    // ล้มเหลว (เน็ตหลุด) → คำตอบยังอยู่ครบ กดส่งซ้ำได้ ไม่เสียรอบสอบ
+    if (!user) return;
+    let graded;
+    try {
+      setGrading(true);
+      graded = await gradeExam(user, id, finalAnswers);
+    } catch {
+      alert("ส่งคำตอบไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วกด \"ส่งข้อสอบ\" อีกครั้ง (คำตอบยังอยู่ครบ)");
+      return;
+    } finally {
+      setGrading(false);
+    }
+    clearProgress(id);             // ส่งสำเร็จแล้ว — ทิ้ง autosave
+
+    // เติมเฉลยที่ได้จาก server เข้า questions ให้หน้าเฉลย/Smart Review ใช้
+    const km = new Map(graded.detail.map((d) => [d.qid, d]));
+    const enriched = questions.map((q) => ({
+      ...q,
+      correctAnswer: km.get(q.id)?.correctAnswer ?? -1,
+      explanation:   km.get(q.id)?.explanation ?? "",
+    }));
+    setQuestions(enriched);
+    const score = graded.score;
+    const pct   = graded.percentage;
 
     // Persist to localStorage
     saveRecord({ examId: id, score, totalQuestions: questions.length, percentage: pct, doneAt: new Date().toISOString() });
 
     // Also save to Firestore when user is logged in
-    if (user && exam) {
+    if (exam) {
       saveUserRecord(user.uid, {
         examId:         id,
         examTitle:      exam.title,
@@ -206,7 +235,7 @@ export default function ExamPage() {
 
       // Smart Review: เก็บข้อที่ผิด/ข้ามเข้าคลังทบทวน (ตอบถูกรอบนี้ = เอาออก)
       recordExamMistakes(user.uid, { id, title: exam.title, subject: exam.subject },
-        questions, finalAnswers).catch(console.error);
+        enriched, finalAnswers).catch(console.error);
     }
 
     if (exam) {
@@ -789,9 +818,10 @@ export default function ExamPage() {
           {isLast ? (
             <button
               onClick={() => submitExam()}
-              className="btn-primary flex-1 py-3"
+              disabled={grading}
+              className="btn-primary flex-1 py-3 disabled:opacity-60"
             >
-              ส่งข้อสอบ ✓
+              {grading ? "กำลังตรวจ…" : "ส่งข้อสอบ ✓"}
             </button>
           ) : (
             <button

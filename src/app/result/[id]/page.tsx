@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { getResult, getQuestions } from "@/lib/firestore";
+import { getResult } from "@/lib/firestore";
+import { fetchExamFull } from "@/lib/exam-client";
+import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import type { ExamResult, Question } from "@/lib/types";
@@ -45,21 +47,24 @@ function formatTime(s: number) {
 
 export default function ResultPage() {
   const guard = useLoginGuard();
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const [result,    setResult]    = useState<ExamResult | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     getResult(id).then(async (r) => {
       if (r) {
         setResult(r);
-        const qs = await getQuestions(r.examId);
+        // เฉลยดึงผ่าน API (server เช็คสิทธิ์) — ดึงไม่ได้ก็ยังโชว์คะแนนรวมได้
+        const qs = await fetchExamFull(user, r.examId).catch(() => [] as Question[]);
         setQuestions(qs);
       }
       setLoading(false);
     });
-  }, [id]);
+  }, [id, user]);
 
   if (guard !== "allowed") return <AccessGuardSpinner />;
 

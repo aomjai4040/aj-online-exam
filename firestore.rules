@@ -22,9 +22,10 @@ service cloud.firestore {
       allow write: if isAdmin();
 
       match /questions/{questionId} {
-        // NOTE: ยังมี correctAnswer ในเอกสาร — การซ่อนเฉลยจริงต้องย้ายไป
-        // ตรวจฝั่ง server (API route) ตามแผน; ขั้นนี้จำกัดแค่ผู้ที่ login แล้ว
-        allow read:  if isSignedIn();
+        // เอกสารมี correctAnswer+explanation — ปิดไม่ให้ client อ่านตรง
+        // ผู้เรียนใช้ผ่าน /api/exam/* (โจทย์ไม่มีเฉลย, ตรวจคะแนนบน server,
+        // เฉลยเปิดหลังส่งคำตอบ) — เหลือ admin สำหรับหน้าแก้ไข/วิเคราะห์
+        allow read:  if isAdmin();
         allow write: if isAdmin();
       }
     }
