@@ -9,6 +9,9 @@ import {
   type UserExamSummary, type UserResult,
 } from "@/lib/user-firestore";
 import { getUserCourses, type UserCourse } from "@/lib/activation";
+import { getPublishedExams } from "@/lib/firestore";
+import { normalizeSubject, isMockExam, getSubjectShort } from "@/lib/types";
+import { daysToExam } from "@/lib/exam-config";
 import { listInProgress } from "@/lib/exam-progress";
 import { countWrongQuestions } from "@/lib/smart-review";
 import { useLoginGuard } from "@/lib/use-login-guard";
@@ -55,45 +58,6 @@ function fmt(iso: string): string {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function ScoreBar({ pct, color }: { pct: number; color: string }) {
-  return (
-    <div className="h-1.5 rounded-full w-full" style={{ backgroundColor: "#F3F2F0" }}>
-      <div
-        className="h-full rounded-full transition-all duration-700"
-        style={{ width: `${pct}%`, backgroundColor: color }}
-      />
-    </div>
-  );
-}
-
-function KPIIcon({ children, color }: { children: React.ReactNode; color: string }) {
-  return (
-    <div
-      className="w-8 h-8 rounded-lg flex items-center justify-center mb-2"
-      style={{ backgroundColor: `${color}14` }}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke={color}
-        strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-        {children}
-      </svg>
-    </div>
-  );
-}
-
-function KPICard({
-  icon, label, value, sub, color,
-}: { icon: React.ReactNode; label: string; value: string | number; sub?: string; color: string }) {
-  return (
-    <div className="bg-white rounded-2xl p-4" style={{ border: "1px solid #EBEBEA" }}>
-      {icon}
-      <div className="text-[22px] font-extrabold leading-none mb-0.5" style={{ color }}>
-        {value}
-      </div>
-      <div className="text-[12px] font-semibold text-gray-500">{label}</div>
-      {sub && <div className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>{sub}</div>}
-    </div>
-  );
-}
 
 // ─── Exam Record Card ─────────────────────────────────────────────────────────
 
@@ -329,17 +293,20 @@ export default function DashboardPage() {
   const [courses,     setCourses]     = useState<UserCourse[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [wrongCount,  setWrongCount]  = useState(0);
+  const [totalSets,   setTotalSets]   = useState(0); // จำนวนชุดข้อสอบทั้งหมด (ไม่รวม mock) — ตัวหารความครอบคลุม
   const [inProgress,  setInProgress]  = useState<ReturnType<typeof listInProgress>>([]);
 
   const load = useCallback(async (uid: string) => {
     setDataLoading(true);
     try {
-      const [s, r, c, w] = await Promise.all([
+      const [s, r, c, w, all] = await Promise.all([
         getUserSummaries(uid),
         getRecentResults(uid, 30),
         getUserCourses(uid),
         countWrongQuestions(uid).catch(() => 0),
+        getPublishedExams().catch(() => []),
       ]);
+      setTotalSets(all.filter((e) => !isMockExam(e)).length);
       setSummaries(s);
       setResults(r);
       setCourses(c);
@@ -432,8 +399,43 @@ export default function DashboardPage() {
       };
     });
 
-    return { total, avgScore, streak, subjectStats, bestSubject, weakSubjects, chart, daily };
-  }, [summaries, results]);
+    // ── คะแนนความพร้อมสอบ (สังเคราะห์จากข้อมูลจริง) ─────────────────────────
+    // mastery 40% (คะแนนสูงสุดเฉลี่ย) · coverage 35% (ทำครอบคลุมกี่ชุด)
+    // consistency 15% (streak) · mock 10% (คะแนน Mock ล่าสุด)
+    const avgBest = total
+      ? summaries.reduce((s, r) => s + (r.bestPercentage ?? r.percentage), 0) / total
+      : 0;
+    const coverage = totalSets > 0 ? Math.min(1, total / totalSets) : 0;
+    const consistency = Math.min(streak, 7) / 7;
+    const mockSummaries = summaries.filter((s) => normalizeSubject(s.subject) === "MOCK");
+    const mockBest = mockSummaries.length
+      ? Math.max(...mockSummaries.map((s) => s.bestPercentage ?? s.percentage))
+      : 0;
+    const hasData = total > 0;
+    const readiness = hasData
+      ? Math.round(
+          (avgBest / 100) * 40 +
+          coverage       * 35 +
+          consistency    * 15 +
+          (mockBest / 100) * 10
+        )
+      : 0;
+    const predictedScore = Math.round(avgBest); // ถ้าสอบวันนี้ประมาณกี่ %
+
+    // โมเมนตัม 7 วัน: เฉลี่ย 3 ครั้งล่าสุด เทียบ 3 ครั้งก่อนหน้า
+    const recent = [...results].sort((a, b) => new Date(b.doneAt).getTime() - new Date(a.doneAt).getTime());
+    const lastAvg = recent.slice(0, 3);
+    const prevAvg = recent.slice(3, 6);
+    const mAvg = (arr: UserResult[]) => arr.length ? arr.reduce((s, r) => s + r.percentage, 0) / arr.length : 0;
+    const momentum = prevAvg.length ? Math.round(mAvg(lastAvg) - mAvg(prevAvg)) : 0;
+
+    const didMock = mockSummaries.length > 0;
+
+    return {
+      total, avgScore, streak, subjectStats, bestSubject, weakSubjects, chart, daily,
+      readiness, predictedScore, momentum, coverage, didMock, hasData,
+    };
+  }, [summaries, results, totalSets]);
 
   // ── Guards ──────────────────────────────────────────────────────────────────
   // useAccessGuard จัดการ: ไม่ login → /, ไม่ activate → /activate
@@ -511,8 +513,142 @@ export default function DashboardPage() {
 
       <div className="max-w-2xl mx-auto px-5 py-5 space-y-5">
 
-        {/* ═══ เรียนต่อ (Continue + Smart Review) ══════════════════════ */}
-        {(continueTarget || wrongCount > 0) && (
+        {/* ═══ คะแนนความพร้อมสอบ (hero) ════════════════════════════════ */}
+        {(() => {
+          const dLeft = daysToExam();
+          const R = stats.readiness;
+          const ring = 264 * (1 - R / 100);
+          const rColor = R >= 70 ? "#5DCAA5" : R >= 45 ? "#FBBF24" : "#F87171";
+          return (
+            <div className="rounded-2xl p-5" style={{ backgroundColor: "#0B4F48" }}>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[12px]" style={{ color: "#9FE1CB" }}>ความพร้อมสอบของคุณ</span>
+                {dLeft >= 0 && (
+                  <span className="text-[11.5px] font-semibold px-2.5 py-[3px] rounded-full"
+                    style={{ backgroundColor: "rgba(255,255,255,0.12)", color: "#fff" }}>
+                    {dLeft === 0 ? "วันสอบแล้ว!" : `อีก ${dLeft} วันถึงสอบ`}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative flex-shrink-0" style={{ width: 92, height: 92 }}>
+                  <svg viewBox="0 0 100 100" style={{ width: 92, height: 92, transform: "rotate(-90deg)" }}>
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="9" />
+                    <circle cx="50" cy="50" r="42" fill="none" stroke={rColor} strokeWidth="9"
+                      strokeLinecap="round" strokeDasharray="264" strokeDashoffset={ring}
+                      style={{ transition: "stroke-dashoffset 900ms ease" }} />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-[25px] font-extrabold text-white leading-none">
+                      {stats.hasData ? `${R}%` : "—"}
+                    </span>
+                    <span className="text-[10.5px]" style={{ color: "#9FE1CB" }}>พร้อม</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  {stats.hasData ? (
+                    <p className="text-[13px] leading-relaxed mb-2.5" style={{ color: "rgba(255,255,255,0.85)" }}>
+                      {stats.momentum > 0 && (
+                        <>เก่งขึ้น <span style={{ color: "#9FE1CB" }}>+{stats.momentum}%</span> ช่วงหลัง · </>
+                      )}
+                      ถ้าสอบวันนี้คาดว่าได้ราว <span className="text-white font-bold">{stats.predictedScore}%</span>
+                    </p>
+                  ) : (
+                    <p className="text-[13px] leading-relaxed mb-2.5" style={{ color: "rgba(255,255,255,0.85)" }}>
+                      เริ่มทำข้อสอบเพื่อดูคะแนนความพร้อมของคุณ
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <div className="flex-1 rounded-lg px-2 py-1.5 text-center" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
+                      <div className="text-[14px] font-bold text-white leading-none">🔥 {stats.streak}</div>
+                      <div className="text-[9.5px] mt-0.5" style={{ color: "#9FE1CB" }}>วันติด</div>
+                    </div>
+                    <div className="flex-1 rounded-lg px-2 py-1.5 text-center" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
+                      <div className="text-[14px] font-bold text-white leading-none">{stats.total}/{totalSets || "?"}</div>
+                      <div className="text-[9.5px] mt-0.5" style={{ color: "#9FE1CB" }}>ชุดที่ทำ</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ═══ ทำตอนนี้เพื่อขยับความพร้อม ══════════════════════════════ */}
+        {(() => {
+          const weakest = [...stats.subjectStats].sort((a, b) => a.avg - b.avg)[0];
+          const showWeak = weakest && weakest.avg < 70;
+          const showMock = !stats.didMock;
+          if (!showWeak && wrongCount === 0 && !showMock) return null;
+          return (
+            <div>
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
+                </svg>
+                <span className="text-[13px] font-bold text-gray-800">ทำตอนนี้เพื่อขยับความพร้อม</span>
+              </div>
+              <div className="space-y-2.5">
+                {showWeak && (
+                  <Link href="/exams"
+                    className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform"
+                    style={{ border: "1px solid #EBEBEA" }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#FEF2F2" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-gray-900 truncate">จุดอ่อน: {getSubjectShort(weakest.subject)}</p>
+                      <p className="text-[11.5px]" style={{ color: "#A8A8A6" }}>เฉลี่ย {weakest.avg}% · ต่ำสุดในทุกหมวด</p>
+                    </div>
+                    <span className="text-[12px] flex-shrink-0" style={{ color: "#0B6E65" }}>ฝึกเลย ›</span>
+                  </Link>
+                )}
+                {wrongCount > 0 && (
+                  <Link href="/review"
+                    className="flex items-center gap-3 rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform"
+                    style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A" }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#F59E0B" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold" style={{ color: "#92400E" }}>ทบทวนข้อที่เคยผิด</p>
+                      <p className="text-[11.5px]" style={{ color: "#B45309" }}>มี {wrongCount} ข้อรอทบทวน</p>
+                    </div>
+                    <span className="text-[12px] flex-shrink-0" style={{ color: "#B45309" }}>ทบทวน ›</span>
+                  </Link>
+                )}
+                {showMock && (
+                  <Link href="/mock-exam"
+                    className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform"
+                    style={{ border: "1px solid #EBEBEA" }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#EBF5F3" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#0B6E65" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-gray-900 truncate">ยังไม่เคยลอง Mock Exam</p>
+                      <p className="text-[11.5px]" style={{ color: "#A8A8A6" }}>วัดความพร้อมจริงแบบจับเวลา</p>
+                    </div>
+                    <span className="text-[12px] flex-shrink-0" style={{ color: "#0B6E65" }}>เริ่ม ›</span>
+                  </Link>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ═══ เรียนต่อ (Continue) ═════════════════════════════════════ */}
+        {continueTarget && (
           <div className="space-y-2.5">
             {continueTarget && (
               <Link
@@ -549,166 +685,6 @@ export default function DashboardPage() {
                 </div>
               </Link>
             )}
-
-            {wrongCount > 0 && (
-              <Link
-                href="/review"
-                className="block rounded-2xl px-4 py-3.5 active:scale-[0.99] transition-transform"
-                style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A" }}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#F59E0B" }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white"
-                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-bold" style={{ color: "#92400E" }}>
-                      Smart Review — ทบทวนข้อที่เคยผิด
-                    </p>
-                    <p className="text-[12px] mt-0.5" style={{ color: "#B45309" }}>
-                      มี {wrongCount} ข้อรอทบทวน · ตอบถูกแล้วหลุดจากคิวทันที
-                    </p>
-                  </div>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
-                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    className="w-5 h-5 flex-shrink-0">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </div>
-              </Link>
-            )}
-          </div>
-        )}
-
-        {/* ═══ KPI Cards ════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KPICard
-            icon={
-              <KPIIcon color="#0B6E65">
-                <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-              </KPIIcon>
-            }
-            label="ชุดที่ทำแล้ว"
-            value={stats.total}
-            sub={`${results.length} ครั้งรวม`}
-            color="#0B6E65"
-          />
-          <KPICard
-            icon={
-              <KPIIcon color={gradeColor(stats.avgScore)}>
-                <line x1="18" y1="20" x2="18" y2="10" />
-                <line x1="12" y1="20" x2="12" y2="4" />
-                <line x1="6" y1="20" x2="6" y2="14" />
-              </KPIIcon>
-            }
-            label="คะแนนเฉลี่ย"
-            value={stats.total ? `${stats.avgScore}%` : "—"}
-            sub={
-              stats.avgScore >= 75 ? "ระดับดีมาก"
-              : stats.avgScore >= 60 ? "ผ่านเกณฑ์"
-              : stats.total ? "ควรพัฒนา" : "ยังไม่มีข้อมูล"
-            }
-            color={gradeColor(stats.avgScore)}
-          />
-          <KPICard
-            icon={
-              <KPIIcon color={stats.streak >= 3 ? "#F97316" : "#9CA3AF"}>
-                <path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z" />
-              </KPIIcon>
-            }
-            label="Streak"
-            value={stats.streak > 0 ? `${stats.streak} วัน` : "0"}
-            sub={stats.streak > 0 ? "ต่อเนื่อง" : "เริ่มวันนี้!"}
-            color={stats.streak >= 3 ? "#F97316" : "#9CA3AF"}
-          />
-          <KPICard
-            icon={
-              <KPIIcon color="#7C3AED">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </KPIIcon>
-            }
-            label="วิชาที่เก่ง"
-            value={stats.bestSubject !== "—" ? stats.bestSubject.slice(0, 5) : "—"}
-            sub={
-              stats.subjectStats[0]
-                ? `${stats.subjectStats[0].avg}% เฉลี่ย`
-                : "ยังไม่มีข้อมูล"
-            }
-            color="#7C3AED"
-          />
-        </div>
-
-        {/* ═══ Activity chart (7 days) ══════════════════════════════════ */}
-        <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-            กิจกรรม 7 วันล่าสุด
-          </p>
-          {stats.daily.every((d) => d.count === 0) ? (
-            <p className="text-[13px] text-center py-4" style={{ color: "#A8A8A6" }}>
-              ยังไม่มีกิจกรรม — เริ่มทำข้อสอบวันนี้เลย!
-            </p>
-          ) : (
-            <div className="flex items-end gap-2 h-16">
-              {stats.daily.map((d) => {
-                const peak = Math.max(...stats.daily.map((x) => x.count), 1);
-                const h    = d.count > 0 ? Math.max((d.count / peak) * 52, 6) : 3;
-                return (
-                  <div key={d.key} className="flex-1 flex flex-col items-center gap-1">
-                    {d.count > 0 && (
-                      <span className="text-[11.5px] font-bold" style={{ color: "#0B6E65" }}>{d.count}</span>
-                    )}
-                    <div className="w-full flex flex-col justify-end" style={{ flex: 1 }}>
-                      <div
-                        className="w-full rounded-t"
-                        style={{ height: h, backgroundColor: d.isToday ? "#0B6E65" : "#C3E5DE" }}
-                      />
-                    </div>
-                    <span className="text-[11.5px] font-medium" style={{ color: d.isToday ? "#0B6E65" : "#A8A8A6" }}>
-                      {d.day}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* ═══ Score history chart ══════════════════════════════════════ */}
-        {stats.chart.length > 0 && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
-            <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-              พัฒนาการคะแนน (7 ครั้งล่าสุด)
-            </p>
-            <div className="space-y-3">
-              {stats.chart.map((item, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-[12px] font-medium w-16 text-right flex-shrink-0"
-                    style={{ color: "#A8A8A6" }}>
-                    {item.date}
-                  </span>
-                  <div className="flex-1">
-                    <ScoreBar pct={item.pct} color={gradeColor(item.pct)} />
-                  </div>
-                  <span
-                    className="text-[12px] font-bold w-10 text-right flex-shrink-0"
-                    style={{ color: gradeColor(item.pct) }}
-                  >
-                    {item.pct}%
-                  </span>
-                </div>
-              ))}
-            </div>
-            {/* Pass threshold line indicator */}
-            <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px dashed #F3F2F0" }}>
-              <div className="h-0.5 w-4 rounded" style={{ backgroundColor: "#22C55E" }} />
-              <span className="text-[12px]" style={{ color: "#A8A8A6" }}>60% = เกณฑ์ผ่าน</span>
-              <div className="h-0.5 w-4 rounded ml-2" style={{ backgroundColor: "#0B6E65" }} />
-              <span className="text-[12px]" style={{ color: "#A8A8A6" }}>80% = ดีมาก</span>
-            </div>
           </div>
         )}
 
