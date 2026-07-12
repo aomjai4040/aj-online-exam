@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
 import BottomNav from "@/components/BottomNav";
 import CourseResources from "@/components/CourseResources";
+import SampleVideoTeaser from "@/components/SampleVideoTeaser";
 import { BRAND } from "@/lib/subjects";
 import { PRICING } from "@/lib/pricing";
 import { useAuth } from "@/lib/auth-context";
@@ -80,6 +81,9 @@ export default function PackagesPage() {
       </section>
 
       <section className="max-w-lg mx-auto px-5 py-6 space-y-4">
+
+        {/* ── คลิปตัวอย่างฟรี (เฉพาะคนที่ยังไม่ใช่คอร์สเต็ม) ───────────────── */}
+        {!hasFull && <SampleVideoTeaser />}
 
         {/* ── App Only (แนะนำสำหรับเริ่มต้น) ─────────────────────────────── */}
         <div className="bg-white rounded-2xl overflow-hidden"

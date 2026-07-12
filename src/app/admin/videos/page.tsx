@@ -7,7 +7,7 @@ import {
 
 // ─── /admin/videos — จัดการคอร์สวิดีโอ (YouTube unlisted) ─────────────────────
 
-const EMPTY_FORM = { title: "", url: "", chapter: "", order: "", duration: "" };
+const EMPTY_FORM = { title: "", url: "", chapter: "", order: "", duration: "", isSample: false };
 
 interface BulkRow {
   line:     number;
@@ -81,6 +81,7 @@ export default function AdminVideosPage() {
     setForm({
       title: v.title, url: `https://youtu.be/${v.ytId}`,
       chapter: v.chapter, order: String(v.order), duration: v.duration,
+      isSample: v.isSample,
     });
     setShowForm(true);
   }
@@ -100,6 +101,7 @@ export default function AdminVideosPage() {
       order:       parseInt(form.order) || 0,
       duration:    form.duration.trim(),
       isPublished: editing ? editing.isPublished : true,
+      isSample:    form.isSample,
     };
     setSaving(true);
     try {
@@ -122,7 +124,7 @@ export default function AdminVideosPage() {
       for (const r of good) {
         await saveVideo(null, {
           title: r.title, ytId: r.ytId!, chapter: r.chapter,
-          order: r.order ?? autoOrder++, duration: r.duration, isPublished: true,
+          order: r.order ?? autoOrder++, duration: r.duration, isPublished: true, isSample: false,
         });
         saved++;
       }
@@ -144,9 +146,21 @@ export default function AdminVideosPage() {
     try {
       await saveVideo(v.id, {
         title: v.title, ytId: v.ytId, chapter: v.chapter,
-        order: v.order, duration: v.duration, isPublished: !v.isPublished,
+        order: v.order, duration: v.duration, isPublished: !v.isPublished, isSample: v.isSample,
       });
       setVideos((prev) => prev.map((x) => x.id === v.id ? { ...x, isPublished: !v.isPublished } : x));
+    } catch { setError("บันทึกไม่สำเร็จ"); }
+    finally { setBusy(null); }
+  }
+
+  async function toggleSample(v: CourseVideo) {
+    setBusy(v.id);
+    try {
+      await saveVideo(v.id, {
+        title: v.title, ytId: v.ytId, chapter: v.chapter,
+        order: v.order, duration: v.duration, isPublished: v.isPublished, isSample: !v.isSample,
+      });
+      setVideos((prev) => prev.map((x) => x.id === v.id ? { ...x, isSample: !v.isSample } : x));
     } catch { setError("บันทึกไม่สำเร็จ"); }
     finally { setBusy(null); }
   }
@@ -334,6 +348,19 @@ export default function AdminVideosPage() {
                 </div>
               </div>
             </div>
+            {/* คลิปตัวอย่างฟรี */}
+            <label className="flex items-start gap-2.5 cursor-pointer rounded-xl px-3.5 py-3"
+              style={{ backgroundColor: form.isSample ? "#FEF9EC" : "#FAFAF8", border: `1px solid ${form.isSample ? "#FCD34D" : "#EBEBEA"}` }}>
+              <input type="checkbox" className="mt-0.5 w-4 h-4 accent-[#B45309]"
+                checked={form.isSample} onChange={(e) => setForm({ ...form, isSample: e.target.checked })} />
+              <span className="text-[12.5px] leading-relaxed">
+                <span className="font-bold text-gray-800">🎁 ตั้งเป็นคลิปตัวอย่างฟรี</span>
+                <span className="block" style={{ color: "#A8A8A6" }}>
+                  คนที่ยังไม่ซื้อคอร์สจะดูคลิปนี้ได้ (โผล่ในหน้าคอร์สวิดีโอ + หน้าแพ็กเกจ)
+                </span>
+              </span>
+            </label>
+
             <div className="flex gap-2.5 pt-1">
               <button type="button" onClick={() => setShowForm(false)}
                 className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold border"
@@ -391,6 +418,10 @@ export default function AdminVideosPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[13.5px] font-bold text-gray-900 truncate">
                           {v.order}. {v.title}
+                          {v.isSample && (
+                            <span className="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full align-middle"
+                              style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>🎁 ตัวอย่างฟรี</span>
+                          )}
                         </p>
                         <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
                           {v.duration && `${v.duration} · `}
@@ -399,6 +430,13 @@ export default function AdminVideosPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        <button onClick={() => toggleSample(v)} disabled={busy === v.id}
+                          className="text-[12px] font-semibold px-3 py-1.5 rounded-lg border disabled:opacity-40"
+                          style={v.isSample
+                            ? { borderColor: "#FCD34D", color: "#B45309", backgroundColor: "#FEF9EC" }
+                            : { borderColor: "#E0DFDC", color: "#6B7280" }}>
+                          {v.isSample ? "🎁 ตัวอย่าง" : "ตั้งตัวอย่าง"}
+                        </button>
                         <button onClick={() => togglePublish(v)} disabled={busy === v.id}
                           className="text-[12px] font-semibold px-3 py-1.5 rounded-lg border disabled:opacity-40"
                           style={{ borderColor: "#E0DFDC", color: "#6B7280" }}>

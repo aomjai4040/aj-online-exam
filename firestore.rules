@@ -119,10 +119,14 @@ service cloud.firestore {
 
     // ── Course Videos ───────────────────────────────────────────────────────
     // เก็บ YouTube id ของวิดีโอคอร์สเต็ม — อ่านได้เมื่อ login
+    // ยกเว้น "คลิปตัวอย่างฟรี" (isSample && isPublished) เปิดอ่านสาธารณะ
+    // เพื่อให้คนยังไม่ล็อกอินดูตัวอย่างได้ตอนแชร์ลิงก์โปรโมท (query ต้องกรอง
+    // isSample==true && isPublished==true ให้ทุก doc ที่คืนตรงเงื่อนไข rule)
     // NOTE: การกรอง tier (App Only ห้ามดู) ทำฝั่ง client ตอนนี้;
     // การบังคับระดับ DB ต้องรอ server API (Phase 3) เช่นเดียวกับเฉลยข้อสอบ
     match /videos/{videoId} {
-      allow read:  if isSignedIn();
+      allow read:  if isSignedIn()
+                   || (resource.data.isSample == true && resource.data.isPublished == true);
       allow write: if isAdmin();
     }
 

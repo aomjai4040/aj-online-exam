@@ -12,6 +12,7 @@ import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
 import CourseVideoPlayer from "@/components/CourseVideoPlayer";
 import CourseResources from "@/components/CourseResources";
+import SampleVideoTeaser from "@/components/SampleVideoTeaser";
 
 // ─── /videos — คอร์สวิดีโอ (เฉพาะคอร์สเต็ม) ───────────────────────────────────
 // player ควบคุมเองทั้งหมด (ดู components/CourseVideoPlayer) — ปิดทุกทางที่
@@ -102,12 +103,18 @@ export default function VideosPage() {
             </svg>
           </div>
           <h1 className="text-[19px] font-bold text-gray-900 mb-2">คอร์สวิดีโอสำหรับสมาชิกคอร์สเต็ม</h1>
-          <p className="text-[13.5px] leading-relaxed mb-7 max-w-xs mx-auto" style={{ color: "#A8A8A6" }}>
+          <p className="text-[13.5px] leading-relaxed mb-6 max-w-xs mx-auto" style={{ color: "#A8A8A6" }}>
             วิดีโอติวครบทุกหัวข้อ + ชีทสรุป ~500 หน้า
             {access.hasAny
               ? ` — อัปเกรดจาก App Only จ่ายเพิ่มเพียง ฿${PRICING.upgradePrice}`
               : ` — คอร์สเต็ม ฿${PRICING.full.price} รวมทุกอย่างในแอปด้วย`}
           </p>
+
+          {/* คลิปตัวอย่างฟรี (โผล่เมื่อ admin ตั้งคลิปตัวอย่าง) */}
+          <div className="mb-6 text-left">
+            <SampleVideoTeaser />
+          </div>
+
           <div className="space-y-3 max-w-xs mx-auto">
             <Link href={access.hasAny ? "/checkout/upgrade" : "/checkout/full"}
               className="btn-primary w-full py-3.5 text-[15px] block text-center">

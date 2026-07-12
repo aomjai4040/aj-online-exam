@@ -9,7 +9,7 @@
 
 import {
   collection, doc, getDocs, setDoc, updateDoc, deleteDoc,
-  query, orderBy, serverTimestamp, Timestamp,
+  query, where, orderBy, serverTimestamp, Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -21,6 +21,7 @@ export interface CourseVideo {
   order:       number;   // ลำดับรวมทั้งคอร์ส (ใช้เรียงและทำ ก่อนหน้า/ถัดไป)
   duration:    string;   // "12:34" — กรอกเองเพื่อโชว์ในลิสต์ (ไม่บังคับ)
   isPublished: boolean;
+  isSample:    boolean;  // คลิปตัวอย่างฟรี — คนยังไม่ซื้อดูได้ (ใน /videos, /packages)
   createdAt:   Date;
 }
 
@@ -33,6 +34,7 @@ function toVideo(id: string, x: Record<string, unknown>): CourseVideo {
     order:       Number(x.order ?? 0),
     duration:    String(x.duration ?? ""),
     isPublished: Boolean(x.isPublished ?? false),
+    isSample:    Boolean(x.isSample ?? false),
     createdAt:   x.createdAt instanceof Timestamp ? x.createdAt.toDate() : new Date(),
   };
 }
@@ -49,6 +51,19 @@ export async function getAllVideos(): Promise<CourseVideo[]> {
   return snap.docs.map((d) => toVideo(d.id, d.data()));
 }
 
+/** คลิปตัวอย่างฟรี (เผยแพร่ + isSample) — คนยังไม่ซื้อ/ยังไม่ล็อกอินก็ดูได้
+ *  query กรอง isSample==true && isPublished==true ให้ตรงกับ firestore.rules
+ *  (ทุก doc ที่คืนต้องผ่านเงื่อนไข rule) แล้วเรียงตาม order ฝั่ง client
+ *  — สอง equality filter ไม่ต้องมี composite index */
+export async function getSampleVideos(): Promise<CourseVideo[]> {
+  const snap = await getDocs(query(
+    collection(db, "videos"),
+    where("isSample", "==", true),
+    where("isPublished", "==", true),
+  ));
+  return snap.docs.map((d) => toVideo(d.id, d.data())).sort((a, b) => a.order - b.order);
+}
+
 export interface VideoInput {
   title:       string;
   ytId:        string;
@@ -56,6 +71,7 @@ export interface VideoInput {
   order:       number;
   duration:    string;
   isPublished: boolean;
+  isSample:    boolean;
 }
 
 /** Admin: สร้าง/แก้ไข */
