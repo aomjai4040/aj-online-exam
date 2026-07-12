@@ -738,7 +738,10 @@ export default function AdminDashboard() {
                 การดำเนินการ
               </p>
               <div className="flex flex-wrap gap-2.5">
-                <Link href="/admin/exams/new" className="btn-primary text-sm">
+                <Link href="/admin/insights" className="btn-primary text-sm">
+                  📈 ภาพรวมธุรกิจ
+                </Link>
+                <Link href="/admin/exams/new" className="btn-secondary text-sm">
                   + สร้างข้อสอบใหม่
                 </Link>
                 <Link href="/admin/exams" className="btn-secondary text-sm">

@@ -188,8 +188,12 @@ export async function appendQuestionsToExam(
 export async function saveResult(
   result: Omit<ExamResult, "id" | "submittedAt">
 ): Promise<string> {
+  // ตัด field ที่เป็น undefined ออก — Firestore client SDK throw ถ้าเจอ undefined
+  const clean = Object.fromEntries(
+    Object.entries(result).filter(([, v]) => v !== undefined)
+  );
   const ref = await addDoc(collection(db, "results"), {
-    ...result,
+    ...clean,
     submittedAt: serverTimestamp(),
   });
   return ref.id;

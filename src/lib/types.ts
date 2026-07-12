@@ -88,6 +88,8 @@ export interface ExamResult {
   id: string;
   examId: string;
   examTitle: string;
+  userId?: string;      // uid ผู้สอบ — ใช้นับคนไม่ซ้ำแม่นยำ (เก่ากว่านี้ไม่มี)
+  userEmail?: string;   // อีเมลผู้สอบ — อ้างอิงตัวตน (studentName เป็นชื่อโชว์ที่ซ้ำได้)
   studentName: string;
   answers: number[]; // index = question order, value = chosen option (0–3), -1 = skipped
   score: number;

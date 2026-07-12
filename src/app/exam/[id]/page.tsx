@@ -214,6 +214,8 @@ export default function ExamPage() {
         await saveResult({
           examId: id,
           examTitle: exam.title,
+          userId: user?.uid,
+          userEmail: user?.email ?? undefined,
           studentName: user?.displayName || user?.email || "ผู้สอบ",
           answers: finalAnswers,
           score,
