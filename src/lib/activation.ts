@@ -214,6 +214,44 @@ export async function setCodeStatus(codeId: string, status: "active" | "inactive
   await updateDoc(doc(db, "activationCodes", codeId), { status });
 }
 
+// ── สร้างโค้ดใช้ครั้งเดียวแบบหลายอัน (สำรองไว้แจกทีละคน) ──────────────────────
+// ตัวอักษรกันสับสน: ตัด 0 O 1 I L ออก
+const SAFE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+export function randomCode(prefix = "AJ", len = 5): string {
+  let s = "";
+  for (let i = 0; i < len; i++) s += SAFE_ALPHABET[Math.floor(Math.random() * SAFE_ALPHABET.length)];
+  return `${prefix}${s}`;
+}
+
+/**
+ * สร้างโค้ด "ใช้ครั้งเดียว" (maxUses=1) หลายอันพร้อมกัน — คืนรายการโค้ดที่สร้างสำเร็จ
+ * ใช้แจกทีละคนสำหรับสมาชิกกลุ่มที่จ่ายแล้วแต่ยังไม่ activate (กันแชร์ต่อ)
+ */
+export async function createSingleUseCodes(
+  count:      number,
+  courseId:   string,
+  courseName: string,
+  expiresAt:  Date | null = null,
+): Promise<string[]> {
+  const created: string[] = [];
+  for (let i = 0; i < count; i++) {
+    // retry กันชนโค้ดที่มีอยู่ (โอกาสน้อยมากด้วย ~28 ล้านชุด)
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const code = randomCode();
+      try {
+        await createCode({ code, courseId, courseName, maxUses: 1, expiresAt });
+        created.push(code);
+        break;
+      } catch (e) {
+        if (e instanceof Error && e.message === "CODE_EXISTS") continue;
+        throw e;
+      }
+    }
+  }
+  return created;
+}
+
 export async function deleteCode(codeId: string): Promise<void> {
   await deleteDoc(doc(db, "activationCodes", codeId));
 }

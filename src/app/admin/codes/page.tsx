@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import {
-  getAllCodes, createCode, setCodeStatus, deleteCode, getCodeUsers,
+  getAllCodes, createCode, createSingleUseCodes, setCodeStatus, deleteCode, getCodeUsers,
   type ActivationCode, type UserCourse, type CreateCodeInput,
 } from "@/lib/activation";
 import { getUserTotalAttempts } from "@/lib/user-firestore";
@@ -573,10 +573,112 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// ─── Bulk single-use modal ──────────────────────────────────────────────────
+// โค้ดใช้ครั้งเดียวสำหรับ "คอร์สเต็ม" (courseId เดียวกับกลุ่มเดิม)
+const FULL_COURSE_ID   = "moph69";
+const FULL_COURSE_NAME = "คอร์สติว สป.สธ.2569 by AJ";
+
+function BulkModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [count,  setCount]  = useState("10");
+  const [busy,   setBusy]   = useState(false);
+  const [error,  setError]  = useState("");
+  const [result, setResult] = useState<string[] | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function handleGenerate() {
+    const n = parseInt(count) || 0;
+    if (n < 1 || n > 100) { setError("จำนวนต้องอยู่ระหว่าง 1–100"); return; }
+    setBusy(true); setError("");
+    try {
+      const codes = await createSingleUseCodes(n, FULL_COURSE_ID, FULL_COURSE_NAME);
+      setResult(codes);
+      onCreated();
+    } catch {
+      setError("สร้างไม่สำเร็จ กรุณาลองใหม่");
+    } finally { setBusy(false); }
+  }
+
+  async function copyAll() {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.join("\n"));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard อาจถูกบล็อก — ผู้ใช้ copy จาก textarea เองได้ */ }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid #EBEBEA" }}>
+          <h2 className="text-[16px] font-bold text-gray-900">⚡ สร้างโค้ดใช้ครั้งเดียว (สำรองไว้แจก)</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-gray-100">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-500">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {result === null ? (
+          <div className="px-6 py-5 space-y-4">
+            <p className="text-[12.5px] leading-relaxed rounded-xl px-4 py-3"
+              style={{ backgroundColor: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1D4ED8" }}>
+              โค้ดชุดนี้เป็น <span className="font-bold">คอร์สเต็ม · ใช้ได้ครั้งเดียวต่อโค้ด</span> —
+              แจกให้สมาชิกกลุ่มที่จ่ายแล้วแต่ยังไม่ activate ทีละคน ใช้แล้วโค้ดตาย แชร์ต่อไม่ได้
+            </p>
+            <div>
+              <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">จำนวนโค้ดที่ต้องการ</label>
+              <input type="number" min={1} max={100}
+                className="w-full border rounded-xl px-3 py-2.5 text-[14px] font-mono focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20"
+                style={{ borderColor: "#E0DFDC" }}
+                value={count} onChange={(e) => { setCount(e.target.value); setError(""); }} />
+            </div>
+            {error && <p className="text-[13px] font-medium text-red-600">{error}</p>}
+            <div className="flex gap-2.5 pt-1">
+              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold border"
+                style={{ borderColor: "#E0DFDC", color: "#6B7280" }}>ยกเลิก</button>
+              <button onClick={handleGenerate} disabled={busy}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-60"
+                style={{ backgroundColor: "#0B6E65" }}>
+                {busy ? "กำลังสร้าง…" : `สร้าง ${parseInt(count) || 0} โค้ด`}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="px-6 py-5 space-y-4">
+            <p className="text-[13px] font-semibold" style={{ color: "#15803D" }}>
+              ✓ สร้างแล้ว {result.length} โค้ด — คัดลอกเก็บไว้แจกได้เลย
+            </p>
+            <textarea readOnly rows={Math.min(result.length, 10)}
+              className="w-full border rounded-xl px-3 py-2.5 text-[14px] font-mono tracking-wider focus:outline-none"
+              style={{ borderColor: "#E0DFDC", backgroundColor: "#FAFAF8" }}
+              value={result.join("\n")}
+              onFocus={(e) => e.currentTarget.select()} />
+            <p className="text-[12px]" style={{ color: "#A8A8A6" }}>
+              โค้ดเหล่านี้อยู่ในรายการด้านล่างแล้ว (สถานะจะขึ้น &ldquo;ใช้ครบแล้ว&rdquo; อัตโนมัติเมื่อมีคนใช้)
+            </p>
+            <div className="flex gap-2.5">
+              <button onClick={copyAll}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white"
+                style={{ backgroundColor: copied ? "#15803D" : "#0B6E65" }}>
+                {copied ? "✓ คัดลอกแล้ว" : "คัดลอกทั้งหมด"}
+              </button>
+              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold border"
+                style={{ borderColor: "#E0DFDC", color: "#6B7280" }}>เสร็จสิ้น</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function CodesPage() {
   const [codes,      setCodes]      = useState<ActivationCode[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [showBulk,   setShowBulk]   = useState(false);
   const [drawer,     setDrawer]     = useState<ActivationCode | null>(null);
   const [filter,     setFilter]     = useState<"all" | "active" | "inactive">("all");
 
@@ -626,18 +728,27 @@ export default function CodesPage() {
               </span>
             )}
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-xl
-                       text-white transition-colors"
-            style={{ backgroundColor: "#0B6E65" }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-              strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            สร้าง Code
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowBulk(true)}
+              className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-xl border transition-colors"
+              style={{ borderColor: "#0B6E65", color: "#0B6E65" }}
+            >
+              ⚡ โค้ดใช้ครั้งเดียว
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-xl
+                         text-white transition-colors"
+              style={{ backgroundColor: "#0B6E65" }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              สร้าง Code
+            </button>
+          </div>
         </div>
       </div>
 
@@ -730,6 +841,13 @@ export default function CodesPage() {
         <CreateModal
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); load(); }}
+        />
+      )}
+
+      {showBulk && (
+        <BulkModal
+          onClose={() => { setShowBulk(false); load(); }}
+          onCreated={() => load()}
         />
       )}
 
