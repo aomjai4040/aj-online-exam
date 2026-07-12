@@ -524,9 +524,11 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[12px]" style={{ color: "#9FE1CB" }}>ความพร้อมสอบของคุณ</span>
                 {dLeft >= 0 && (
-                  <span className="text-[11.5px] font-semibold px-2.5 py-[3px] rounded-full"
-                    style={{ backgroundColor: "rgba(255,255,255,0.12)", color: "#fff" }}>
-                    {dLeft === 0 ? `วัน${COUNTDOWN_LABEL}` : `อีก ${dLeft} วัน${COUNTDOWN_LABEL}`}
+                  <span className="flex items-baseline gap-1 px-2.5 py-[3px] rounded-full"
+                    style={{ backgroundColor: "rgba(255,255,255,0.12)" }}>
+                    <span className="text-[11px]" style={{ color: "#9FE1CB" }}>อีก</span>
+                    <span className="text-[16px] font-extrabold leading-none" style={{ color: "#FBBF24" }}>{dLeft}</span>
+                    <span className="text-[11px] text-white">วัน · {COUNTDOWN_LABEL}</span>
                   </span>
                 )}
               </div>

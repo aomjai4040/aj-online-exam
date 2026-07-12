@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { subjectColor as dotColor, BRAND } from "@/lib/subjects";
 import { getSubjectShort, isMockExam } from "@/lib/types";
 import { PRICING } from "@/lib/pricing";
+import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -84,19 +85,26 @@ export default function HomePage() {
   const { user, signInWithGoogle } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userCount, setUserCount] = useState<number | null>(null);
 
   useEffect(() => {
     getPublishedExams()
       // Mock Exam มีเมนูของตัวเอง — ไม่ปนในคลังปกติ
       .then((all) => setExams(all.filter((e) => !isMockExam(e))))
       .finally(() => setLoading(false));
+    // จำนวนผู้ใช้ (social proof) — จาก server, cache 1 ชม.
+    fetch("/api/stats").then((r) => r.json()).then((d) => setUserCount(d.users ?? null)).catch(() => {});
   }, []);
 
   const latestExams = exams.slice(0, 5);
+  const dLeft = daysToExam();
 
   // ตัวเลขความน่าเชื่อถือใน hero — คำนวณจากข้อมูลจริง
   const totalQuestions = exams.reduce((s, e) => s + (e.questionCount || 0), 0);
   const subjectCount   = new Set(exams.map((e) => e.subject)).size;
+  // ปัดจำนวนผู้ใช้ลงหลักสิบเพื่อ social proof ("700+ คน" ดูน่าเชื่อกว่าเลขเป๊ะ)
+  // ถ้านับไม่ได้ (quota/พัง) → null → ตกกลับไปโชว์ "หมวดวิชา" แทน
+  const roundedUsers = userCount && userCount > 0 ? Math.max(10, Math.floor(userCount / 10) * 10) : null;
 
   return (
     <div className="min-h-screen bg-stone-50 font-sans pb-28">
@@ -161,9 +169,28 @@ export default function HomePage() {
             <br />
             <span style={{ color: "#9FE1CB" }}>นักวิชาการสาธารณสุข</span>
           </h1>
-          <p className="text-[14px] leading-relaxed mb-6" style={{ color: "rgba(255,255,255,0.65)" }}>
+          <p className="text-[14px] leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.65)" }}>
             แนวข้อสอบพร้อมเฉลยละเอียดทุกข้อ · ฝึกทำได้ทุกวัน
           </p>
+
+          {/* นับถอยหลัง — เลขเด่น */}
+          {dLeft >= 0 && (
+            <div className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-5"
+              style={{ backgroundColor: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}>
+              <div className="flex items-baseline gap-1.5 flex-shrink-0">
+                <span className="text-[34px] font-extrabold leading-none" style={{ color: "#FBBF24" }}>
+                  {dLeft}
+                </span>
+                <span className="text-[15px] font-bold text-white">วัน</span>
+              </div>
+              <div className="w-px h-8" style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
+              <p className="text-[13px] leading-snug" style={{ color: "rgba(255,255,255,0.85)" }}>
+                ก่อน{COUNTDOWN_LABEL}
+                <br />
+                <span style={{ color: "#9FE1CB" }}>เตรียมตัวให้ทันตั้งแต่วันนี้</span>
+              </p>
+            </div>
+          )}
 
           {/* CTA คู่ — ฟรีเด่นสุด */}
           <div className="flex gap-2.5 mb-6">
@@ -190,7 +217,9 @@ export default function HomePage() {
             {[
               { value: loading ? "…" : totalQuestions.toLocaleString(), label: "ข้อสอบ" },
               { value: loading ? "…" : `${exams.length}`,               label: "ชุดข้อสอบ" },
-              { value: loading ? "…" : `${subjectCount}`,               label: "หมวดวิชา" },
+              roundedUsers != null
+                ? { value: `${roundedUsers.toLocaleString()}+`, label: "ผู้เรียน" }
+                : { value: loading ? "…" : `${subjectCount}`,   label: "หมวดวิชา" },
             ].map((s, i) => (
               <div
                 key={s.label}
