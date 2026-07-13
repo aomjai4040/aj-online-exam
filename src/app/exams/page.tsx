@@ -69,6 +69,15 @@ function formatRecordDate(iso: string): string {
   return d.toLocaleDateString("th-TH", { day: "numeric", month: "short" });
 }
 
+// ─── Score band (สเปก Aj): <60 แดง / 60-69 ส้ม / 70-79 เหลือง / 80-89 เขียวอ่อน / 90+ เขียวเข้ม
+function scoreBand(pct: number): { bar: string; text: string } {
+  if (pct >= 90) return { bar: "#15803D", text: "#15803D" };
+  if (pct >= 80) return { bar: "#4ADE80", text: "#16A34A" };
+  if (pct >= 70) return { bar: "#EAB308", text: "#A16207" };
+  if (pct >= 60) return { bar: "#F97316", text: "#C2410C" };
+  return { bar: "#DC2626", text: "#DC2626" };
+}
+
 // ─── Exam card ────────────────────────────────────────────────────────────────
 
 function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRecord | null; locked: boolean }) {
@@ -127,13 +136,22 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
                 ล็อก
               </span>
             )}
-            {isDone && (
-              <span
-                className="text-[12px] font-bold px-2.5 py-[5px] rounded-full"
-                style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
-              >
-                ✓ ทำแล้ว
-              </span>
+            {record && (
+              record.percentage >= 60 ? (
+                <span
+                  className="text-[12px] font-bold px-2.5 py-[5px] rounded-full"
+                  style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}
+                >
+                  ✓ ผ่านเกณฑ์
+                </span>
+              ) : (
+                <span
+                  className="text-[12px] font-bold px-2.5 py-[5px] rounded-full"
+                  style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
+                >
+                  ✗ ไม่ผ่าน
+                </span>
+              )
             )}
             {ds && diff && !locked && (
               <span
@@ -179,34 +197,34 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
           <span>4 ตัวเลือก</span>
         </div>
 
-        {/* Last result strip — shown only when completed */}
-        {record && (
-          <div
-            className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl text-[12px]"
-            style={{ backgroundColor: "#EBF5F3", border: "1px solid #C3E5DE" }}
-          >
-            {/* Bar-chart icon */}
-            <svg
-              viewBox="0 0 24 24" fill="none" stroke="#0B6E65"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              className="w-3.5 h-3.5 flex-shrink-0"
-            >
-              <line x1="18" y1="20" x2="18" y2="10" />
-              <line x1="12" y1="20" x2="12" y2="4"  />
-              <line x1="6"  y1="20" x2="6"  y2="14" />
-            </svg>
-            <span className="font-bold" style={{ color: "#0B6E65" }}>
-              {record.percentage}%
-            </span>
-            <span style={{ color: "#5DA89F" }}>
-              ({record.score}/{record.totalQuestions} ข้อ)
-            </span>
-            <span className="flex-1" />
-            <span style={{ color: "#A8A8A6" }}>
-              {formatRecordDate(record.doneAt)}
-            </span>
-          </div>
-        )}
+        {/* แถบคะแนนรอบล่าสุด — สีตามช่วงคะแนน (ดูหน้าเดียวเข้าใจเลย) */}
+        {record && (() => {
+          const band = scoreBand(record.percentage);
+          return (
+            <div className="mb-4">
+              <div className="flex items-baseline justify-between text-[12px] mb-1.5">
+                <span>
+                  <span className="text-[15px] font-extrabold" style={{ color: band.text }}>
+                    {record.percentage}%
+                  </span>
+                  <span style={{ color: "#A8A8A6" }}>
+                    {" "}รอบล่าสุด ({record.score}/{record.totalQuestions} ข้อ)
+                  </span>
+                </span>
+                <span style={{ color: "#A8A8A6" }}>{formatRecordDate(record.doneAt)}</span>
+              </div>
+              <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: "#F0EFEC" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(Math.max(record.percentage, 2), 100)}%`,
+                    backgroundColor: band.bar,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* CTA button */}
         {locked ? (
