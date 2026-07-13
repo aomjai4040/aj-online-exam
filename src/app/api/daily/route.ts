@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const pick = await pickDaily(db, today);
+    const pick = await pickDaily(db, today, user.uid);
     if (!pick) return NextResponse.json({ error: "no-quiz" }, { status: 404 });
 
     return NextResponse.json({
@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
         examId:    pick.examId,
         examTitle: pick.examTitle,
         subject:   pick.subject,
+        focus:     pick.focus,     // weak = ชุดนี้เจาะหมวดอ่อนของผู้ใช้
         questions: pick.questions, // qid/text/options — ไม่มีเฉลย
       },
     });
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
     const ref   = db.collection("users").doc(user.uid).collection("dailyQuiz").doc(today);
 
     // ตรวจว่าชุดที่ส่งมาเป็นชุดของวันนี้จริง (กันยิง exam อื่น)
-    const pick = await pickDaily(db, today);
+    const pick = await pickDaily(db, today, user.uid);
     if (!pick || pick.examId !== body.examId) {
       return NextResponse.json({ error: "wrong-quiz" }, { status: 409 });
     }

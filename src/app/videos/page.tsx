@@ -42,9 +42,14 @@ export default function VideosPage() {
           ]);
           setVideos(vs);
           setProgress(pg);
-          // เปิดที่คลิปแรกที่ยังดูไม่จบ (ต่อจากที่เรียนค้าง)
+          // โค้ชหลังสอบส่ง ?chapter=บทที่ x มา → เปิดคลิปของบทนั้น (ที่ยังไม่จบก่อน)
+          const chParam = new URLSearchParams(window.location.search).get("chapter");
+          const inChapter = chParam ? vs.filter((v) => v.chapter.startsWith(chParam)) : [];
           const firstUnfinished = vs.find((v) => !pg.get(v.id)?.completed);
-          setCurrent(firstUnfinished ?? vs[0] ?? null);
+          setCurrent(
+            (inChapter.find((v) => !pg.get(v.id)?.completed) ?? inChapter[0])
+            ?? firstUnfinished ?? vs[0] ?? null
+          );
         }
       } catch { setError("โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่"); }
       finally { setLoading(false); }

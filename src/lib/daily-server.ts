@@ -1,8 +1,9 @@
 /**
  * daily-server.ts — Daily Quiz ฝั่ง server (ใช้ใน /api/daily เท่านั้น)
  *
- * หลักการ: สุ่มแบบ deterministic จากวันที่ (เวลาไทย) → ทุกคนได้ชุด+ข้อเดียวกันทั้งวัน
- * เฉลยไม่ออกจาก server ก่อนผู้ใช้ส่งคำตอบ (ตรวจคะแนนที่นี่)
+ * หลักการ: "เจาะจุดอ่อนรายคน" — เลือกหมวดที่ผู้ใช้ได้คะแนนต่ำสุดจากประวัติ
+ * แล้วสุ่มข้อจากชุดในหมวดนั้น (deterministic ต่อ วัน+คน → refresh ไม่เปลี่ยนชุด)
+ * คนไม่มีประวัติ → สุ่มกลางตามวันที่. เฉลยไม่ออกจาก server ก่อนส่งคำตอบ
  */
 
 import "server-only";
@@ -46,6 +47,7 @@ export interface DailyPick {
   examId:    string;
   examTitle: string;
   subject:   string;
+  focus:     "weak" | "general";              // weak = เจาะหมวดอ่อนของผู้ใช้คนนี้
   questions: DailyQuestion[];                 // ไม่มีเฉลย — ส่งให้ client ได้
   answerKey: Map<string, { correctAnswer: number; explanation: string }>; // ฝั่ง server เท่านั้น
 }
@@ -54,15 +56,47 @@ function isMockLike(x: Record<string, unknown>): boolean {
   return x.isMock === true || String(x.subject ?? "") === "MOCK";
 }
 
-/** เลือกชุด + 10 ข้อของวันนั้น (deterministic ตาม dateStr) */
-export async function pickDaily(db: Firestore, dateStr: string): Promise<DailyPick | null> {
+/** หมวดของผู้ใช้เรียงจากอ่อนสุด (คะแนน best เฉลี่ยต่ำสุด) — จาก users/{uid}/history */
+async function subjectsWeakFirst(db: Firestore, uid: string): Promise<string[]> {
+  const snap = await db.collection("users").doc(uid).collection("history").get();
+  const agg: Record<string, { sum: number; n: number }> = {};
+  snap.forEach((d) => {
+    const x = d.data();
+    const subj = String(x.subject ?? "");
+    if (!subj || subj === "MOCK") return;
+    const pct = Number(x.bestPercentage ?? x.percentage);
+    if (!Number.isFinite(pct)) return;
+    (agg[subj] ??= { sum: 0, n: 0 });
+    agg[subj].sum += pct;
+    agg[subj].n++;
+  });
+  return Object.entries(agg)
+    .map(([s, { sum, n }]) => ({ s, avg: sum / n }))
+    .sort((a, b) => a.avg - b.avg)
+    .map((x) => x.s);
+}
+
+/** เลือกชุด + 10 ข้อของวันนั้น — เจาะหมวดอ่อนของ uid (deterministic ต่อ วัน+คน) */
+export async function pickDaily(
+  db: Firestore, dateStr: string, uid?: string
+): Promise<DailyPick | null> {
   const snap = await db.collection("exams").where("isPublished", "==", true).get();
-  const exams = snap.docs
+  let exams = snap.docs
     .filter((d) => !isMockLike(d.data()) && Number(d.data().questionCount ?? 0) >= 5)
     .sort((a, b) => a.id.localeCompare(b.id)); // เรียงคงที่ ให้ index เสถียร
   if (exams.length === 0) return null;
 
-  const rng  = mulberry32(hashStr(dateStr));
+  // เจาะหมวดอ่อน: ไล่จากหมวดที่คะแนนต่ำสุดที่ "มีชุดข้อสอบจริง"
+  let focus: "weak" | "general" = "general";
+  if (uid) {
+    for (const s of await subjectsWeakFirst(db, uid)) {
+      const inSubject = exams.filter((d) => String(d.data().subject ?? "") === s);
+      if (inSubject.length > 0) { exams = inSubject; focus = "weak"; break; }
+    }
+  }
+
+  // seed ต่อ วัน+คน → ชุดของแต่ละคนคงที่ทั้งวัน แต่ไม่จำเป็นต้องเหมือนคนอื่น
+  const rng  = mulberry32(hashStr(uid ? `${dateStr}:${uid}` : dateStr));
   const exam = exams[Math.floor(rng() * exams.length)];
 
   const qSnap = await exam.ref.collection("questions").orderBy("order", "asc").get();
@@ -94,6 +128,7 @@ export async function pickDaily(db: Firestore, dateStr: string): Promise<DailyPi
     examId:    exam.id,
     examTitle: String(e.title ?? ""),
     subject:   String(e.subject ?? ""),
+    focus,
     questions,
     answerKey,
   };

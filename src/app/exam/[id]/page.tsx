@@ -7,11 +7,12 @@ import { fetchExamQuestions, gradeExam, ExamApiError } from "@/lib/exam-client";
 import { saveRecord } from "@/lib/exam-history";
 import { saveUserRecord } from "@/lib/user-firestore";
 import { recordExamMistakes } from "@/lib/smart-review";
-import { PRICING } from "@/lib/pricing";
+import { PRICING, CONTACT_URL, COURSE_RESOURCES } from "@/lib/pricing";
+import { chapterForSubject } from "@/lib/curriculum";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, decideExamAccess } from "@/lib/access";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
-import type { Exam, Question } from "@/lib/types";
+import { SUBJECT_DISPLAY, type Exam, type Question } from "@/lib/types";
 
 // ─── Types & helpers ─────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export default function ExamPage() {
   const [timeSpent, setTimeSpent] = useState(0);
   const [saved,     setSaved]     = useState<SavedProgress | null>(null);
   const [grading,   setGrading]   = useState(false); // กำลังส่งคำตอบให้ server ตรวจ
+  const [hasFull,   setHasFull]   = useState(false); // คอร์สเต็ม → โค้ชลิงก์ชีท/คลิปตรงบทได้
 
   const startRef    = useRef<number>(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -87,6 +89,7 @@ export default function ExamPage() {
 
       // ตรวจสิทธิ์แบบ per-package
       const access  = await getUserAccess(user.uid);
+      setHasFull(access.hasFull);
       const verdict = decideExamAccess(e, user.uid, access);
       if (verdict === "locked") { setLocked(e); setPhase("locked"); return; }
 
@@ -563,6 +566,72 @@ export default function ExamPage() {
               </div>
             </div>
           </div>
+
+          {/* ═══ โค้ชครูอ้อม — ขั้นต่อไปตามผลของคุณ ═══════════════════════ */}
+          {(() => {
+            const subj    = exam?.subject ?? "";
+            const isMockR = subj === "MOCK" || exam?.isMock === true;
+            const ch      = chapterForSubject(subj);
+            const subjTh  = SUBJECT_DISPLAY[subj] ?? subj;
+            const missed  = wrong + skipped;
+            const tone = pct >= 80
+              ? { emoji: "🎉", msg: `เยี่ยมมาก! หมวดนี้แน่นแล้ว — ไล่ดูข้อที่พลาดด้านล่างอีกรอบ แล้วไปเก็บหมวดถัดไปเลย` }
+              : pct >= 60
+              ? { emoji: "💪", msg: `เกือบดีแล้ว! ยังพลาด ${missed} ข้อ — อ่านเฉลยด้านล่างให้เข้าใจ แล้วตามนี้ต่อ` }
+              : { emoji: "📌", msg: isMockR
+                  ? `คะแนนรวมยังไม่ถึงเป้า — ไปดูรายหมวดว่าอ่อนตรงไหน แล้วเก็บทีละหมวด`
+                  : `คุณยังสับสนหมวด "${subjTh}" อยู่ (พลาด ${missed} ข้อ) — อย่าเพิ่งท้อ ตามนี้เลย` };
+            return (
+              <div className="rounded-2xl p-4 mb-5"
+                style={{ backgroundColor: "#F5FAF9", border: "1.5px solid #C3E5DE" }}>
+                <p className="text-[12px] font-bold uppercase tracking-wider mb-1.5" style={{ color: "#0B6E65" }}>
+                  โค้ชครูอ้อม · ขั้นต่อไปของคุณ
+                </p>
+                <p className="text-[13.5px] leading-relaxed text-gray-800 mb-3">
+                  {tone.emoji} {tone.msg}
+                </p>
+                <div className="space-y-2">
+                  {isMockR ? (
+                    <>
+                      <Link href="/review" className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 bg-white text-[13px] font-semibold text-gray-800"
+                        style={{ border: "1px solid #EBEBEA" }}>
+                        🔁 ทบทวนทุกข้อที่ผิด (Smart Review)
+                      </Link>
+                      <Link href="/dashboard" className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 bg-white text-[13px] font-semibold text-gray-800"
+                        style={{ border: "1px solid #EBEBEA" }}>
+                        📊 ดูจุดอ่อนรายหมวดของคุณ
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      {pct < 80 && ch && (
+                        <Link
+                          href={hasFull ? `/videos?chapter=${encodeURIComponent(ch.prefix)}` : "/videos"}
+                          className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 bg-white text-[13px] font-semibold text-gray-800"
+                          style={{ border: "1px solid #EBEBEA" }}>
+                          🎬 ดูคลิปติว {ch.label}
+                        </Link>
+                      )}
+                      {pct < 80 && hasFull && COURSE_RESOURCES.driveDocs && (
+                        <a href={COURSE_RESOURCES.driveDocs} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 bg-white text-[13px] font-semibold text-gray-800"
+                          style={{ border: "1px solid #EBEBEA" }}>
+                          📖 อ่านชีทสรุปหมวดนี้เพิ่ม
+                        </a>
+                      )}
+                      {pct < 60 && (
+                        <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 bg-white text-[13px] font-semibold"
+                          style={{ border: "1px solid #EBEBEA", color: "#067A38" }}>
+                          💬 ไม่เข้าใจตรงไหน ถามครูอ้อมได้เลย
+                        </a>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Action buttons */}
           <div className="flex gap-3 mb-8">

@@ -10,6 +10,8 @@ import { subjectColor as dotColor, BRAND } from "@/lib/subjects";
 import { getSubjectShort, isMockExam } from "@/lib/types";
 import { PRICING } from "@/lib/pricing";
 import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
+import { getRecentResults } from "@/lib/user-firestore";
+import { pickGreeting, type Greeting } from "@/lib/greeting";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -86,6 +88,7 @@ export default function HomePage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [userCount, setUserCount] = useState<number | null>(null);
+  const [greeting, setGreeting] = useState<Greeting | null>(null);
 
   useEffect(() => {
     getPublishedExams()
@@ -95,6 +98,23 @@ export default function HomePage() {
     // จำนวนผู้ใช้ (social proof) — จาก server, cache 1 ชม.
     fetch("/api/stats").then((r) => r.json()).then((d) => setUserCount(d.users ?? null)).catch(() => {});
   }, []);
+
+  // การ์ดต้อนรับตามพฤติกรรม — ดูจากวันล่าสุดที่ทำข้อสอบ (อ่าน 1 รายการ)
+  useEffect(() => {
+    if (!user) { setGreeting(null); return; }
+    getRecentResults(user.uid, 1)
+      .then((rs) => {
+        let daysSince: number | null = null;
+        if (rs[0]?.doneAt) {
+          const a = new Date();               a.setHours(0, 0, 0, 0);
+          const b = new Date(rs[0].doneAt);   b.setHours(0, 0, 0, 0);
+          daysSince = Math.round((a.getTime() - b.getTime()) / 86_400_000);
+        }
+        const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
+        setGreeting(pickGreeting(user.uid, today, daysSince));
+      })
+      .catch(() => setGreeting(null));
+  }, [user]);
 
   const latestExams = exams.slice(0, 5);
   const dLeft = daysToExam();
@@ -237,6 +257,29 @@ export default function HomePage() {
 
       {/* ── Feature menu ──────────────────────────────────────────────────── */}
       <section className="max-w-lg mx-auto px-5 py-5">
+
+        {/* ครูอ้อมทักทาย — ข้อความรายวันตามพฤติกรรม (เฉพาะคน login) */}
+        {greeting && (() => {
+          const c = greeting.tone === "scold"
+            ? { bg: "#FEF2F2", border: "#FECACA", accent: "#DC2626" }
+            : greeting.tone === "nudge"
+            ? { bg: "#FEF9EC", border: "#FCD34D", accent: "#B45309" }
+            : { bg: "#F5FAF9", border: "#C3E5DE", accent: "#0B6E65" };
+          const firstName = (user?.displayName ?? "").split(" ")[0];
+          return (
+            <div className="rounded-2xl px-4 py-3.5 mb-4 flex items-start gap-3"
+              style={{ backgroundColor: c.bg, border: `1.5px solid ${c.border}` }}>
+              <span className="text-[20px] leading-none mt-0.5">{greeting.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-wider mb-0.5" style={{ color: c.accent }}>
+                  ครูอ้อมทักทาย{firstName ? ` · ${firstName}` : ""}
+                </p>
+                <p className="text-[13px] leading-relaxed text-gray-800">{greeting.text}</p>
+              </div>
+            </div>
+          );
+        })()}
+
         <p className="text-[15px] font-bold tracking-[0.12em] uppercase mb-4" style={{ color: "#A8A8A6" }}>
           เมนูหลัก
         </p>
@@ -277,7 +320,7 @@ export default function HomePage() {
           <span className="text-[20px] flex-shrink-0">🔥</span>
           <div className="flex-1 min-w-0">
             <p className="text-[14px] font-bold text-gray-900 leading-tight">Daily Quiz วันนี้</p>
-            <p className="text-[12px]" style={{ color: "#B45309" }}>10 ข้อใหม่ทุกวัน · เก็บ streak ต่อเนื่อง</p>
+            <p className="text-[12px]" style={{ color: "#B45309" }}>10 ข้อเจาะจุดอ่อนของคุณ · เก็บ streak ทุกวัน</p>
           </div>
           <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">

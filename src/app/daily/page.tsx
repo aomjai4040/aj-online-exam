@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
 import { PRICING } from "@/lib/pricing";
 import { BRAND } from "@/lib/subjects";
+import { SUBJECT_DISPLAY } from "@/lib/types";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
 
@@ -22,7 +23,7 @@ type View =
   | { s: "no-access" }
   | { s: "error" }
   | { s: "done"; score: number; total: number; streak: number; examTitle: string }
-  | { s: "quiz"; examId: string; examTitle: string; questions: Q[]; streak: number }
+  | { s: "quiz"; examId: string; examTitle: string; subject: string; focus: string; questions: Q[]; streak: number }
   | { s: "result"; score: number; total: number; streak: number; detail: DetailRow[] };
 
 const OPT = ["ก", "ข", "ค", "ง"];
@@ -49,7 +50,11 @@ export default function DailyQuizPage() {
       if (d.done) {
         setView({ s: "done", score: d.score, total: d.total, streak: d.streak, examTitle: d.examTitle });
       } else {
-        setView({ s: "quiz", examId: d.quiz.examId, examTitle: d.quiz.examTitle, questions: d.quiz.questions, streak: d.streak });
+        setView({
+          s: "quiz", examId: d.quiz.examId, examTitle: d.quiz.examTitle,
+          subject: d.quiz.subject ?? "", focus: d.quiz.focus ?? "general",
+          questions: d.quiz.questions, streak: d.streak,
+        });
         setCurrent(0);
         setAnswers({});
       }
@@ -237,9 +242,19 @@ export default function DailyQuizPage() {
             ตอบแล้ว {answered}/{view.questions.length}
           </span>
         </div>
-        <p className="text-[12px] mb-4 truncate" style={{ color: "#A8A8A6" }}>
-          จากชุด {view.examTitle}
-        </p>
+        {view.focus === "weak" ? (
+          <p className="text-[12px] mb-4">
+            <span className="font-bold px-2 py-0.5 rounded-full mr-1.5"
+              style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>
+              🎯 เจาะจุดอ่อนของคุณ: {SUBJECT_DISPLAY[view.subject] ?? view.subject}
+            </span>
+            <span style={{ color: "#A8A8A6" }}>จากชุด {view.examTitle}</span>
+          </p>
+        ) : (
+          <p className="text-[12px] mb-4 truncate" style={{ color: "#A8A8A6" }}>
+            จากชุด {view.examTitle}
+          </p>
+        )}
 
         {/* Progress dots */}
         <div className="flex gap-1.5 mb-5">
