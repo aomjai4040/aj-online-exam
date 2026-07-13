@@ -126,8 +126,8 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
 
       {/* ── ครูอ้อมทักทาย (หัวการ์ด — โค้ชพูดก่อน แล้วสั่งงาน) ───────────── */}
       <div className="flex items-start gap-2.5 pb-3 mb-3" style={{ borderBottom: "1px solid #F3F2F0" }}>
-        <span className="text-[18px] leading-none mt-0.5">{greeting.emoji}</span>
-        <p className="flex-1 text-[13px] leading-relaxed text-gray-800">
+        <span className="text-[20px] leading-none mt-0.5">{greeting.emoji}</span>
+        <p className="flex-1 text-[14.5px] leading-relaxed text-gray-800">
           <span className="font-bold" style={{ color: "#0B6E65" }}>ครูอ้อม: </span>
           {greeting.text}
         </p>
@@ -135,10 +135,10 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
 
       {/* ── หัวแผน + ตัวนับ ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-1.5">
-        <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: "#0B6E65" }}>
+        <p className="text-[13.5px] font-bold uppercase tracking-wider" style={{ color: "#0B6E65" }}>
           🎯 แผนของฉันวันนี้
         </p>
-        <span className="text-[12.5px] font-extrabold" style={{ color: allDone ? "#15803D" : "#0B6E65" }}>
+        <span className="text-[14px] font-extrabold" style={{ color: allDone ? "#15803D" : "#0B6E65" }}>
           {allDone ? "🎉 ครบแล้ว!" : `วันนี้ ${doneCount}/${items.length} ✓`}
         </span>
       </div>
@@ -147,7 +147,7 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
         <div className="h-full rounded-full transition-all duration-500"
           style={{ width: `${items.length ? (doneCount / items.length) * 100 : 0}%`, backgroundColor: allDone ? "#15803D" : "#0B6E65" }} />
       </div>
-      <div className="flex items-center gap-2 text-[11.5px] mb-3" style={{ color: "#A8A8A6" }}>
+      <div className="flex items-center gap-2 text-[13px] mb-3" style={{ color: "#A8A8A6" }}>
         <span className="font-semibold" style={{ color: "#B45309" }}>เหลือ {plan.daysLeft} วัน · {PLAN_TARGET_LABEL}</span>
         {streak > 0 && (
           <>
@@ -162,10 +162,10 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
         {/* 0. Mock ประเมินตัวเอง — ข้อแรกจนกว่าจะทำ (รวมจากแบนเนอร์เดิม) */}
         {!didMock && (
           <Row href="/mock-exam" done={false}>
-            <span className="block text-[13px] font-semibold" style={{ color: "#1F2937" }}>
+            <span className="block text-[14.5px] font-semibold" style={{ color: "#1F2937" }}>
               🩺 ทำ Mock ประเมินตัวเอง (เริ่มแบบติวเตอร์)
             </span>
-            <span className="block text-[11.5px]" style={{ color: "#A8A8A6" }}>
+            <span className="block text-[12.5px]" style={{ color: "#A8A8A6" }}>
               รู้จุดอ่อนทุกหมวดใน 1 ชุด → แผนจะเจาะจุดอ่อนคุณแม่นขึ้น
             </span>
           </Row>
@@ -173,7 +173,7 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
 
         {/* 1. Daily Quiz */}
         <Row href="/daily" done={dailyDone}>
-          <span className="block text-[13px] font-semibold"
+          <span className="block text-[14.5px] font-semibold"
             style={{ color: dailyDone ? "#6B7280" : "#1F2937", textDecoration: dailyDone ? "line-through" : "none" }}>
             🔥 Daily Quiz เจาะจุดอ่อน 10 ข้อ
           </span>
@@ -182,18 +182,18 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
         {/* 2. ชุดแนะนำจากหมวดอ่อน */}
         {plan.suggestedExam ? (
           <Row href={`/exam/${plan.suggestedExam.id}`} done={examDoneToday}>
-            <span className="block text-[13px] font-semibold truncate"
+            <span className="block text-[14.5px] font-semibold truncate"
               style={{ color: examDoneToday ? "#6B7280" : "#1F2937", textDecoration: examDoneToday ? "line-through" : "none" }}>
               📝 {plan.suggestedExam.title}
             </span>
-            <span className="block text-[11.5px]" style={{ color: "#B45309" }}>
+            <span className="block text-[12.5px]" style={{ color: "#B45309" }}>
               {plan.suggestedIsRetry ? "ทำซ้ำเก็บคะแนน" : "ชุดใหม่"}
               {plan.focusSubject ? ` · หมวดอ่อนของคุณ: ${SUBJECT_DISPLAY[plan.focusSubject] ?? plan.focusSubject}` : ""}
             </span>
           </Row>
         ) : (
           <Row href="/review" done={examDoneToday}>
-            <span className="block text-[13px] font-semibold" style={{ color: "#15803D" }}>
+            <span className="block text-[14.5px] font-semibold" style={{ color: "#15803D" }}>
               👏 ทำครบทุกชุดแล้ว — วนทบทวนข้อที่เคยผิดต่อ
             </span>
           </Row>
@@ -210,10 +210,10 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
               </svg>
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[13px] font-semibold truncate" style={{ color: "#1F2937" }}>
+              <span className="block text-[14.5px] font-semibold truncate" style={{ color: "#1F2937" }}>
                 🎬 {plan.nextClip.title}
               </span>
-              <span className="block text-[11.5px]" style={{ color: "#A8A8A6" }}>
+              <span className="block text-[12.5px]" style={{ color: "#A8A8A6" }}>
                 คลิปถัดไปของคุณ{plan.nextClip.duration ? ` · ${plan.nextClip.duration}` : ""}
               </span>
             </span>
@@ -226,7 +226,7 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
       </div>
 
       {/* ── ความคืบหน้ารวม — framing บวก ─────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[11.5px]" style={{ color: "#6B7280" }}>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[13px]" style={{ color: "#6B7280" }}>
         <span>
           ทำไปแล้ว <span className="font-bold" style={{ color: "#0B6E65" }}>{setsDone}/{plan.setsTotal}</span> ชุด
           <MiniBar done={setsDone} total={plan.setsTotal} color="#0B6E65" />
