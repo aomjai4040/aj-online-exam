@@ -260,8 +260,8 @@ export default function HomePage() {
       {/* ── Feature menu ──────────────────────────────────────────────────── */}
       <section className="max-w-lg mx-auto px-5 py-5">
 
-        {/* ครูอ้อมทักทาย — ข้อความรายวันตามพฤติกรรม (เฉพาะคน login) */}
-        {greeting && (() => {
+        {/* ครูอ้อมทักทาย — เฉพาะคน login ที่ "ไม่มี" การ์ดโค้ช (สมาชิกได้คำทักทายในการ์ดโค้ชแล้ว) */}
+        {!planShown && greeting && (() => {
           const c = greeting.tone === "scold"
             ? { bg: "#FEF2F2", border: "#FECACA", accent: "#DC2626" }
             : greeting.tone === "nudge"

@@ -6,7 +6,7 @@
  * ฟังก์ชันคำนวณเป็น pure ทั้งหมด — เทสง่าย ไม่ผูก Firebase (ยกเว้น getDailyDoneToday)
  */
 
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, documentId } from "firebase/firestore";
 import { db } from "./firebase";
 import { SUBJECTS, isMockExam, type Exam } from "./types";
 import type { UserExamSummary } from "./user-firestore";
@@ -15,6 +15,8 @@ import type { VideoProgress } from "./video-progress";
 
 export interface StudyPlan {
   daysLeft:       number;
+  setsTotal:      number;             // ชุดทั้งหมด (ไม่รวม mock) — ใช้แสดงความคืบหน้าเชิงบวก
+  clipsTotal:     number;             // คลิปทั้งหมด (0 ถ้าไม่มีสิทธิ์วิดีโอ)
   setsRemaining:  number;             // ชุด (ไม่รวม mock) ที่ยังไม่เคยทำ
   clipsRemaining: number;             // คลิปที่ยังดูไม่จบ (0 ถ้าไม่มีสิทธิ์วิดีโอ)
   perDaySets:     number;             // จังหวะขั้นต่ำต่อวันให้ทัน
@@ -77,6 +79,8 @@ export function buildStudyPlan({ exams, summaries, videos, videoProgress, daysLe
 
   return {
     daysLeft,
+    setsTotal:      real.length,
+    clipsTotal:     videos.length,
     setsRemaining:  notAttempted.length,
     clipsRemaining,
     perDaySets:  Math.ceil(notAttempted.length / days),
@@ -100,5 +104,31 @@ export async function getDailyDoneToday(uid: string): Promise<boolean> {
     return snap.exists();
   } catch {
     return false;
+  }
+}
+
+/** streak วันติดของ Daily Quiz — ตรรกะเดียวกับ computeDailyStreak ฝั่ง server
+ *  (doc id = YYYY-MM-DD, range 60 วันด้วย documentId — rules เปิดให้เจ้าของอ่าน) */
+export async function getDailyStreakClient(uid: string): Promise<number> {
+  try {
+    const today = bkkTodayClient();
+    const dayMs = 86_400_000;
+    const start = new Date(new Date(`${today}T00:00:00Z`).getTime() - 60 * dayMs)
+      .toISOString().slice(0, 10);
+    const snap = await getDocs(query(
+      collection(db, "users", uid, "dailyQuiz"),
+      where(documentId(), ">=", start),
+    ));
+    const days = new Set(snap.docs.map((d) => d.id));
+    let cur = new Date(`${today}T00:00:00Z`).getTime();
+    if (!days.has(today)) cur -= dayMs;
+    let streak = 0;
+    while (days.has(new Date(cur).toISOString().slice(0, 10))) {
+      streak++;
+      cur -= dayMs;
+    }
+    return streak;
+  } catch {
+    return 0;
   }
 }
