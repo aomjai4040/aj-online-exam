@@ -12,6 +12,7 @@ import { PRICING } from "@/lib/pricing";
 import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
 import { getRecentResults } from "@/lib/user-firestore";
 import { pickGreeting, type Greeting } from "@/lib/greeting";
+import TodayPlanCard from "@/components/TodayPlanCard";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [userCount, setUserCount] = useState<number | null>(null);
   const [greeting, setGreeting] = useState<Greeting | null>(null);
+  const [planShown, setPlanShown] = useState(false); // สมาชิกเห็นแผน → ซ่อนการ์ด Daily Quiz เดี่ยว (ซ้ำ)
 
   useEffect(() => {
     getPublishedExams()
@@ -280,6 +282,9 @@ export default function HomePage() {
           );
         })()}
 
+        {/* เริ่มแบบติวเตอร์ (Mock ประเมิน) + แผนของฉันวันนี้ — สมาชิกเท่านั้น */}
+        <TodayPlanCard onVisible={setPlanShown} />
+
         <p className="text-[15px] font-bold tracking-[0.12em] uppercase mb-4" style={{ color: "#A8A8A6" }}>
           เมนูหลัก
         </p>
@@ -310,7 +315,8 @@ export default function HomePage() {
           </svg>
         </Link>
 
-        {/* Daily Quiz — วันละ 10 ข้อ เก็บ streak (การ์ดบางไม่รก) */}
+        {/* Daily Quiz — วันละ 10 ข้อ เก็บ streak (ซ่อนเมื่อการ์ดแผนแสดง — ในแผนมีข้อนี้แล้ว) */}
+        {!planShown && (
         <Link
           href="/daily"
           className="flex items-center gap-3 w-full rounded-2xl px-4 py-3 mb-3
@@ -327,6 +333,7 @@ export default function HomePage() {
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </Link>
+        )}
 
         {/* Secondary 2 × 2 — โทนแบรนด์เดียวกันทุกใบ ทุกปุ่มมีปลายทางจริง */}
         <div className="grid grid-cols-2 gap-3">

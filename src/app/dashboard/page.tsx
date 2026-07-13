@@ -12,11 +12,8 @@ import { getUserCourses, type UserCourse } from "@/lib/activation";
 import { isAppOnlyCourse } from "@/lib/access";
 import { PRICING } from "@/lib/pricing";
 import { getPublishedExams } from "@/lib/firestore";
-import { getPublishedVideos, type CourseVideo } from "@/lib/video-firestore";
-import { getAllVideoProgress, type VideoProgress } from "@/lib/video-progress";
-import { buildStudyPlan, getDailyDoneToday } from "@/lib/coach";
-import { normalizeSubject, isMockExam, getSubjectShort, SUBJECT_DISPLAY, type Exam } from "@/lib/types";
-import { daysToExam, COUNTDOWN_LABEL, planDaysLeft, PLAN_TARGET_LABEL } from "@/lib/exam-config";
+import { normalizeSubject, isMockExam, getSubjectShort } from "@/lib/types";
+import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
 import { listInProgress } from "@/lib/exam-progress";
 import { countWrongQuestions } from "@/lib/smart-review";
 import { useLoginGuard } from "@/lib/use-login-guard";
@@ -47,180 +44,10 @@ function computeStreak(results: UserResult[]): number {
   return streak;
 }
 
-function gradeColor(pct: number) {
-  if (pct >= 80) return "#0B6E65";
-  if (pct >= 60) return "#B45309";
-  return "#DC2626";
-}
-
-function fmt(iso: string): string {
-  return new Date(iso).toLocaleDateString("th-TH", {
-    day:   "numeric",
-    month: "short",
-    year:  "2-digit",
-  });
-}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 
-// ─── Exam Record Card ─────────────────────────────────────────────────────────
-
-function ExamRecordCard({ s }: { s: UserExamSummary }) {
-  const color      = sc(s.subject);
-  const hex        = color.replace("#", "");
-  const rr         = parseInt(hex.slice(0, 2), 16);
-  const gg         = parseInt(hex.slice(2, 4), 16);
-  const bb         = parseInt(hex.slice(4, 6), 16);
-  const chipBg     = `rgba(${rr},${gg},${bb},0.1)`;
-
-  const isPassing  = s.percentage >= 60;
-  const best       = s.bestPercentage ?? s.percentage;   // fallback for old records
-  const isNewBest  = s.bestPercentage !== undefined      // only show when tracked
-                     && s.percentage === best
-                     && (s.attempts ?? 1) > 1;
-  const attempts   = s.attempts ?? 1;
-  const improved   = s.bestPercentage !== undefined && s.percentage < best; // regressed
-
-  return (
-    <div
-      className="bg-white rounded-2xl overflow-hidden"
-      style={{ border: `1px solid ${isPassing ? "#C3E5DE" : "#EBEBEA"}` }}
-    >
-      {/* Accent bar */}
-      <div className="h-[3px]" style={{ backgroundColor: color }} />
-
-      <div className="px-4 pt-4 pb-3">
-
-        {/* Header: subject chip + pass/fail */}
-        <div className="flex items-center justify-between gap-2 mb-2.5">
-          <span
-            className="text-[12px] font-bold px-2 py-[4px] rounded-full"
-            style={{ backgroundColor: chipBg, color }}
-          >
-            {s.subject}
-          </span>
-          <span
-            className="text-[12px] font-bold px-2.5 py-[4px] rounded-full"
-            style={
-              isPassing
-                ? { backgroundColor: "#EBF5F3", color: "#0B6E65" }
-                : { backgroundColor: "#FEF2F2", color: "#DC2626" }
-            }
-          >
-            {isPassing ? "✓ ผ่านเกณฑ์" : "✗ ไม่ผ่าน"}
-          </span>
-        </div>
-
-        {/* Title */}
-        <h3 className="font-bold text-[14px] text-gray-900 leading-snug line-clamp-2 mb-3">
-          {s.examTitle}
-        </h3>
-
-        {/* ── Stats 3-col ──────────────────────────────────────── */}
-        <div
-          className="grid grid-cols-3 mb-3"
-          style={{ borderTop: "1px solid #F3F2F0", borderBottom: "1px solid #F3F2F0" }}
-        >
-          {/* Latest score */}
-          <div
-            className="flex flex-col items-center py-3"
-            style={{ borderRight: "1px solid #F3F2F0" }}
-          >
-            <div className="flex items-center gap-1 mb-0.5">
-              <span
-                className="text-[20px] font-extrabold leading-none"
-                style={{ color: gradeColor(s.percentage) }}
-              >
-                {s.percentage}%
-              </span>
-              {improved && (
-                <span className="text-[12px]" title="ต่ำกว่าคะแนนสูงสุด">↘</span>
-              )}
-            </div>
-            <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>ล่าสุด</span>
-            <span className="text-[11.5px]" style={{ color: "#C4C4C0" }}>
-              {s.score}/{s.totalQuestions} ข้อ
-            </span>
-          </div>
-
-          {/* Best score */}
-          <div
-            className="flex flex-col items-center py-3"
-            style={{ borderRight: "1px solid #F3F2F0" }}
-          >
-            <div className="flex items-center gap-1 mb-0.5">
-              {isNewBest && <span className="text-[13px] leading-none">🏆</span>}
-              <span
-                className="text-[20px] font-extrabold leading-none"
-                style={{ color: gradeColor(best) }}
-              >
-                {best}%
-              </span>
-            </div>
-            <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>สูงสุด</span>
-            {best >= 60 ? (
-              <span className="text-[11.5px]" style={{ color: "#0B6E65" }}>ผ่านแล้ว</span>
-            ) : (
-              <span className="text-[11.5px]" style={{ color: "#DC2626" }}>ยังไม่ผ่าน</span>
-            )}
-          </div>
-
-          {/* Attempts */}
-          <div className="flex flex-col items-center py-3">
-            <span className="text-[20px] font-extrabold leading-none text-gray-900 mb-0.5">
-              {attempts}
-            </span>
-            <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>ครั้งที่สอบ</span>
-            {attempts >= 5 ? (
-              <span className="text-[11.5px]" style={{ color: "#F97316" }}>ขยันมาก!</span>
-            ) : attempts >= 2 ? (
-              <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>ทบทวนแล้ว</span>
-            ) : (
-              <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>ครั้งแรก</span>
-            )}
-          </div>
-        </div>
-
-        {/* ── Footer: date + retry ──────────────────────────── */}
-        <div className="flex items-center justify-between">
-          {/* Date */}
-          <div
-            className="flex items-center gap-1.5 text-[12px]"
-            style={{ color: "#A8A8A6" }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
-              className="w-3.5 h-3.5">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8"  y1="2" x2="8"  y2="6" />
-              <line x1="3"  y1="10" x2="21" y2="10" />
-            </svg>
-            {fmt(s.lastDoneAt)}
-          </div>
-
-          {/* Retry button */}
-          <Link
-            href={`/exam/${s.examId}`}
-            className="flex items-center gap-1.5 text-[12px] font-semibold
-                       px-3.5 py-2 rounded-xl transition-all
-                       hover:opacity-80 active:scale-[0.96]"
-            style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              className="w-3.5 h-3.5">
-              <polyline points="1 4 1 10 7 10" />
-              <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
-            </svg>
-            ทำซ้ำ
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Sign-in prompt ───────────────────────────────────────────────────────────
 
@@ -300,10 +127,6 @@ export default function DashboardPage() {
   const [wrongCount,  setWrongCount]  = useState(0);
   const [totalSets,   setTotalSets]   = useState(0); // จำนวนชุดข้อสอบทั้งหมด (ไม่รวม mock) — ตัวหารความครอบคลุม
   const [freeSets,    setFreeSets]    = useState(0); // ชุดทดลองฟรี — ใช้คำนวณจำนวนชุดที่ล็อกบนการ์ด upsell
-  const [allExams,    setAllExams]    = useState<Exam[]>([]);               // ใช้สร้างแผนเรียน
-  const [videos,      setVideos]      = useState<CourseVideo[]>([]);        // คอร์สเต็มเท่านั้น
-  const [videoProg,   setVideoProg]   = useState<Map<string, VideoProgress>>(new Map());
-  const [dailyDone,   setDailyDone]   = useState(false);                    // วันนี้ทำ Daily Quiz แล้ว
   const [inProgress,  setInProgress]  = useState<ReturnType<typeof listInProgress>>([]);
 
   const load = useCallback(async (uid: string) => {
@@ -319,22 +142,10 @@ export default function DashboardPage() {
       const realSets = all.filter((e) => !isMockExam(e));
       setTotalSets(realSets.length);
       setFreeSets(realSets.filter((e) => e.isFree).length);
-      setAllExams(all);
       setSummaries(s);
       setResults(r);
       setCourses(c);
       setWrongCount(w);
-
-      // ข้อมูลแผนเรียน: คลิป (คอร์สเต็มเท่านั้น) + สถานะ Daily Quiz วันนี้
-      const full = c.some((x) => !isAppOnlyCourse(x.courseId));
-      const [vids, vprog, dq] = await Promise.all([
-        full ? getPublishedVideos().catch(() => []) : Promise.resolve([]),
-        full ? getAllVideoProgress(uid).catch(() => new Map<string, VideoProgress>()) : Promise.resolve(new Map<string, VideoProgress>()),
-        getDailyDoneToday(uid),
-      ]);
-      setVideos(vids);
-      setVideoProg(vprog);
-      setDailyDone(dq);
     } finally {
       setDataLoading(false);
     }
@@ -460,20 +271,6 @@ export default function DashboardPage() {
       readiness, predictedScore, momentum, coverage, didMock, hasData,
     };
   }, [summaries, results, totalSets]);
-
-  // ── แผนเรียนวันนี้ (ติวเตอร์ส่วนตัว — สมาชิกเท่านั้น) ────────────────────────
-  const plan = useMemo(() => {
-    if (courses.length === 0 || allExams.length === 0) return null;
-    return buildStudyPlan({
-      exams: allExams, summaries, videos, videoProgress: videoProg,
-      daysLeft: planDaysLeft(),
-    });
-  }, [courses, allExams, summaries, videos, videoProg]);
-
-  const examDoneToday = useMemo(() => {
-    const today = dateKey(new Date());
-    return results.some((r) => dateKey(new Date(r.doneAt)) === today);
-  }, [results]);
 
   // ── Guards ──────────────────────────────────────────────────────────────────
   // useAccessGuard จัดการ: ไม่ login → /, ไม่ activate → /activate
@@ -664,112 +461,8 @@ export default function DashboardPage() {
           </Link>
         )}
 
-        {/* ═══ เริ่มแบบติวเตอร์: ทำ Mock ประเมินตัวเองก่อน ═══════════════ */}
-        {courses.length > 0 && !dataLoading && !stats.didMock && (
-          <Link href="/mock-exam" className="block rounded-2xl p-4 active:scale-[0.99] transition-transform"
-            style={{ backgroundColor: "#0B4F48" }}>
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-[20px] flex-shrink-0"
-                style={{ backgroundColor: "rgba(255,255,255,0.12)" }}>
-                🩺
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-bold text-white leading-snug">
-                  เริ่มแบบติวเตอร์: ทำ Mock ประเมินตัวเองก่อน
-                </p>
-                <p className="text-[12px] mt-0.5 leading-relaxed" style={{ color: "#9FE1CB" }}>
-                  รู้จุดอ่อนทุกหมวดใน 1 ชุด → แผนเรียน + Daily Quiz จะเจาะจุดอ่อนคุณแม่นขึ้น
-                </p>
-              </div>
-              <svg viewBox="0 0 24 24" fill="none" stroke="#9FE1CB"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </div>
-          </Link>
-        )}
-
-        {/* ═══ แผนของฉันวันนี้ (ติวเตอร์ส่วนตัว) ═══════════════════════ */}
-        {plan && !dataLoading && (
-          <div className="bg-white rounded-2xl p-4" style={{ border: "1.5px solid #C3E5DE" }}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[12px] font-bold uppercase tracking-wider" style={{ color: "#0B6E65" }}>
-                🎯 แผนของฉันวันนี้
-              </p>
-              <span className="text-[12px] font-semibold" style={{ color: "#B45309" }}>
-                เหลือ {plan.daysLeft} วัน · {PLAN_TARGET_LABEL}
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              {/* 1. Daily Quiz */}
-              <Link href="/daily" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5"
-                style={{ backgroundColor: dailyDone ? "#F7FDF9" : "#FAFAF8", border: `1px solid ${dailyDone ? "#BBF7D0" : "#EBEBEA"}` }}>
-                <span className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
-                  style={dailyDone ? { backgroundColor: "#DCFCE7", color: "#15803D" } : { border: "2px solid #D4D4D0", color: "transparent" }}>
-                  ✓
-                </span>
-                <span className="flex-1 text-[13px] font-semibold"
-                  style={{ color: dailyDone ? "#6B7280" : "#1F2937", textDecoration: dailyDone ? "line-through" : "none" }}>
-                  🔥 Daily Quiz เจาะจุดอ่อน 10 ข้อ
-                </span>
-              </Link>
-
-              {/* 2. ชุดแนะนำจากหมวดอ่อน */}
-              {plan.suggestedExam ? (
-                <Link href={`/exam/${plan.suggestedExam.id}`} className="flex items-center gap-3 rounded-xl px-3.5 py-2.5"
-                  style={{ backgroundColor: examDoneToday ? "#F7FDF9" : "#FAFAF8", border: `1px solid ${examDoneToday ? "#BBF7D0" : "#EBEBEA"}` }}>
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
-                    style={examDoneToday ? { backgroundColor: "#DCFCE7", color: "#15803D" } : { border: "2px solid #D4D4D0", color: "transparent" }}>
-                    ✓
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[13px] font-semibold truncate" style={{ color: "#1F2937" }}>
-                      📝 {plan.suggestedExam.title}
-                    </span>
-                    <span className="block text-[11.5px]" style={{ color: "#B45309" }}>
-                      {plan.suggestedIsRetry ? "ทำซ้ำเก็บคะแนน" : "ชุดใหม่"}
-                      {plan.focusSubject ? ` · หมวดอ่อนของคุณ: ${SUBJECT_DISPLAY[plan.focusSubject] ?? plan.focusSubject}` : ""}
-                    </span>
-                  </span>
-                </Link>
-              ) : (
-                <Link href="/review" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5"
-                  style={{ backgroundColor: "#F7FDF9", border: "1px solid #BBF7D0" }}>
-                  <span className="text-[13px] font-semibold" style={{ color: "#15803D" }}>
-                    👏 ทำครบทุกชุดแล้ว — วนทบทวนข้อที่เคยผิดต่อ
-                  </span>
-                </Link>
-              )}
-
-              {/* 3. คลิปถัดไป (คอร์สเต็ม) */}
-              {plan.nextClip && (
-                <Link href="/videos" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5"
-                  style={{ backgroundColor: "#FAFAF8", border: "1px solid #EBEBEA" }}>
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#EBF5F3" }}>
-                    <svg viewBox="0 0 24 24" fill="#0B6E65" className="w-2.5 h-2.5">
-                      <polygon points="6 3 20 12 6 21 6 3" />
-                    </svg>
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[13px] font-semibold truncate" style={{ color: "#1F2937" }}>
-                      🎬 {plan.nextClip.title}
-                    </span>
-                    <span className="block text-[11.5px]" style={{ color: "#A8A8A6" }}>
-                      คลิปถัดไปของคุณ{plan.nextClip.duration ? ` · ${plan.nextClip.duration}` : ""}
-                    </span>
-                  </span>
-                </Link>
-              )}
-            </div>
-
-            <p className="text-[11.5px] mt-3 leading-relaxed" style={{ color: "#A8A8A6" }}>
-              ค้างอีก {plan.setsRemaining} ชุด{plan.clipsRemaining > 0 ? ` · ${plan.clipsRemaining} คลิป` : ""}
-              {" "}→ เฉลี่ยวันละ {plan.perDaySets} ชุด{plan.clipsRemaining > 0 ? ` + ${plan.perDayClips} คลิป` : ""} ก็ทันสอบ
-            </p>
-          </div>
-        )}
+        {/* การ์ด "เริ่มแบบติวเตอร์" + "แผนของฉันวันนี้" ย้ายไปหน้าแรกแล้ว
+            (components/TodayPlanCard — Aj สั่งให้เข้าแอปแล้วเห็นแผนทันที) */}
 
         {/* ═══ ทำตอนนี้เพื่อขยับความพร้อม ══════════════════════════════ */}
         {(() => {
@@ -1090,59 +783,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* ═══ บันทึกของฉัน ════════════════════════════════════════════ */}
-        {summaries.length > 0 ? (
-          <div>
-            {/* Section header */}
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
-                  บันทึกของฉัน
-                </p>
-                <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
-                  {summaries.length} ชุดข้อสอบ · เรียงจากล่าสุด
-                </p>
-              </div>
-              {/* Pass summary chips */}
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="text-[12px] font-semibold px-2 py-[3px] rounded-full"
-                  style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
-                >
-                  ✓ {summaries.filter((s) => s.percentage >= 60).length}
-                </span>
-                <span
-                  className="text-[12px] font-semibold px-2 py-[3px] rounded-full"
-                  style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
-                >
-                  ✗ {summaries.filter((s) => s.percentage < 60).length}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {[...summaries]
-                .sort((a, b) => new Date(b.lastDoneAt).getTime() - new Date(a.lastDoneAt).getTime())
-                .map((s) => (
-                  <ExamRecordCard key={s.examId} s={s} />
-                ))}
-            </div>
-          </div>
-        ) : !dataLoading ? (
-          <div
-            className="bg-white rounded-2xl p-10 text-center"
-            style={{ border: "1px solid #EBEBEA" }}
-          >
-            <div className="text-4xl mb-3">📋</div>
-            <p className="text-[15px] font-semibold text-gray-800 mb-1">ยังไม่มีประวัติการสอบ</p>
-            <p className="text-[13px] mb-5" style={{ color: "#A8A8A6" }}>
-              เริ่มทำข้อสอบแล้วคะแนนและสถิติของคุณจะปรากฏที่นี่
-            </p>
-            <Link href="/exams" className="btn-primary text-sm">
-              ไปที่คลังข้อสอบ →
-            </Link>
-          </div>
-        ) : null}
+        {/* ผลผ่าน/ไม่ผ่านรายชุด ย้ายไปแสดงบนการ์ดในหน้า "ข้อสอบ" แล้ว
+            (แถบคะแนนสี + ป้ายผ่านเกณฑ์) — หน้าโปรไฟล์ไม่แสดงซ้ำ */}
 
       </div>
       <BottomNav />
