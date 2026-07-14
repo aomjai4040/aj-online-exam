@@ -49,12 +49,12 @@ function Row({ href, done, title, sub, subColor }: {
         )}
       </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-[17.5px] font-semibold truncate"
+        <span className="block text-[16px] font-semibold truncate"
           style={{ color: done ? "#9CA3AF" : "#1F2937", textDecoration: done ? "line-through" : "none" }}>
           {title}
         </span>
         {sub && (
-          <span className="block text-[15px] mt-0.5" style={{ color: subColor ?? "#A8A8A6" }}>
+          <span className="block text-[13.5px] mt-0.5" style={{ color: subColor ?? "#A8A8A6" }}>
             {sub}
           </span>
         )}
@@ -143,24 +143,24 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
 
       {/* ── ครูอ้อมทักทาย — หัวข้อเทาแบบเดียวกับ section อื่นทั้งแอป ─────── */}
       <div className="pb-3.5 mb-3.5" style={{ borderBottom: "1px solid #F3F2F0" }}>
-        <p className="text-[14.5px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+        <p className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-1">
           ครูอ้อมทักทาย
         </p>
-        <p className="text-[17.5px] leading-relaxed text-gray-800">
+        <p className="text-[16px] leading-relaxed text-gray-800">
           {greeting.text}
         </p>
       </div>
 
       {/* ── หัวแผน + ตัวนับ ─────────────────────────────────────────────── */}
       <div className="flex items-baseline justify-between mb-2">
-        <p className="text-[14.5px] font-bold text-gray-400 uppercase tracking-widest">
+        <p className="text-[13px] font-bold text-gray-400 uppercase tracking-widest">
           แผนของฉันวันนี้
         </p>
         {allDone ? (
-          <span className="text-[16px] font-bold" style={{ color: "#15803D" }}>✓ ครบแล้ว</span>
+          <span className="text-[14.5px] font-bold" style={{ color: "#15803D" }}>✓ ครบแล้ว</span>
         ) : (
-          <span className="text-[16px]" style={{ color: "#A8A8A6" }}>
-            เสร็จแล้ว <span className="font-extrabold text-[18px]" style={{ color: BRAND.primary }}>{doneCount}</span>/{items.length}
+          <span className="text-[14.5px]" style={{ color: "#A8A8A6" }}>
+            เสร็จแล้ว <span className="font-extrabold text-[16.5px]" style={{ color: BRAND.primary }}>{doneCount}</span>/{items.length}
           </span>
         )}
       </div>
@@ -170,7 +170,7 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
         <div className="h-full rounded-full transition-all duration-500"
           style={{ width: `${items.length ? (doneCount / items.length) * 100 : 0}%`, backgroundColor: allDone ? "#15803D" : BRAND.primary }} />
       </div>
-      <div className="flex items-center gap-2 text-[15.5px] mb-3.5" style={{ color: "#A8A8A6" }}>
+      <div className="flex items-center gap-2 text-[14px] mb-3.5" style={{ color: "#A8A8A6" }}>
         <span>เหลือ <span className="font-bold" style={{ color: "#B45309" }}>{plan.daysLeft}</span> วัน · {PLAN_TARGET_LABEL}</span>
         {streak > 0 && (
           <>
@@ -212,10 +212,10 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
               </svg>
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[17.5px] font-semibold truncate" style={{ color: "#1F2937" }}>
+              <span className="block text-[16px] font-semibold truncate" style={{ color: "#1F2937" }}>
                 {plan.nextClip.title}
               </span>
-              <span className="block text-[15px] mt-0.5" style={{ color: "#A8A8A6" }}>
+              <span className="block text-[13.5px] mt-0.5" style={{ color: "#A8A8A6" }}>
                 คลิปถัดไปของคุณ{plan.nextClip.duration ? ` · ${plan.nextClip.duration}` : ""}
               </span>
             </span>
@@ -228,7 +228,7 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
       </div>
 
       {/* ── ความคืบหน้ารวม — framing บวก ─────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 pt-3.5 text-[15.5px]"
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 pt-3.5 text-[14px]"
         style={{ color: "#6B7280", borderTop: "1px solid #F3F2F0" }}>
         <span>
           ทำแล้ว <span className="font-bold" style={{ color: BRAND.primary }}>{setsDone}/{plan.setsTotal}</span> ชุด
