@@ -198,7 +198,7 @@ function QuestionCard({
             {q.options.map((opt, oi) => {
               const isCorrect = q.correctAnswer === oi;
               return (
-                <div key={oi} className="flex items-center gap-2">
+                <div key={oi} className="flex items-start gap-2">
                   {/* Letter badge — click to set as correct answer */}
                   <button
                     type="button"
@@ -215,10 +215,14 @@ function QuestionCard({
                     {OPTS[oi]}
                   </button>
 
-                  {/* Option text input */}
-                  <input
-                    className="flex-1 rounded-xl px-3.5 py-2 text-[13.5px] text-gray-900
-                               focus:outline-none transition-all duration-150"
+                  {/* Option text — textarea ขยายสูงอัตโนมัติ ให้เห็นทั้งประโยค */}
+                  <textarea
+                    rows={1}
+                    ref={(el) => {
+                      if (el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; }
+                    }}
+                    className="flex-1 rounded-xl px-3.5 py-2 text-[13.5px] leading-relaxed text-gray-900
+                               focus:outline-none transition-colors duration-150 resize-none overflow-hidden"
                     style={{
                       border:          `1.5px solid ${isCorrect ? "#0B6E65" : "#E0DFDC"}`,
                       backgroundColor: isCorrect ? "#EBF5F3" : "white",
