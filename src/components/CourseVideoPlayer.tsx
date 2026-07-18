@@ -111,11 +111,20 @@ export default function CourseVideoPlayer({
 
     const startAt = initialSeconds > 5 ? Math.floor(initialSeconds) : 0;
 
+    // ปิดคำบรรยาย (CC) — YouTube เปิดซับอัตโนมัติตาม preference ของผู้ชม
+    // ผู้ชมเปิดกลับเองไม่ได้อยู่แล้ว (controls=0 + โล่ใส) → ถอดโมดูลทิ้งเลย
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const killCaptions = (p: any) => {
+      try { p?.unloadModule?.("captions"); p?.unloadModule?.("cc"); } catch { /* ignore */ }
+    };
+
     loadYT().then(() => {
       if (cancelled || !mountRef.current) return;
       if (playerRef.current) {
         // สลับจาก playlist/ปุ่มถัดไป = ผู้ใช้ตั้งใจดู → เล่นเลย
         playerRef.current.loadVideoById({ videoId: ytId, startSeconds: startAt });
+        // โมดูลซับโหลดใหม่ต่อคลิป — ถอดซ้ำหลังเริ่มโหลด
+        setTimeout(() => killCaptions(playerRef.current), 800);
         return;
       }
       playerRef.current = new window.YT.Player(mountRef.current, {
@@ -127,6 +136,13 @@ export default function CourseVideoPlayer({
           playsinline: 1, iv_load_policy: 3, modestbranding: 1,
           start: startAt,
           origin: window.location.origin,
+        },
+        events: {
+          // onApiChange ยิงตอนโมดูลซับพร้อม — จุดที่ถอดได้ผลแน่นอนที่สุด
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onReady:     (e: any) => killCaptions(e.target),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onApiChange: (e: any) => killCaptions(e.target),
         },
       });
       // ให้ iframe เต็มกรอบเสมอ
