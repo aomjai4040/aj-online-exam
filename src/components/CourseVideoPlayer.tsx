@@ -44,6 +44,19 @@ function fmt(sec: number): string {
 
 const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
 
+/** ปิดคำบรรยาย (CC) — YouTube เปิดซับกลับเองตอนเริ่มเล่นตาม preference ผู้ชม
+ *  ต้องทั้งถอดโมดูล (player เก่า) และล้าง track (player HTML5 ปัจจุบัน)
+ *  แล้วเรียกซ้ำจาก polling loop — เรียกครั้งเดียวตอนโหลดไม่พอ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function killCaptions(p: any) {
+  try {
+    p?.unloadModule?.("captions");
+    p?.unloadModule?.("cc");
+    p?.setOption?.("captions", "track", {});
+    p?.setOption?.("cc", "track", {});
+  } catch { /* ignore */ }
+}
+
 function Watermark({ label }: { label: string }) {
   const [pos, setPos] = useState({ top: "10%", left: "8%" });
   useEffect(() => {
@@ -111,13 +124,6 @@ export default function CourseVideoPlayer({
 
     const startAt = initialSeconds > 5 ? Math.floor(initialSeconds) : 0;
 
-    // ปิดคำบรรยาย (CC) — YouTube เปิดซับอัตโนมัติตาม preference ของผู้ชม
-    // ผู้ชมเปิดกลับเองไม่ได้อยู่แล้ว (controls=0 + โล่ใส) → ถอดโมดูลทิ้งเลย
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const killCaptions = (p: any) => {
-      try { p?.unloadModule?.("captions"); p?.unloadModule?.("cc"); } catch { /* ignore */ }
-    };
-
     loadYT().then(() => {
       if (cancelled || !mountRef.current) return;
       if (playerRef.current) {
@@ -172,6 +178,8 @@ export default function CourseVideoPlayer({
       if (!p?.getPlayerState) return;
       let state = -1;
       try { state = p.getPlayerState(); } catch { return; }
+
+      killCaptions(p); // YouTube เปิดซับกลับได้ตลอด — กดปิดซ้ำทุกรอบ poll
 
       const t = (() => { try { return p.getCurrentTime?.() ?? 0; } catch { return 0; } })();
       const d = (() => { try { return p.getDuration?.() ?? 0; } catch { return 0; } })();
