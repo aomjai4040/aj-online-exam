@@ -143,9 +143,13 @@ export default function VideosPage() {
   return (
     <div className="min-h-screen bg-stone-50 pb-28">
 
+      {/* จอกว้าง (≥lg): สองฝั่ง — player ซ้าย (ตรึงไว้) + playlist ขวา */}
+      <div className="lg:max-w-6xl lg:mx-auto lg:px-5 lg:pt-5 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-6 lg:items-start">
+      <div className="min-w-0 lg:sticky lg:top-[72px]">
+
       {/* Player (ควบคุมเองทั้งหมด — ไม่มีทางกดหลุดไป YouTube) */}
-      <div className="bg-black sticky top-14 z-30">
-        <div className="max-w-2xl mx-auto">
+      <div className="bg-black sticky top-14 z-30 lg:static lg:rounded-2xl lg:overflow-hidden">
+        <div className="max-w-2xl mx-auto lg:max-w-none">
           {current ? (
             <CourseVideoPlayer
               ytId={current.ytId}
@@ -170,7 +174,7 @@ export default function VideosPage() {
 
       {/* ชื่อคลิปปัจจุบัน */}
       {current && (
-        <div className="max-w-2xl mx-auto px-5 py-4 bg-white" style={{ borderBottom: "1px solid #EBEBEA" }}>
+        <div className="max-w-2xl mx-auto lg:max-w-none px-5 py-4 bg-white lg:rounded-b-2xl" style={{ borderBottom: "1px solid #EBEBEA" }}>
           <p className="text-[12px] font-semibold mb-0.5" style={{ color: BRAND.primary }}>
             {current.chapter}
           </p>
@@ -181,12 +185,14 @@ export default function VideosPage() {
       )}
 
       {/* ทรัพยากรคอร์สเต็ม: ชีทสรุป + กลุ่ม LINE (โผล่เมื่อ Aj ใส่ลิงก์) */}
-      <div className="max-w-2xl mx-auto px-5 pt-4">
+      <div className="max-w-2xl mx-auto lg:max-w-none px-5 lg:px-0 pt-4">
         <CourseResources />
       </div>
 
-      {/* Playlist */}
-      <div className="max-w-2xl mx-auto px-5 py-5 space-y-6">
+      </div>{/* /ฝั่งซ้าย */}
+
+      {/* Playlist — จอกว้างเป็นคอลัมน์ขวา */}
+      <div className="max-w-2xl mx-auto lg:max-w-none lg:mx-0 min-w-0 px-5 lg:px-0 py-5 lg:py-0 space-y-6">
         {error && <p className="text-[13.5px] text-red-500">{error}</p>}
         {chapters.map(([chapter, list]) => {
           const doneCount = list.filter((v) => progress.get(v.id)?.completed).length;
@@ -281,6 +287,8 @@ export default function VideosPage() {
           );
         })}
       </div>
+
+      </div>{/* /สองฝั่ง */}
 
       <BottomNav />
     </div>

@@ -368,7 +368,7 @@ export default function ExamsPage() {
       <div className="sticky top-14 z-30 bg-stone-50">
 
         {/* Title row + search */}
-        <div className="max-w-2xl mx-auto px-5 pt-7 pb-4">
+        <div className="max-w-2xl md:max-w-5xl mx-auto px-5 pt-7 pb-4">
           <div className="flex items-start justify-between mb-5">
             <div>
               <p
@@ -439,7 +439,7 @@ export default function ExamsPage() {
         {/* Subject filter tabs */}
         {!loading && subjects.length > 1 && (
           <div style={{ borderBottom: "1px solid #EBEBEA" }}>
-            <div className="flex overflow-x-auto no-scrollbar px-5 max-w-2xl mx-auto">
+            <div className="flex overflow-x-auto no-scrollbar px-5 max-w-2xl md:max-w-5xl mx-auto">
               {subjects.map((s) => {
                 const active = activeSubject === s;
                 return (
@@ -464,7 +464,7 @@ export default function ExamsPage() {
       </div>
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
-      <div className="max-w-2xl mx-auto px-5 py-5">
+      <div className="max-w-2xl md:max-w-5xl mx-auto px-5 py-5">
 
         {/* Count label */}
         {!loading && (
@@ -520,7 +520,7 @@ export default function ExamsPage() {
 
         {/* Exam cards — โหมดกรอง/ค้นหา = ลิสต์แบน */}
         {!loading && filtered.length > 0 && isFiltering && (
-          <div className="space-y-3">
+          <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4">
             {filtered.map((exam) => (
               <ExamCardItem
                 key={exam.id}
@@ -555,7 +555,7 @@ export default function ExamsPage() {
                       {done === list.length && done > 0 ? "✓ ครบทุกชุด" : `ทำแล้ว ${done}/${list.length}`}
                     </span>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4">
                     {list.map((exam) => (
                       <ExamCardItem
                         key={exam.id}

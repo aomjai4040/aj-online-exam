@@ -30,7 +30,7 @@ export default function FreePage() {
       {/* Hero */}
       <section className="px-5 pt-10 pb-8"
         style={{ background: "linear-gradient(160deg, #0B6E65 0%, #0d9488 60%, #134e4a 100%)" }}>
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-lg md:max-w-3xl mx-auto">
           <span className="inline-block text-[12px] font-bold tracking-widest uppercase
             px-3 py-1 rounded-full mb-4"
             style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "white" }}>
@@ -50,7 +50,7 @@ export default function FreePage() {
       </section>
 
       {/* Free exam list */}
-      <section className="max-w-lg mx-auto px-5 py-6">
+      <section className="max-w-lg md:max-w-3xl mx-auto px-5 py-6">
         <p className="text-[12px] font-bold tracking-widest uppercase mb-4" style={{ color: "#A8A8A6" }}>
           ชุดข้อสอบทดลองฟรี
         </p>

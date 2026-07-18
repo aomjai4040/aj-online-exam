@@ -70,7 +70,7 @@ export default function PackagesPage() {
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="px-5 pt-9 pb-7" style={{ backgroundColor: BRAND.primaryDark }}>
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-lg md:max-w-4xl mx-auto">
           <h1 className="text-[1.7rem] font-bold leading-tight tracking-tight mb-2 text-white">
             แพ็กเกจ & ราคา
           </h1>
@@ -80,10 +80,13 @@ export default function PackagesPage() {
         </div>
       </section>
 
-      <section className="max-w-lg mx-auto px-5 py-6 space-y-4">
+      <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-6 space-y-4">
 
         {/* ── คลิปตัวอย่างฟรี (เฉพาะคนที่ยังไม่ใช่คอร์สเต็ม) ───────────────── */}
         {!hasFull && <SampleVideoTeaser />}
+
+        {/* แพ็กเกจ 2 ใบ — จอกว้าง (≥md) วางเคียงกัน */}
+        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:items-start">
 
         {/* ── App Only (แนะนำสำหรับเริ่มต้น) ─────────────────────────────── */}
         <div className="bg-white rounded-2xl overflow-hidden"
@@ -186,6 +189,8 @@ export default function PackagesPage() {
             <CourseResources compact hideCta lock={hasFull ? undefined : appOnly ? "upgrade" : "full"} />
           </div>
         </div>
+
+        </div>{/* /แพ็กเกจ 2 ใบ */}
 
         {/* ── Upgrade note (ซ่อนถ้ามีคอร์สเต็มแล้ว) ─────────────────────────── */}
         {!hasFull && (

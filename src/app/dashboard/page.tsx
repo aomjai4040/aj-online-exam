@@ -287,7 +287,7 @@ export default function DashboardPage() {
 
       {/* ── Profile header ────────────────────────────────────────────── */}
       <div className="bg-white" style={{ borderBottom: "1px solid #EBEBEA" }}>
-        <div className="max-w-2xl mx-auto px-5 py-6">
+        <div className="max-w-2xl md:max-w-3xl mx-auto px-5 py-6">
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0">
@@ -346,7 +346,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-5 py-5 space-y-5">
+      <div className="max-w-2xl md:max-w-3xl mx-auto px-5 py-5 space-y-5">
 
         {/* ═══ คะแนนความพร้อมสอบ (hero) ════════════════════════════════ */}
         {(() => {

@@ -136,7 +136,7 @@ export default function HomePage() {
         className="sticky top-0 z-40 bg-white/90 backdrop-blur-md"
         style={{ borderBottom: "1px solid #EBEBEA" }}
       >
-        <div className="max-w-lg mx-auto px-5 h-14 flex items-center justify-between">
+        <div className="max-w-lg md:max-w-4xl mx-auto px-5 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -179,7 +179,7 @@ export default function HomePage() {
 
       {/* ── Hero (สีเรียบเข้ม เน้นข้อเสนอ) ─────────────────────────────────── */}
       <section className="px-5 pt-9 pb-7" style={{ backgroundColor: BRAND.primaryDark }}>
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-lg md:max-w-4xl mx-auto">
           <span
             className="inline-block text-[12px] font-semibold px-3 py-1 rounded-full mb-4"
             style={{ backgroundColor: "rgba(255,255,255,0.1)", color: "#9FE1CB" }}
@@ -215,7 +215,7 @@ export default function HomePage() {
           )}
 
           {/* CTA คู่ — ฟรีเด่นสุด */}
-          <div className="flex gap-2.5 mb-6">
+          <div className="flex gap-2.5 mb-6 md:max-w-md">
             <Link
               href="/free"
               className="flex-1 text-center font-bold text-[15px] py-3.5 rounded-2xl
@@ -258,7 +258,7 @@ export default function HomePage() {
 
 
       {/* ── Feature menu ──────────────────────────────────────────────────── */}
-      <section className="max-w-lg mx-auto px-5 py-5">
+      <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-5">
 
         {/* ครูอ้อมทักทาย — เฉพาะคน login ที่ "ไม่มี" การ์ดโค้ช (สมาชิกได้คำทักทายในการ์ดโค้ชแล้ว) */}
         {!planShown && greeting && (() => {
@@ -336,7 +336,7 @@ export default function HomePage() {
         )}
 
         {/* Secondary 2 × 2 — โทนแบรนด์เดียวกันทุกใบ ทุกปุ่มมีปลายทางจริง */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             {
               title: "คอร์สวิดีโอ",
@@ -430,12 +430,12 @@ export default function HomePage() {
       </section>
 
       {/* ── Section divider ────────────────────────────────────────────────── */}
-      <div className="max-w-lg mx-auto px-5">
+      <div className="max-w-lg md:max-w-4xl mx-auto px-5">
         <div className="h-px" style={{ backgroundColor: "#EBEBEA" }} />
       </div>
 
       {/* ── Latest Exams (horizontal scroll) ──────────────────────────────── */}
-      <section className="max-w-lg mx-auto py-5">
+      <section className="max-w-lg md:max-w-4xl mx-auto py-5">
         <div className="flex items-center justify-between mb-4 px-5">
           <p className="text-[15px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
             เพิ่มล่าสุด
@@ -464,7 +464,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Section divider ────────────────────────────────────────────────── */}
-      <div className="max-w-lg mx-auto px-5">
+      <div className="max-w-lg md:max-w-4xl mx-auto px-5">
         <div className="h-px" style={{ backgroundColor: "#EBEBEA" }} />
       </div>
 
