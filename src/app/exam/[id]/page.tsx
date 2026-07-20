@@ -212,12 +212,18 @@ export default function ExamPage() {
     clearProgress(id);             // ส่งสำเร็จแล้ว — ทิ้ง autosave
 
     // เติมเฉลยที่ได้จาก server เข้า questions ให้หน้าเฉลย/Smart Review ใช้
+    // จับคู่ด้วย qid ก่อน — ถ้าไม่เจอ (admin บันทึกแก้ชุดระหว่างเราทำข้อสอบ ทำให้
+    // id เปลี่ยน) ให้เทียบตามลำดับข้อแทน และรับ qid ใหม่มาใช้ด้วย
     const km = new Map(graded.detail.map((d) => [d.qid, d]));
-    const enriched = questions.map((q) => ({
-      ...q,
-      correctAnswer: km.get(q.id)?.correctAnswer ?? -1,
-      explanation:   km.get(q.id)?.explanation ?? "",
-    }));
+    const enriched = questions.map((q, i) => {
+      const d = km.get(q.id) ?? graded.detail[i];
+      return {
+        ...q,
+        id:            d?.qid ?? q.id,
+        correctAnswer: d?.correctAnswer ?? -1,
+        explanation:   d?.explanation ?? "",
+      };
+    });
     setQuestions(enriched);
     const score = graded.score;
     const pct   = graded.percentage;

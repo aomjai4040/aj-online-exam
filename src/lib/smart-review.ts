@@ -42,6 +42,10 @@ export async function recordExamMistakes(
 ): Promise<void> {
   const jobs: Promise<unknown>[] = [];
   questions.forEach((q, i) => {
+    // เฉลยไม่สมบูรณ์ (เช่น จับคู่เฉลยจาก server ไม่ได้) → ไม่เก็บเข้าคลัง
+    // ไม่งั้นหน้า /review จะได้ข้อที่ตอบยังไงก็ผิดและไม่โชว์เฉลย
+    if (!Number.isInteger(q.correctAnswer)
+      || q.correctAnswer < 0 || q.correctAnswer >= q.options.length) return;
     const ref = doc(colRef(uid), q.id);
     if (answers[i] === q.correctAnswer) {
       jobs.push(deleteDoc(ref).catch(() => {})); // ถ้าไม่เคยผิดอยู่แล้วก็เงียบ ๆ
@@ -67,7 +71,12 @@ export async function recordExamMistakes(
 /** ดึงข้อที่เคยผิด เรียงผิดล่าสุดก่อน */
 export async function getWrongQuestions(uid: string, max = 20): Promise<WrongQuestion[]> {
   const snap = await getDocs(query(colRef(uid), orderBy("lastWrongAt", "desc"), qLimit(max)));
-  return snap.docs.map((d) => {
+  return snap.docs.filter((d) => {
+    // กันข้อมูลเก่าที่เฉลยเสีย (correctAnswer นอกช่วงตัวเลือก) หลุดมาแสดง
+    const ca = d.data().correctAnswer;
+    const opts = d.data().options;
+    return Number.isInteger(ca) && ca >= 0 && Array.isArray(opts) && ca < opts.length;
+  }).map((d) => {
     const x = d.data();
     return {
       id:            d.id,

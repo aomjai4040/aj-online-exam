@@ -110,18 +110,20 @@ export async function updateExam(examId: string, form: ExamForm): Promise<void> 
     updatedAt: serverTimestamp(),
   });
 
-  // Delete existing questions then re-create
-  const existing = await getDocs(collection(db, "exams", examId, "questions"));
-  const deleteBatch = writeBatch(db);
-  existing.docs.forEach((d) => deleteBatch.delete(d.ref));
-  await deleteBatch.commit();
-
-  const addBatch = writeBatch(db);
+  // เขียนทับเอกสารเดิมตามตำแหน่ง เพื่อให้ question id คงเดิม —
+  // ห้ามลบแล้วสร้างใหม่: id ใหม่ทั้งชุดทำให้คนที่กำลังทำข้อสอบค้างอยู่
+  // ส่งตรวจแล้วจับคู่เฉลยไม่ได้ (correctAnswer = -1 รั่วเข้า Smart Review)
+  const existing = await getDocs(
+    query(collection(db, "exams", examId, "questions"), orderBy("order", "asc"))
+  );
+  const batch = writeBatch(db);
   form.questions.forEach((q, i) => {
-    const qRef = doc(collection(db, "exams", examId, "questions"));
-    addBatch.set(qRef, { ...q, order: i });
+    const qRef = existing.docs[i]?.ref
+      ?? doc(collection(db, "exams", examId, "questions"));
+    batch.set(qRef, { ...q, order: i });
   });
-  await addBatch.commit();
+  existing.docs.slice(form.questions.length).forEach((d) => batch.delete(d.ref));
+  await batch.commit();
 }
 
 export async function deleteExam(examId: string): Promise<void> {
