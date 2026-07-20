@@ -104,6 +104,38 @@ export default function CourseVideoPlayer({
   const [duration, setDuration] = useState(0);
   const [speed,    setSpeed]    = useState(1);
 
+  // เต็มจอ: nativeFull = Fullscreen API จริง · fakeFull = จำลองด้วย CSS
+  // (iPhone Safari / เบราว์เซอร์ใน LINE ไม่มี Fullscreen API สำหรับ div เลย)
+  const [nativeFull, setNativeFull] = useState(false);
+  const [fakeFull,   setFakeFull]   = useState(false);
+  const isFull = nativeFull || fakeFull;
+
+  useEffect(() => {
+    const onFs = () => setNativeFull(!!(
+      document.fullscreenElement
+      ?? (document as Document & { webkitFullscreenElement?: Element }).webkitFullscreenElement
+    ));
+    document.addEventListener("fullscreenchange", onFs);
+    document.addEventListener("webkitfullscreenchange", onFs);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      document.removeEventListener("webkitfullscreenchange", onFs);
+    };
+  }, []);
+
+  // ระหว่างเต็มจอแบบจำลอง: ล็อกสกอลล์หน้าเว็บ + กด Esc ออกได้
+  useEffect(() => {
+    if (!fakeFull) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFakeFull(false); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [fakeFull]);
+
   const report = useCallback((isEnded: boolean, forYtId?: string) => {
     if (timeRef.current > 3 && durRef.current > 0) {
       onProgressRef.current?.(forYtId ?? activeYtIdRef.current, timeRef.current, durRef.current, isEnded);
@@ -240,16 +272,34 @@ export default function CourseVideoPlayer({
   }
 
   function toggleFullscreen() {
-    const el = wrapRef.current;
+    const el = wrapRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null;
     if (!el) return;
-    if (document.fullscreenElement) document.exitFullscreen();
-    else el.requestFullscreen?.().catch(() => {});
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element;
+      webkitExitFullscreen?:    () => void;
+    };
+    if (doc.fullscreenElement ?? doc.webkitFullscreenElement) {
+      if (doc.exitFullscreen) doc.exitFullscreen().catch(() => {});
+      else doc.webkitExitFullscreen?.();
+      return;
+    }
+    if (fakeFull) { setFakeFull(false); return; }
+    // ลองเต็มจอจริงก่อน (desktop/Android/iPad ใหม่) — พลาดเมื่อไหร่ค่อยจำลองด้วย CSS
+    try {
+      if (el.requestFullscreen) { el.requestFullscreen().catch(() => setFakeFull(true)); return; }
+      if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); return; }
+    } catch { /* ตกลงไป fallback */ }
+    setFakeFull(true); // iPhone / เบราว์เซอร์ใน LINE: ไม่มี Fullscreen API
   }
 
   function replay() { seekTo(0); playerRef.current?.playVideo?.(); }
 
   return (
-    <div ref={wrapRef} className="relative w-full bg-black select-none" style={{ aspectRatio: "16/9" }}>
+    <div ref={wrapRef}
+      className={fakeFull
+        ? "fixed inset-0 z-[9999] w-full h-full bg-black select-none"
+        : "relative w-full bg-black select-none"}
+      style={fakeFull ? undefined : { aspectRatio: "16/9" }}>
       {/* iframe ของ YouTube (โดนโล่คลุม — แตะไม่โดน) */}
       <div className="absolute inset-0 overflow-hidden">
         <div ref={mountRef} className="w-full h-full" />
@@ -325,10 +375,13 @@ export default function CourseVideoPlayer({
           <button onClick={cycleSpeed} className="text-white/85 text-[11.5px] font-bold w-10 text-right">
             {speed}x
           </button>
-          <button onClick={toggleFullscreen} className="text-white" aria-label="เต็มจอ">
+          <button onClick={toggleFullscreen} className="text-white"
+            aria-label={isFull ? "ออกจากเต็มจอ" : "เต็มจอ"}>
             <svg viewBox="0 0 24 24" fill="none" stroke="white"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
-              <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
+              {isFull
+                ? <path d="M8 3v3a2 2 0 01-2 2H3m18 0h-3a2 2 0 01-2-2V3m0 18v-3a2 2 0 012-2h3M3 16h3a2 2 0 012 2v3" />
+                : <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />}
             </svg>
           </button>
         </div>
