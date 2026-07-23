@@ -2,15 +2,13 @@
  * exam-config.ts — ค่าคงที่เกี่ยวกับรอบสอบ (แก้ที่เดียว)
  */
 
-// วันเป้าหมายนับถอยหลัง — ใช้วันประกาศสถานที่สอบ (31 ก.ค. 2569)
-// เพราะวันสอบจริงยังไม่ประกาศ นับถอยหลังไปวันสอบเสี่ยงทำให้ผู้เรียนสับสน
-export const COUNTDOWN_DATE  = new Date("2026-07-31T00:00:00+07:00");
-export const COUNTDOWN_LABEL = "ประกาศสถานที่สอบ";
+// วันเป้าหมายนับถอยหลัง — วันสอบจริง ประกาศทางการแล้ว: 15 ส.ค. 2569
+export const COUNTDOWN_DATE  = new Date("2026-08-15T00:00:00+07:00");
+export const COUNTDOWN_LABEL = "วันสอบ 15 ส.ค.";
 
-// วันสอบโดยประมาณ (ยังไม่ประกาศทางการ ~16 ส.ค. 2569) — ใช้คำนวณจังหวะแผนเรียน
-// ประกาศจริงเมื่อไหร่แก้ที่นี่ที่เดียว
-export const PLAN_TARGET_DATE  = new Date("2026-08-16T00:00:00+07:00");
-export const PLAN_TARGET_LABEL = "วันสอบ (ประมาณ 16 ส.ค.)";
+// วันสอบจริง — ใช้คำนวณจังหวะแผนเรียน (แก้รอบสอบหน้าที่นี่ที่เดียว)
+export const PLAN_TARGET_DATE  = new Date("2026-08-15T00:00:00+07:00");
+export const PLAN_TARGET_LABEL = "วันสอบ 15 ส.ค.";
 
 function diffDays(target: Date, now: Date): number {
   const a = new Date(now);    a.setHours(0, 0, 0, 0);
