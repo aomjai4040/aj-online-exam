@@ -26,13 +26,17 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ACCENT = "#0B6E65";
-const BG     = "#F5F5F4";
+const BG     = "#FAFAF9";
+const LINE   = "#ECEBE9";   // เส้นขอบมาตรฐานของหน้านี้ (เทาอ่อน)
+const MUTED  = "#A8A29E";   // ข้อความรอง
+const CARD_SHADOW = "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.05)";
 
+// แท็กโทนอ่อน — สีเฉพาะตัวอักษร พื้นเกือบขาว ให้ดูสงบ
 const TAG_STYLE: Record<string, { bg: string; color: string }> = {
-  "จุดตาย":   { bg: "#FEF2F2", color: "#DC2626" },
-  "ตัวเลข":   { bg: "#EFF6FF", color: "#2563EB" },
-  "ก่อนสอบ":  { bg: "#FFFBEB", color: "#D97706" },
-  "สับสนบ่อย":{ bg: "#F5F3FF", color: "#7C3AED" },
+  "จุดตาย":   { bg: "#FDF6F6", color: "#B91C1C" },
+  "ตัวเลข":   { bg: "#F5F8FD", color: "#1D4ED8" },
+  "ก่อนสอบ":  { bg: "#FDFAF2", color: "#B45309" },
+  "สับสนบ่อย":{ bg: "#F9F7FD", color: "#6D28D9" },
 };
 
 // ─── FlipCard component ───────────────────────────────────────────────────────
@@ -65,18 +69,19 @@ function FlipCard({
       >
         {/* ── Front ───────────────────────────────────────────────────── */}
         <div
-          className="absolute inset-0 rounded-3xl bg-white flex flex-col
+          className="absolute inset-0 rounded-[28px] bg-white flex flex-col
                      items-center justify-center p-7"
-          style={{ backfaceVisibility: "hidden", border: "1px solid #E5E7EB" }}
+          style={{ backfaceVisibility: "hidden", border: `1px solid ${LINE}`,
+                   boxShadow: CARD_SHADOW }}
         >
           {/* Tags */}
           {card.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-5 justify-center">
               {card.tags.map((tag) => {
-                const s = TAG_STYLE[tag] ?? { bg: "#F3F4F6", color: "#374151" };
+                const s = TAG_STYLE[tag] ?? { bg: "#F7F7F5", color: "#57534E" };
                 return (
                   <span key={tag}
-                    className="text-[13px] font-bold px-3 py-1 rounded-full"
+                    className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
                     style={{ backgroundColor: s.bg, color: s.color }}>
                     {tag}
                   </span>
@@ -92,36 +97,39 @@ function FlipCard({
           </p>
 
           {card.hint && (
-            <p className="text-[15px] mt-5 text-center px-2"
-              style={{ color: "#6B7280", lineHeight: 1.55 }}>
-              💡 {card.hint}
+            <p className="text-[14px] mt-5 text-center px-2"
+              style={{ color: MUTED, lineHeight: 1.55 }}>
+              คำใบ้ · {card.hint}
             </p>
           )}
 
-          <p className="text-[13px] mt-6" style={{ color: "#D1D5DB" }}>
+          <p className="text-[12px] mt-7 tracking-wide" style={{ color: "#D6D3D1" }}>
             แตะการ์ดเพื่อดูคำตอบ
           </p>
         </div>
 
         {/* ── Back ────────────────────────────────────────────────────── */}
         <div
-          className="absolute inset-0 rounded-3xl flex flex-col
+          className="absolute inset-0 rounded-[28px] bg-white flex flex-col
                      items-center justify-center p-7"
           style={{
             backfaceVisibility: "hidden",
             transform:          "rotateY(180deg)",
-            backgroundColor:    "#EBF5F3",
-            border:             `1px solid ${ACCENT}33`,
+            border:             `1px solid ${LINE}`,
+            boxShadow:          CARD_SHADOW,
           }}
         >
-          {/* Category + importance */}
-          <div className="flex items-center gap-2 mb-5">
-            <span className="text-[12px] font-semibold px-2.5 py-[3px] rounded-full"
-              style={{ backgroundColor: "#fff", color: ACCENT, border: `1px solid ${ACCENT}33` }}>
+          {/* Label + category + importance */}
+          <div className="flex items-center gap-2.5 mb-5">
+            <span className="text-[11.5px] font-bold px-2.5 py-1 rounded-full tracking-wide"
+              style={{ backgroundColor: "#EBF5F3", color: ACCENT }}>
+              คำตอบ
+            </span>
+            <span className="text-[12.5px] font-medium" style={{ color: MUTED }}>
               {card.category}
             </span>
-            <span className="text-[13px]" title={imp} style={{ color: "#F59E0B" }}>
-              {"★".repeat(card.importance)}{"☆".repeat(3 - card.importance)}
+            <span className="text-[12px]" title={imp} style={{ color: "#E9B308" }}>
+              {"★".repeat(card.importance)}
             </span>
           </div>
 
@@ -131,7 +139,7 @@ function FlipCard({
             {card.back}
           </p>
 
-          <p className="text-[13px] mt-6" style={{ color: "#6B7280" }}>
+          <p className="text-[12px] mt-7 tracking-wide" style={{ color: "#D6D3D1" }}>
             แตะการ์ดเพื่อกลับด้านหน้า
           </p>
         </div>
@@ -150,17 +158,17 @@ function ProgressBar({
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[14px] font-semibold" style={{ color: "#4A5568" }}>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[12.5px] font-semibold tabular-nums" style={{ color: "#78716C" }}>
           {current} / {total}
         </span>
-        <div className="flex gap-3 text-[13px] font-semibold">
+        <div className="flex gap-3 text-[12.5px] font-semibold tabular-nums">
           <span style={{ color: ACCENT }}>✓ {known}</span>
-          <span style={{ color: "#D97706" }}>↺ {learning}</span>
+          <span style={{ color: "#B45309" }}>↺ {learning}</span>
         </div>
       </div>
-      <div className="h-[6px] rounded-full overflow-hidden"
-        style={{ backgroundColor: "#D1FAE5" }}>
+      <div className="h-[4px] rounded-full overflow-hidden"
+        style={{ backgroundColor: "#EDECEA" }}>
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{ width: `${pct}%`, backgroundColor: ACCENT }}
@@ -184,15 +192,21 @@ function ResultScreen({
   return (
     <div className="min-h-screen flex items-center justify-center px-5"
       style={{ backgroundColor: BG }}>
-      <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-xl"
-        style={{ border: "1px solid #E5E7EB" }}>
+      <div className="bg-white rounded-[28px] p-8 w-full max-w-sm"
+        style={{ border: `1px solid ${LINE}`, boxShadow: CARD_SHADOW }}>
 
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-3">🎉</div>
-          <h2 className="text-[22px] font-extrabold text-gray-900 mb-1">
-            ทบทวนครบแล้ว!
+        <div className="text-center mb-7">
+          <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center"
+            style={{ backgroundColor: "#EBF5F3" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke={ACCENT}
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h2 className="text-[21px] font-extrabold text-gray-900 mb-1">
+            ทบทวนครบแล้ว
           </h2>
-          <p className="text-[14px]" style={{ color: "#4A5568" }}>
+          <p className="text-[13.5px]" style={{ color: MUTED }}>
             {deck.coverEmoji} {deck.name}
           </p>
         </div>
@@ -200,17 +214,17 @@ function ResultScreen({
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2 mb-7">
           {[
-            { label: "จำได้",       value: result.known,    bg: "#EBF5F3", color: ACCENT    },
-            { label: "ทบทวนอีก",    value: result.learning, bg: "#FFFBEB", color: "#D97706" },
-            { label: "ยังไม่ตัดสิน", value: result.skipped,  bg: "#F3F4F6", color: "#6B7280" },
+            { label: "จำได้",       value: result.known,    color: ACCENT    },
+            { label: "ทบทวนอีก",    value: result.learning, color: "#B45309" },
+            { label: "ยังไม่ตัดสิน", value: result.skipped,  color: "#78716C" },
           ].map((s) => (
-            <div key={s.label} className="rounded-2xl p-3 text-center"
-              style={{ backgroundColor: s.bg }}>
-              <p className="text-[24px] font-extrabold leading-none mb-1"
+            <div key={s.label} className="rounded-2xl py-3.5 text-center"
+              style={{ backgroundColor: "#F8F8F7" }}>
+              <p className="text-[24px] font-extrabold leading-none mb-1.5 tabular-nums"
                 style={{ color: s.color }}>
                 {s.value}
               </p>
-              <p className="text-[12px]" style={{ color: "#6B7280" }}>{s.label}</p>
+              <p className="text-[11.5px]" style={{ color: MUTED }}>{s.label}</p>
             </div>
           ))}
         </div>
@@ -218,18 +232,27 @@ function ResultScreen({
         {/* Actions */}
         <div className="flex flex-col gap-2">
           <button onClick={onReplay}
-            className="w-full py-3.5 rounded-2xl font-bold text-[16px] text-white"
+            className="w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
+                       transition-transform active:scale-[0.98]"
             style={{ backgroundColor: ACCENT }}>
             ทบทวนอีกครั้ง
           </button>
           <button onClick={onShuffle}
-            className="w-full py-3.5 rounded-2xl font-bold text-[16px]"
-            style={{ backgroundColor: "#F5F3FF", color: "#7C3AED" }}>
-            🎲 สุ่มใหม่
+            className="w-full py-3.5 rounded-2xl font-semibold text-[15px] bg-white
+                       flex items-center justify-center gap-2
+                       transition-transform active:scale-[0.98]"
+            style={{ border: `1px solid ${LINE}`, color: "#44403C" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" />
+              <polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" />
+              <line x1="4" y1="4" x2="9" y2="9" />
+            </svg>
+            สุ่มใหม่
           </button>
           <button onClick={onBack}
-            className="w-full py-3.5 rounded-2xl font-semibold text-[16px]"
-            style={{ backgroundColor: "#F3F4F6", color: "#374151" }}>
+            className="w-full py-3 rounded-2xl font-semibold text-[14px]"
+            style={{ color: MUTED }}>
             กลับหน้าหลัก
           </button>
         </div>
@@ -469,10 +492,10 @@ export default function FlashCardDeckPage() {
   const cardStatus = progress.get(card.id)?.status ?? "new";
 
   const STATUS_LABEL: Record<FCStatus, { label: string; bg: string; color: string }> = {
-    new:      { label: "ใหม่",        bg: "#F3F4F6", color: "#6B7280" },
-    learning: { label: "กำลังเรียน",  bg: "#FFFBEB", color: "#D97706" },
+    new:      { label: "ใหม่",        bg: "#F5F5F4", color: "#78716C" },
+    learning: { label: "กำลังเรียน",  bg: "#FDFAF2", color: "#B45309" },
     known:    { label: "จำได้",        bg: "#EBF5F3", color: ACCENT    },
-    skipped:  { label: "ข้าม",        bg: "#F3F4F6", color: "#9CA3AF" },
+    skipped:  { label: "ข้าม",        bg: "#F5F5F4", color: MUTED     },
   };
   const sl = STATUS_LABEL[cardStatus];
 
@@ -481,35 +504,35 @@ export default function FlashCardDeckPage() {
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div className="bg-white flex-shrink-0"
-        style={{ borderBottom: "1px solid #EBEBEA" }}>
-        <div className="max-w-2xl mx-auto px-4 py-3 space-y-2">
+        style={{ borderBottom: `1px solid ${LINE}` }}>
+        <div className="max-w-2xl mx-auto px-4 py-3 space-y-2.5">
 
           {/* row 1: back + title + status */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => router.push("/flashcard")}
-              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "#F3F4F6" }}
+              className="w-8 h-8 -ml-1.5 rounded-full flex items-center justify-center
+                         flex-shrink-0 active:bg-stone-100 transition-colors"
               aria-label="กลับ"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="#374151"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                className="w-4 h-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#57534E"
+                strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"
+                className="w-[18px] h-[18px]">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
 
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-bold uppercase tracking-widest leading-none mb-0.5"
-                style={{ color: "#9CA3AF" }}>
-                {deck.coverEmoji} {deck.name}
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] leading-none mb-1"
+                style={{ color: MUTED }}>
+                {deck.name}
               </p>
-              <p className="text-[15px] font-bold text-gray-900 truncate leading-tight">
+              <p className="text-[14.5px] font-bold text-gray-900 truncate leading-tight">
                 {card.category}
               </p>
             </div>
 
-            <span className="text-[12px] font-bold px-2.5 py-[3px] rounded-full flex-shrink-0"
+            <span className="text-[11.5px] font-semibold px-2.5 py-[4px] rounded-full flex-shrink-0"
               style={{ backgroundColor: sl.bg, color: sl.color }}>
               {sl.label}
             </span>
@@ -517,12 +540,12 @@ export default function FlashCardDeckPage() {
             {/* Stats link */}
             <button
               onClick={() => router.push(`/flashcard/${deckId}/stats`)}
-              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "#F3F4F6" }}
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                         active:bg-stone-100 transition-colors"
               aria-label="ดูสถิติ"
               title="ดูสถิติ"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="#374151"
+              <svg viewBox="0 0 24 24" fill="none" stroke="#57534E"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 className="w-4 h-4">
                 <line x1="18" y1="20" x2="18" y2="10" />
@@ -552,48 +575,58 @@ export default function FlashCardDeckPage() {
         {!flipped && (
           <button
             onClick={flip}
-            className="mt-4 w-full py-3.5 rounded-2xl font-semibold text-[16px] bg-white"
-            style={{ border: "1px solid #E5E7EB", color: ACCENT }}>
+            className="mt-5 w-full py-4 rounded-2xl font-bold text-[15.5px] text-white
+                       transition-transform active:scale-[0.98]"
+            style={{ backgroundColor: ACCENT }}>
             ดูคำตอบ
           </button>
         )}
 
         {/* ── Mark buttons (when flipped) ───────────────────────────────── */}
         {flipped && (
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <div className="mt-5 grid grid-cols-2 gap-2.5">
             <button
               onClick={() => mark("learning")}
               disabled={saving}
-              className="py-4 rounded-2xl font-bold text-[17px]
-                         transition-transform active:scale-[0.97] disabled:opacity-40"
-              style={{ backgroundColor: "#FFFBEB", color: "#D97706",
-                       border: "1px solid #FDE68A" }}>
-              🔄 ยังจำไม่ได้
+              className="py-4 rounded-2xl font-bold text-[15.5px] bg-white
+                         flex items-center justify-center gap-2
+                         transition-transform active:scale-[0.98] disabled:opacity-40"
+              style={{ border: `1px solid ${LINE}`, color: "#B45309" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+              </svg>
+              ยังจำไม่ได้
             </button>
             <button
               onClick={() => mark("known")}
               disabled={saving}
-              className="py-4 rounded-2xl font-bold text-[17px]
-                         transition-transform active:scale-[0.97] disabled:opacity-40"
-              style={{ backgroundColor: "#EBF5F3", color: ACCENT,
-                       border: "1px solid #C3E5DE" }}>
-              ✓ จำได้แล้ว
+              className="py-4 rounded-2xl font-bold text-[15.5px] text-white
+                         flex items-center justify-center gap-2
+                         transition-transform active:scale-[0.98] disabled:opacity-40"
+              style={{ backgroundColor: ACCENT }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              จำได้แล้ว
             </button>
           </div>
         )}
 
         {/* ── Navigation ───────────────────────────────────────────────── */}
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-2.5 flex items-center gap-2">
           {/* ก่อนหน้า */}
           <button
             onClick={() => go(-1)}
             disabled={index === 0}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3.5
-                       rounded-2xl font-semibold text-[15px] bg-white
-                       transition-transform active:scale-[0.97] disabled:opacity-30"
-            style={{ border: "1px solid #E5E7EB", color: "#374151" }}>
+            className="flex-1 flex items-center justify-center gap-1.5 py-3
+                       rounded-2xl font-semibold text-[14px] bg-white
+                       transition-transform active:scale-[0.98] disabled:opacity-30"
+            style={{ border: `1px solid ${LINE}`, color: "#57534E" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"
               className="w-4 h-4">
               <polyline points="15 18 9 12 15 6" />
             </svg>
@@ -603,24 +636,28 @@ export default function FlashCardDeckPage() {
           {/* สุ่ม */}
           <button
             onClick={doShuffle}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl
-                       flex-shrink-0 transition-transform active:scale-[0.97]
-                       text-[20px]"
-            style={{ backgroundColor: "#F5F3FF", border: "1px solid #DDD6FE" }}
-            title="สุ่มการ์ด">
-            🎲
+            className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white
+                       flex-shrink-0 transition-transform active:scale-[0.98]"
+            style={{ border: `1px solid ${LINE}`, color: "#57534E" }}
+            aria-label="สุ่มการ์ด" title="สุ่มการ์ด">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" />
+              <polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" />
+              <line x1="4" y1="4" x2="9" y2="9" />
+            </svg>
           </button>
 
           {/* ถัดไป */}
           <button
             onClick={() => go(1)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3.5
-                       rounded-2xl font-bold text-[15px] text-white
-                       transition-transform active:scale-[0.97]"
-            style={{ backgroundColor: ACCENT }}>
+            className="flex-1 flex items-center justify-center gap-1.5 py-3
+                       rounded-2xl font-semibold text-[14px] bg-white
+                       transition-transform active:scale-[0.98]"
+            style={{ border: `1px solid ${LINE}`, color: "#57534E" }}>
             ถัดไป
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"
               className="w-4 h-4">
               <polyline points="9 18 15 12 9 6" />
             </svg>
