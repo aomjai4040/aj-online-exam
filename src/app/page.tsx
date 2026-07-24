@@ -339,6 +339,19 @@ export default function HomePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             {
+              title: "ติวโค้งสุดท้าย",
+              desc: "ทบทวนรอบ 2 · 1–14 ส.ค.",
+              href: "/final-review",
+              badge: "เร็ว ๆ นี้",
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+                </svg>
+              ),
+            },
+            {
               title: "คอร์สวิดีโอ",
               desc: "ติวครบทุกหัวข้อ",
               href: "/videos",
@@ -416,10 +429,18 @@ export default function HomePage() {
               >
                 {item.icon}
               </div>
-              <div className="min-w-0">
-                <p className="font-bold text-[15px] text-gray-900 leading-tight truncate">
-                  {item.title}
-                </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-[15px] text-gray-900 leading-tight truncate">
+                    {item.title}
+                  </p>
+                  {"badge" in item && item.badge && (
+                    <span className="text-[10px] font-bold px-1.5 py-[2px] rounded-full flex-shrink-0"
+                      style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
                 <p className="text-[12.5px] mt-0.5 truncate text-gray-500">
                   {item.desc}
                 </p>
