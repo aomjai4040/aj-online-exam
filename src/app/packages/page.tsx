@@ -9,6 +9,7 @@ import { BRAND } from "@/lib/subjects";
 import { PRICING } from "@/lib/pricing";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
+import { daysToExam } from "@/lib/exam-config";
 
 // ─── /packages — แพ็กเกจ + ราคา (Aj ยืนยัน 299/699/+400) ─────────────────────
 // การซื้อตอนนี้: ทักแชทแอดมิน → รับรหัส → กรอกที่ /activate
@@ -77,6 +78,18 @@ export default function PackagesPage() {
           <p className="text-[14px] leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
             เลือกแบบที่เหมาะกับการเตรียมตัวของคุณ · จ่ายครั้งเดียว {PRICING.app.period}
           </p>
+
+          {/* urgency — วันสอบประกาศแล้ว นับถอยหลังจริง (ซ่อนเมื่อมีคอร์สเต็มแล้ว/เลยวันสอบ) */}
+          {!hasFull && daysToExam() > 0 && (
+            <div className="mt-3.5 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5"
+              style={{ backgroundColor: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.22)" }}>
+              <span className="text-[13px]">⏳</span>
+              <span className="text-[13px] font-semibold text-white">
+                สอบจริง 15 ส.ค. — เหลืออีก{" "}
+                <span style={{ color: "#FCD34D" }}>{daysToExam()}</span> วัน · เริ่มวันนี้ยังทัน
+              </span>
+            </div>
+          )}
         </div>
       </section>
 

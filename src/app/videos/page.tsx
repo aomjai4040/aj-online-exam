@@ -7,6 +7,7 @@ import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 import { getPublishedVideos, type CourseVideo } from "@/lib/video-firestore";
 import { getAllVideoProgress, saveVideoProgress, type VideoProgress } from "@/lib/video-progress";
 import { PRICING } from "@/lib/pricing";
+import { daysToExam } from "@/lib/exam-config";
 import { BRAND } from "@/lib/subjects";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
@@ -108,12 +109,20 @@ export default function VideosPage() {
             </svg>
           </div>
           <h1 className="text-[19px] font-bold text-gray-900 mb-2">คอร์สวิดีโอสำหรับสมาชิกคอร์สเต็ม</h1>
-          <p className="text-[13.5px] leading-relaxed mb-6 max-w-xs mx-auto" style={{ color: "#A8A8A6" }}>
+          <p className="text-[13.5px] leading-relaxed mb-4 max-w-xs mx-auto" style={{ color: "#A8A8A6" }}>
             วิดีโอติวครบทุกหัวข้อ + ชีทสรุป ~500 หน้า
             {access.hasAny
               ? ` — อัปเกรดจาก App Only จ่ายเพิ่มเพียง ฿${PRICING.upgradePrice}`
               : ` — คอร์สเต็ม ฿${PRICING.full.price} รวมทุกอย่างในแอปด้วย`}
           </p>
+
+          {/* urgency — นับถอยหลังวันสอบจริง */}
+          {daysToExam() > 0 && (
+            <p className="text-[13px] font-semibold mb-6 rounded-xl py-2.5 px-4 max-w-xs mx-auto"
+              style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+              ⏳ สอบจริง 15 ส.ค. — เหลืออีก {daysToExam()} วัน · เริ่มวันนี้ยังทัน
+            </p>
+          )}
 
           {/* คลิปตัวอย่างฟรี (โผล่เมื่อ admin ตั้งคลิปตัวอย่าง) */}
           <div className="mb-6 text-left">

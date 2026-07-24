@@ -35,6 +35,15 @@ export function adminDb() {
   return getFirestore(getAdminApp());
 }
 
+/** access token ของ service account (scope cloud-platform) — ใช้เรียก Google REST API
+ *  เช่น Firestore export (ระบบ backup) ที่ Admin SDK ไม่มีเมธอดให้ */
+export async function adminAccessToken(): Promise<string> {
+  const cred = getAdminApp().options.credential;
+  if (!cred) throw new Error("no admin credential");
+  const { access_token } = await cred.getAccessToken();
+  return access_token;
+}
+
 // ── ตรวจ Firebase ID token ด้วย jose (ไม่พึ่ง firebase-admin/auth) ─────────────
 
 const JWKS = createRemoteJWKSet(

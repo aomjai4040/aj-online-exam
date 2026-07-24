@@ -8,6 +8,7 @@ import { saveRecord } from "@/lib/exam-history";
 import { saveUserRecord } from "@/lib/user-firestore";
 import { recordExamMistakes } from "@/lib/smart-review";
 import { PRICING, CONTACT_URL, COURSE_RESOURCES } from "@/lib/pricing";
+import { daysToExam } from "@/lib/exam-config";
 import { chapterForSubject } from "@/lib/curriculum";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, decideExamAccess } from "@/lib/access";
@@ -316,11 +317,19 @@ export default function ExamPage() {
             </p>
           </div>
 
-          <p className="text-[13px] text-center leading-relaxed mb-6" style={{ color: "#6B6B6A" }}>
+          <p className="text-[13px] text-center leading-relaxed mb-4" style={{ color: "#6B6B6A" }}>
             ปลดล็อกชุดนี้เพื่อทำข้อสอบพร้อมเฉลยละเอียด
             <br />
             หากมีรหัสเปิดใช้งานอยู่แล้ว กรอกได้เลย
           </p>
+
+          {/* urgency — นับถอยหลังวันสอบจริง */}
+          {daysToExam() > 0 && (
+            <p className="text-[13px] font-semibold text-center mb-5 rounded-xl py-2.5 px-4"
+              style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+              ⏳ สอบจริง 15 ส.ค. — เหลืออีก {daysToExam()} วัน · เริ่มวันนี้ยังทัน
+            </p>
+          )}
 
           <div className="space-y-3">
             <Link href="/packages" className="btn-primary w-full py-3.5 text-[15px] text-center block">
