@@ -182,7 +182,7 @@ export default function ResultPage() {
               return (
                 <div
                   key={q.id}
-                  className="rounded-xl p-5 bg-white"
+                  className="font-exam rounded-xl p-5 bg-white"
                   style={{
                     border: "1px solid #EBEBEA",
                     borderLeft: `4px solid ${borderColor}`,

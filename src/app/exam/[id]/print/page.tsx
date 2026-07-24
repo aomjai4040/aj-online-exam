@@ -189,8 +189,8 @@ export default function ExamPrintPage() {
           </p>
         </div>
 
-        {/* รายข้อ */}
-        <div className="space-y-5">
+        {/* รายข้อ — font-exam: ฟอนต์มีหัว อ่าน/พิมพ์ชัดกว่า */}
+        <div className="font-exam space-y-5">
           {questions.map((q, qi) => (
             <div key={q.id} className="q-block">
               <p className="text-[14px] font-semibold text-gray-900 leading-relaxed mb-2">

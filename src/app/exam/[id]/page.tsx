@@ -669,7 +669,7 @@ export default function ExamPage() {
               return (
                 <div
                   key={q.id}
-                  className="bg-white rounded-2xl p-4"
+                  className="font-exam bg-white rounded-2xl p-4"
                   style={{ border: "1px solid #EBEBEA", borderLeft: `3px solid ${borderColor}` }}
                 >
                   {/* Q header */}
@@ -806,8 +806,8 @@ export default function ExamPage() {
           </span>
         </div>
 
-        {/* Question text */}
-        <p className="text-[16px] font-semibold text-gray-900 leading-relaxed mb-7">
+        {/* Question text — font-exam (Sarabun มีหัว) + ขยับขนาดชดเชย x-height ที่เล็กกว่า */}
+        <p className="font-exam text-[17px] font-semibold text-gray-900 leading-relaxed mb-7">
           {q.text}
         </p>
 
@@ -839,7 +839,7 @@ export default function ExamPage() {
                   {OPTS[oi]}
                 </div>
                 <span
-                  className="text-[15px] leading-snug transition-colors duration-150"
+                  className="font-exam text-[16px] leading-snug transition-colors duration-150"
                   style={{
                     color:      selected ? "#0B6E65" : "#374151",
                     fontWeight: selected ? 600 : 400,

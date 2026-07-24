@@ -204,8 +204,8 @@ export default function ReviewPage() {
           )}
         </div>
 
-        {/* โจทย์ */}
-        <p className="text-[16px] font-semibold text-gray-900 leading-relaxed mb-6">
+        {/* โจทย์ — font-exam: ฟอนต์มีหัว อ่านง่ายกว่า */}
+        <p className="font-exam text-[17px] font-semibold text-gray-900 leading-relaxed mb-6">
           {q.text}
         </p>
 
@@ -234,7 +234,7 @@ export default function ReviewPage() {
                   }}>
                   {OPTS[oi]}
                 </div>
-                <span className="text-[15px] leading-snug flex-1" style={{ color }}>
+                <span className="font-exam text-[16px] leading-snug flex-1" style={{ color }}>
                   {opt}
                 </span>
                 {answered && isAnswer && (
@@ -257,7 +257,7 @@ export default function ReviewPage() {
               {isCorrect ? "ถูกต้อง! ข้อนี้หลุดจากคลังทบทวนแล้ว ✓" : "ยังไม่ถูก — ข้อนี้จะรอทบทวนรอบหน้า"}
             </div>
             {q.explanation && (
-              <div className="px-4 py-3 rounded-2xl text-[13.5px] leading-relaxed"
+              <div className="font-exam px-4 py-3 rounded-2xl text-[14px] leading-relaxed"
                 style={{ backgroundColor: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A" }}>
                 <span className="font-semibold">คำอธิบาย · </span>
                 {q.explanation}

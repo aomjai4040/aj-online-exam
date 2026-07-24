@@ -182,7 +182,7 @@ export default function DailyQuizPage() {
           </p>
           <div className="space-y-3 mb-6">
             {view.detail.map((d, i) => (
-              <div key={d.qid} className="bg-white rounded-2xl p-4"
+              <div key={d.qid} className="font-exam bg-white rounded-2xl p-4"
                 style={{ border: `1px solid ${d.correct ? "#BBF7D0" : "#FECACA"}` }}>
                 <p className="text-[13.5px] font-semibold text-gray-900 leading-relaxed mb-2.5">
                   <span className="font-bold" style={{ color: d.correct ? "#15803D" : "#DC2626" }}>
@@ -269,8 +269,8 @@ export default function DailyQuizPage() {
           ))}
         </div>
 
-        {/* Question */}
-        <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: "1px solid #EBEBEA" }}>
+        {/* Question — font-exam: ฟอนต์มีหัว อ่านโจทย์ง่ายกว่า */}
+        <div className="font-exam bg-white rounded-2xl p-5 mb-4" style={{ border: "1px solid #EBEBEA" }}>
           <p className="text-[16px] font-semibold text-gray-900 leading-relaxed mb-4">
             <span style={{ color: "#A8A8A6" }}>{current + 1}.</span> {q.text}
           </p>

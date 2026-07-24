@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Prompt } from "next/font/google";
+import { Prompt, Sarabun } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { Providers } from "@/components/Providers";
@@ -9,6 +9,15 @@ const prompt = Prompt({
   weight: ["300", "400", "500", "600", "700"],
   display: "swap",
   variable: "--font-prompt",
+});
+
+// ฟอนต์มีหัว — เฉพาะเนื้อหาข้อสอบ (โจทย์/ตัวเลือก/คำอธิบาย) อ่านง่ายกว่า Prompt
+// ใช้ผ่าน class "font-exam" (ดู globals.css)
+const sarabun = Sarabun({
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-sarabun",
 });
 
 export const metadata: Metadata = {
@@ -46,7 +55,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th" className={prompt.variable} suppressHydrationWarning>
+    <html lang="th" className={`${prompt.variable} ${sarabun.variable}`} suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#0B6E65" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />

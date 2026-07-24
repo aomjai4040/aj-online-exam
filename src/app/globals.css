@@ -12,6 +12,12 @@
     @apply bg-stone-50 text-gray-900 antialiased;
     font-family: var(--font-prompt), "Prompt", system-ui, sans-serif;
   }
+
+  /* เนื้อหาข้อสอบ (โจทย์/ตัวเลือก/คำอธิบาย) — ฟอนต์มีหัว อ่านง่ายกว่า
+     ผู้เรียนแจ้งว่า Prompt (ไม่มีหัว) อ่านโจทย์ยาว ๆ แล้วล้า */
+  .font-exam {
+    font-family: var(--font-sarabun), "Sarabun", system-ui, sans-serif;
+  }
 }
 
 @layer components {
