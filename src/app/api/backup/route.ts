@@ -24,8 +24,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // วันที่ตามเวลาไทย — cron รันตี 3 ได้ชื่อโฟลเดอร์เป็นวันนั้นพอดี
-    const day = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
+    // วันที่+เวลาตามเวลาไทย — แนบเวลาไว้ด้วย เพราะ export ซ้ำ path เดิมจะโดน
+    // "Path already exists" (เช่น cron retry หรือสั่งมือซ้ำในวันเดียวกัน)
+    const now = new Date();
+    const day  = now.toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
+    const time = now.toLocaleTimeString("sv-SE", { timeZone: "Asia/Bangkok" }).replace(/:/g, "");
     const token = await adminAccessToken();
 
     const res = await fetch(
@@ -33,7 +36,7 @@ export async function GET(req: NextRequest) {
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ outputUriPrefix: `gs://${BUCKET}/daily/${day}` }),
+        body: JSON.stringify({ outputUriPrefix: `gs://${BUCKET}/daily/${day}-${time}` }),
       }
     );
     const body = await res.json();
