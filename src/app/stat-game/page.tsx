@@ -22,6 +22,7 @@ import {
   TREE, STATS, SCENARIOS, shuffleScenarios, routeLabels, buildChoices,
   type Scenario, type TreeOption,
 } from "@/lib/stat-game";
+import { getStatGameBest, saveStatGameRun, type StatGameBest } from "@/lib/stat-game-stats";
 
 const ACCENT = "#0B6E65";
 const LINE   = "#ECEBE9";
@@ -29,9 +30,13 @@ const MUTED  = "#A8A29E";
 const CARD_SHADOW = "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.05)";
 
 const FREE_SCENARIOS = 3;
+const TIME_PER_Q     = 20;   // วินาทีต่อข้อในโหมดเกม
+const MAX_HEARTS     = 3;
 
-type Mode = "recall" | "practice";
+type Mode = "recall" | "practice" | "arcade";
 type Picked = { label: string };
+
+const CONFETTI_COLORS = ["#0B6E65", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6", "#EC4899"];
 
 export default function StatGamePage() {
   const guard    = useLoginGuard();
@@ -57,6 +62,19 @@ export default function StatGamePage() {
   const [pWrong,  setPWrong]  = useState(0);
   const [pList,   setPList]   = useState<Scenario[]>([]);
 
+  // ── โหมดเกม (ท้าเวลา ❤️×3 คอมโบ) ──
+  const [aQueue,    setAQueue]    = useState<Scenario[]>([]);
+  const [aIdx,      setAIdx]      = useState(0);
+  const [aChosen,   setAChosen]   = useState<string | null>(null); // "timeout" = หมดเวลา
+  const [hearts,    setHearts]    = useState(MAX_HEARTS);
+  const [score,     setScore]     = useState(0);
+  const [streak,    setStreak]    = useState(0);
+  const [maxStreak, setMaxStreak] = useState(0);
+  const [secLeft,   setSecLeft]   = useState(TIME_PER_Q);
+  const [floatPts,  setFloatPts]  = useState<number | null>(null);
+  const [best,      setBest]      = useState<StatGameBest>({ bestScore: 0, bestStreak: 0 });
+  const savedRef = useState({ done: false })[0];
+
   const [finished, setFinished] = useState(false);
 
   useEffect(() => {
@@ -64,6 +82,7 @@ export default function StatGamePage() {
     getUserAccess(user.uid)
       .then((a) => setIsMember(a.hasAny))
       .catch(() => setIsMember(false));
+    getStatGameBest(user.uid).then(setBest);
   }, [guard, user]);
 
   const current = queue[0] ?? null;
@@ -72,6 +91,37 @@ export default function StatGamePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [current?.id, attempt]
   );
+
+  const aCur = aQueue[aIdx] ?? null;
+  const aChoices = useMemo(
+    () => (aCur ? buildChoices(aCur.answer) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [aCur?.id, aIdx]
+  );
+
+  // นาฬิกาไหลเฉพาะตอนกำลังตอบในโหมดเกม
+  useEffect(() => {
+    if (mode !== "arcade" || finished || aChosen !== null || !aCur) return;
+    const iv = setInterval(() => setSecLeft((s) => Math.max(0, s - 0.1)), 100);
+    return () => clearInterval(iv);
+  }, [mode, finished, aChosen, aCur]);
+
+  // เวลาหมด = ตอบผิด (เสียหัวใจ)
+  useEffect(() => {
+    if (mode === "arcade" && !finished && aChosen === null && aCur && secLeft <= 0) {
+      answerArcade(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secLeft]);
+
+  // จบเกม → บันทึกสถิติครั้งเดียว
+  useEffect(() => {
+    if (mode === "arcade" && finished && user && !savedRef.done) {
+      savedRef.done = true;
+      saveStatGameRun(user.uid, score, maxStreak, best);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, finished, user]);
 
   if (guard !== "allowed" || isMember === null) return <AccessGuardSpinner />;
 
@@ -85,10 +135,45 @@ export default function StatGamePage() {
     if (m === "recall") {
       setQueue(list); setTotal(list.length);
       setChosen(null); setAttempt(0); setFirstTry(new Map());
+    } else if (m === "arcade") {
+      setAQueue(list); setAIdx(0); setAChosen(null);
+      setHearts(MAX_HEARTS); setScore(0); setStreak(0); setMaxStreak(0);
+      setSecLeft(TIME_PER_Q); setFloatPts(null);
+      savedRef.done = false;
     } else {
       setPList(list); setPIndex(0); setNodeId("start");
       setPicked([]); setReached(null); setPScore(0); setPWrong(0);
     }
+  }
+
+  // ── โหมดเกม: ตอบ / ไปข้อถัดไป ──
+  function answerArcade(id: string | null) {
+    if (!aCur || aChosen !== null) return;
+    const ok = id !== null && id === aCur.answer;
+    setAChosen(id ?? "timeout");
+    if (ok) {
+      const mult = 1 + Math.min(streak, 8) * 0.25;   // คอมโบ ×1 → ×3
+      const pts  = Math.round((100 + secLeft * 10) * mult);
+      setScore((s) => s + pts);
+      setFloatPts(pts);
+      const ns = streak + 1;
+      setStreak(ns);
+      if (ns > maxStreak) setMaxStreak(ns);
+      window.setTimeout(() => nextArcade(), 950);     // ถูก = ไหลต่อเอง รักษาจังหวะเกม
+    } else {
+      setStreak(0);
+      setHearts((h) => h - 1);
+    }
+  }
+
+  function nextArcade() {
+    setAChosen(null);
+    setFloatPts(null);
+    setSecLeft(TIME_PER_Q);
+    setAIdx((i) => {
+      if (i + 1 >= aQueue.length) { setFinished(true); return i; }
+      return i + 1;
+    });
   }
 
   // ═══ เลือกโหมด ══════════════════════════════════════════════════════════════
@@ -113,16 +198,30 @@ export default function StatGamePage() {
           </div>
 
           <div className="space-y-3">
-            <button onClick={() => startMode("recall")}
+            <button onClick={() => startMode("arcade")}
               className="w-full text-left rounded-2xl p-5 bg-white active:scale-[0.98] transition-transform"
               style={{ border: `1.5px solid ${ACCENT}`, boxShadow: CARD_SHADOW }}>
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-[16px] font-bold" style={{ color: ACCENT }}>โหมดสอบจริง</p>
+                <p className="text-[16px] font-bold" style={{ color: ACCENT }}>🎮 เล่นเกม</p>
                 <span className="text-[10.5px] font-bold px-1.5 py-[2px] rounded-full"
-                  style={{ backgroundColor: "#EBF5F3", color: ACCENT }}>
-                  แนะนำ
+                  style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                  มันส์
                 </span>
               </div>
+              <p className="text-[13px] leading-relaxed" style={{ color: "#57534E" }}>
+                จับเวลา {TIME_PER_Q} วิ/ข้อ · หัวใจ {MAX_HEARTS} ดวง · ตอบเร็ว+ติดกันได้คอมโบคูณแต้ม
+              </p>
+              {best.bestScore > 0 && (
+                <p className="text-[12px] font-bold mt-1.5" style={{ color: "#B45309" }}>
+                  🏆 สถิติของคุณ: {best.bestScore.toLocaleString()} แต้ม · คอมโบ ×{best.bestStreak}
+                </p>
+              )}
+            </button>
+
+            <button onClick={() => startMode("recall")}
+              className="w-full text-left rounded-2xl p-5 bg-white active:scale-[0.98] transition-transform"
+              style={{ border: `1px solid ${LINE}` }}>
+              <p className="text-[16px] font-bold text-gray-900 mb-1">โหมดสอบจริง</p>
               <p className="text-[13px] leading-relaxed" style={{ color: "#57534E" }}>
                 ตอบสถิติทันทีจาก 4 ตัวเลือกเหมือนในห้องสอบ —
                 ข้อที่ผิดจะวนกลับมาถามซ้ำจนกว่าจะตอบถูกเอง
@@ -147,6 +246,211 @@ export default function StatGamePage() {
           )}
         </div>
         <BottomNav />
+      </div>
+    );
+  }
+
+  // ═══ โหมดเกม ═══════════════════════════════════════════════════════════════
+  if (mode === "arcade") {
+    // ── จอจบเกม ──
+    if (finished || !aCur) {
+      const newRecord = score > 0 && score > best.bestScore;
+      return (
+        <div className="font-exam min-h-screen flex items-center justify-center px-5 pb-24 relative overflow-hidden"
+          style={{ backgroundColor: "#FAFAF9" }}>
+          {newRecord && (
+            <div className="absolute inset-x-0 top-0 h-32 pointer-events-none">
+              {Array.from({ length: 18 }).map((_, i) => (
+                <span key={i} className="game-confetti absolute w-2 h-2"
+                  style={{
+                    left: `${(i * 137) % 100}%`,
+                    top: `${(i * 53) % 40}px`,
+                    backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+                    borderRadius: i % 3 === 0 ? "9999px" : "2px",
+                    animationDelay: `${(i % 6) * 0.12}s`,
+                  }} />
+              ))}
+            </div>
+          )}
+          <div className="bg-white rounded-[28px] p-8 w-full max-w-sm text-center"
+            style={{ border: `1px solid ${LINE}`, boxShadow: CARD_SHADOW }}>
+            {newRecord ? (
+              <span className="game-pop inline-block text-[13px] font-bold px-3 py-1 rounded-full mb-3"
+                style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                🏆 ทำลายสถิติตัวเอง!
+              </span>
+            ) : (
+              <div className="text-[36px] mb-2">{hearts <= 0 ? "💔" : "🎉"}</div>
+            )}
+            <p className="text-[13px] font-semibold uppercase tracking-wider mb-1" style={{ color: MUTED }}>
+              {hearts <= 0 ? "หัวใจหมดแล้ว" : "รอดครบทุกข้อ!"}
+            </p>
+            <p className="text-[40px] font-extrabold leading-none mb-1 tabular-nums" style={{ color: ACCENT }}>
+              {score.toLocaleString()}
+            </p>
+            <p className="text-[13px] mb-5" style={{ color: MUTED }}>แต้ม</p>
+
+            <div className="grid grid-cols-2 gap-2 mb-6">
+              <div className="rounded-2xl py-3" style={{ backgroundColor: "#F8F8F7" }}>
+                <p className="text-[18px] font-extrabold tabular-nums" style={{ color: "#B45309" }}>
+                  ×{maxStreak}
+                </p>
+                <p className="text-[11.5px]" style={{ color: MUTED }}>คอมโบสูงสุด</p>
+              </div>
+              <div className="rounded-2xl py-3" style={{ backgroundColor: "#F8F8F7" }}>
+                <p className="text-[18px] font-extrabold tabular-nums" style={{ color: "#57534E" }}>
+                  {Math.max(best.bestScore, score).toLocaleString()}
+                </p>
+                <p className="text-[11.5px]" style={{ color: MUTED }}>สถิติสูงสุดของคุณ</p>
+              </div>
+            </div>
+
+            {!isMember && (
+              <Link href="/packages"
+                className="block rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold text-left"
+                style={{ backgroundColor: "#FDF6E9", color: "#92400E", border: "1px solid #FDE9C8" }}>
+                🔓 สมาชิกเล่นครบ {SCENARIOS.length} โจทย์ — เริ่ม ฿{PRICING.app.price} →
+              </Link>
+            )}
+
+            <div className="space-y-2">
+              <button onClick={() => startMode("arcade")}
+                className="w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
+                           transition-transform active:scale-[0.98]"
+                style={{ backgroundColor: ACCENT }}>
+                เล่นอีกครั้ง
+              </button>
+              <button onClick={() => setMode(null)}
+                className="w-full py-3 rounded-2xl font-semibold text-[14px] bg-white"
+                style={{ border: `1px solid ${LINE}`, color: "#44403C" }}>
+                เปลี่ยนโหมด
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── กำลังเล่น ──
+    const aAnswered = aChosen !== null;
+    const aCorrect  = aAnswered && aChosen === aCur.answer;
+    const aTimeout  = aChosen === "timeout";
+    const timerPct  = (secLeft / TIME_PER_Q) * 100;
+    const timerColor = secLeft > 8 ? ACCENT : secLeft > 4 ? "#F59E0B" : "#EF4444";
+    const mult = 1 + Math.min(streak, 8) * 0.25;
+
+    return (
+      <div className="font-exam min-h-screen pb-32" style={{ backgroundColor: "#FAFAF9" }}>
+        {/* HUD */}
+        <div className="sticky top-14 z-30 bg-white/95 backdrop-blur-md"
+          style={{ borderBottom: `1px solid ${LINE}` }}>
+          <div className="max-w-lg mx-auto px-5 h-12 flex items-center justify-between">
+            {/* หัวใจ */}
+            <div className="flex items-center gap-1 text-[15px]">
+              {Array.from({ length: MAX_HEARTS }).map((_, i) => (
+                <span key={i} className={i === hearts ? "game-pop" : ""}
+                  style={{ opacity: i < hearts ? 1 : 0.25 }}>
+                  {i < hearts ? "❤️" : "🤍"}
+                </span>
+              ))}
+            </div>
+            {/* คอมโบ */}
+            {streak >= 2 ? (
+              <span key={streak} className="game-pop text-[13px] font-extrabold px-2.5 py-1 rounded-full"
+                style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                คอมโบ ×{mult.toFixed(2).replace(/\.?0+$/, "")}
+              </span>
+            ) : (
+              <span className="text-[12px] font-semibold" style={{ color: MUTED }}>
+                ข้อ {aIdx + 1}/{aQueue.length}
+              </span>
+            )}
+            {/* แต้ม + แต้มลอย */}
+            <div className="relative text-right">
+              <span className="text-[16px] font-extrabold tabular-nums" style={{ color: ACCENT }}>
+                {score.toLocaleString()}
+              </span>
+              {floatPts !== null && (
+                <span key={score} className="game-float-up absolute -top-1 right-0 text-[13px] font-extrabold"
+                  style={{ color: "#B45309" }}>
+                  +{floatPts.toLocaleString()}
+                </span>
+              )}
+            </div>
+          </div>
+          {/* แถบเวลา */}
+          <div className="h-[5px]" style={{ backgroundColor: "#F3F2F0" }}>
+            <div className="h-full"
+              style={{ width: `${timerPct}%`, backgroundColor: timerColor,
+                       transition: "width 0.1s linear, background-color 0.3s" }} />
+          </div>
+        </div>
+
+        <div className="max-w-lg mx-auto px-5 pt-5 space-y-4">
+          {/* โจทย์ — สั่นเมื่อตอบผิด/หมดเวลา */}
+          <div key={aIdx}
+            className={`bg-white rounded-2xl p-5 ${aAnswered && !aCorrect ? "game-shake" : ""}`}
+            style={{ border: `1px solid ${aAnswered && !aCorrect ? "#FECACA" : LINE}`,
+                     boxShadow: CARD_SHADOW }}>
+            <p className="text-[15.5px] font-semibold text-gray-900 leading-relaxed">
+              {aCur.text}
+            </p>
+          </div>
+
+          {/* ตัวเลือก */}
+          <div className="space-y-2">
+            {aChoices.map((id) => {
+              const st = STATS[id];
+              const isAnswer = id === aCur.answer;
+              const isChosen = id === aChosen;
+              let bg = "white", border = `1px solid ${LINE}`, color = "#374151";
+              if (aAnswered && isAnswer)  { bg = "#EBF5F3"; border = `1.5px solid ${ACCENT}`; color = ACCENT; }
+              if (aAnswered && isChosen && !isAnswer) { bg = "#FEF2F2"; border = "1.5px solid #EF4444"; color = "#DC2626"; }
+              return (
+                <button key={id} onClick={() => answerArcade(id)} disabled={aAnswered}
+                  className="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl
+                             transition-all duration-150 active:scale-[0.98] disabled:active:scale-100"
+                  style={{ backgroundColor: bg, border }}>
+                  <span className="text-[15px] font-bold flex-1" style={{ color }}>{st.name}</span>
+                  {aAnswered && isAnswer && (
+                    <span className="text-[12px] font-bold flex-shrink-0" style={{ color: ACCENT }}>
+                      ✓ เฉลย
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ผิด/หมดเวลา — โชว์จุดสังเกตสั้น ๆ แล้วไปต่อ */}
+          {aAnswered && !aCorrect && (
+            <div className="space-y-3">
+              <div className="rounded-2xl px-4 py-3 text-[14px] font-bold text-center"
+                style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+                {aTimeout ? "⏰ หมดเวลา! เสียหัวใจ 1 ดวง" : "ยังไม่ใช่ — เสียหัวใจ 1 ดวง"}
+              </div>
+              <div className="px-4 py-3.5 rounded-2xl text-[14px] leading-relaxed"
+                style={{ backgroundColor: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A" }}>
+                <span className="font-semibold">จุดสังเกต · </span>{aCur.clue}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {aAnswered && !aCorrect && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md"
+            style={{ borderTop: `1px solid ${LINE}` }}>
+            <div className="max-w-lg mx-auto px-5 py-4">
+              <button
+                onClick={() => (hearts <= 0 ? setFinished(true) : nextArcade())}
+                className="font-exam w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
+                           transition-transform active:scale-[0.98]"
+                style={{ backgroundColor: hearts <= 0 ? "#DC2626" : ACCENT }}>
+                {hearts <= 0 ? "ดูสรุปผล" : "ไปต่อ →"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -97,3 +97,32 @@
     padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
   }
 }
+
+/* ── เอฟเฟกต์เกม (stat-game โหมดเกม) ─────────────────────────────────────── */
+@keyframes game-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+.game-shake { animation: game-shake 0.4s ease; }
+
+@keyframes game-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.game-pop { animation: game-pop 0.35s ease-out; }
+
+@keyframes game-float-up {
+  0%   { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-46px); opacity: 0; }
+}
+.game-float-up { animation: game-float-up 0.9s ease-out forwards; }
+
+@keyframes game-confetti {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(90px) rotate(340deg); opacity: 0; }
+}
+.game-confetti { animation: game-confetti 1.1s ease-in forwards; }
