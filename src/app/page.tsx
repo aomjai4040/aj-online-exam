@@ -351,16 +351,18 @@ export default function HomePage() {
               ),
             },
             {
-              title: "เกมเลือกสถิติ",
-              desc: "ไล่เงื่อนไข → เจอสถิติที่ใช่",
-              href: "/stat-game",
+              title: "เกมทบทวน",
+              desc: "เลือกสถิติ · Flash Card · จับคู่",
+              href: "/games",
               badge: "ใหม่",
               icon: (
                 <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
-                  <line x1="18" y1="20" x2="18" y2="10" />
-                  <line x1="12" y1="20" x2="12" y2="4" />
-                  <line x1="6" y1="20" x2="6" y2="14" />
+                  <rect x="2" y="6" width="20" height="12" rx="6" />
+                  <line x1="6" y1="12" x2="10" y2="12" />
+                  <line x1="8" y1="10" x2="8" y2="14" />
+                  <line x1="15" y1="13" x2="15.01" y2="13" />
+                  <line x1="18" y1="11" x2="18.01" y2="11" />
                 </svg>
               ),
             },
@@ -373,18 +375,6 @@ export default function HomePage() {
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                   <polygon points="23 7 16 12 23 17 23 7" />
                   <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                </svg>
-              ),
-            },
-            {
-              title: "Flash Card",
-              desc: "ทบทวนความรู้",
-              href: "/flashcard",
-              icon: (
-                <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
-                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
-                  <rect x="2" y="6" width="18" height="13" rx="2" />
-                  <path d="M6 6V4a2 2 0 012-2h12a2 2 0 012 2v11a2 2 0 01-2 2" />
                 </svg>
               ),
             },

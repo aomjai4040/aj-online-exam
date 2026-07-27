@@ -9,7 +9,10 @@ const MUTED  = "#9CA3AF";
 
 function active(pathname: string, href: string): boolean {
   if (href === "/")            return pathname === "/" || pathname.startsWith("/exam");
-  if (href === "/flashcard")   return pathname.startsWith("/flashcard");
+  // ปุ่มเกมติดไฟทั้งตอนอยู่ใน hub และในตัวเกมแต่ละอัน
+  if (href === "/games")
+    return pathname.startsWith("/games") || pathname.startsWith("/flashcard")
+      || pathname.startsWith("/stat-game");
   if (href === "/dashboard")   return pathname.startsWith("/dashboard");
   if (href === "/mock-exam")   return pathname.startsWith("/mock-exam");
   return pathname === href || pathname.startsWith(href + "/");
@@ -46,13 +49,16 @@ export default function BottomNav() {
       ),
     },
     {
-      label: "Flash Card",
-      href:  "/flashcard",
+      label: "เกม",
+      href:  "/games",
       icon:  (a: boolean) => (
         <svg viewBox="0 0 24 24" fill="none" stroke={a ? ACCENT : MUTED}
           strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={SZ}>
-          <rect x="2" y="6" width="18" height="13" rx="2" />
-          <path d="M6 6V4a2 2 0 012-2h12a2 2 0 012 2v11a2 2 0 01-2 2" />
+          <rect x="2" y="6" width="20" height="12" rx="6" />
+          <line x1="6" y1="12" x2="10" y2="12" />
+          <line x1="8" y1="10" x2="8" y2="14" />
+          <line x1="15" y1="13" x2="15.01" y2="13" />
+          <line x1="18" y1="11" x2="18.01" y2="11" />
         </svg>
       ),
     },
