@@ -203,6 +203,35 @@ export const SCENARIOS: Scenario[] = [
   },
 ];
 
+/**
+ * ตัวลวงประจำสถิติ (โหมดสอบจริง) — เลือก "ญาติใกล้เคียง" ที่ต่างกันแค่เงื่อนไขเดียว
+ * เพื่อบังคับให้แยกเงื่อนไขให้ขาด (จับคู่/อิสระ · พารา/นอนพารา · จำนวนกลุ่ม)
+ */
+export const DISTRACTORS: Record<string, string[]> = {
+  "one-t":    ["ind-t", "paired-t", "anova"],
+  "ind-t":    ["paired-t", "mann", "anova"],
+  "paired-t": ["ind-t", "wilcoxon", "one-t"],
+  "anova":    ["ind-t", "kruskal", "paired-t"],
+  "mann":     ["ind-t", "wilcoxon", "kruskal"],
+  "wilcoxon": ["paired-t", "mann", "kruskal"],
+  "kruskal":  ["anova", "mann", "wilcoxon"],
+  "chi":      ["ind-t", "pearson", "mann"],
+  "pearson":  ["spearman", "chi", "linreg"],
+  "spearman": ["pearson", "chi", "kruskal"],
+  "linreg":   ["pearson", "logreg", "anova"],
+  "logreg":   ["linreg", "chi", "pearson"],
+};
+
+/** ชุดตัวเลือก 4 ตัว (เฉลย + ตัวลวง 3) สลับลำดับแล้ว — สำหรับโหมดสอบจริง */
+export function buildChoices(answerId: string): string[] {
+  const pool = [answerId, ...(DISTRACTORS[answerId] ?? [])].slice(0, 4);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool;
+}
+
 /** แปลง route เป็นป้ายตัวเลือก (ตัดคำขยายในวงเล็บ) — ใช้โชว์ "เส้นทางแนะนำ" ในเฉลย */
 export function routeLabels(route: number[]): string[] {
   const labels: string[] = [];
