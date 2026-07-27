@@ -185,71 +185,148 @@ export default function StatGamePage() {
     });
   }
 
-  // ═══ เลือกโหมด ══════════════════════════════════════════════════════════════
+  // ═══ เลือกโหมด — หน้า landing ของเกม (ใช้แจกลิงก์ได้) ═══════════════════════
   if (!mode) {
+    const symbols = [
+      { t: "χ²",     top: "12%", left: "6%",  size: 26, rot: -12 },
+      { t: "t-test", top: "22%", left: "78%", size: 14, rot: 8 },
+      { t: "r",      top: "58%", left: "10%", size: 22, rot: 10 },
+      { t: "p<.05",  top: "68%", left: "74%", size: 13, rot: -8 },
+      { t: "σ",      top: "10%", left: "58%", size: 20, rot: 14 },
+      { t: "ANOVA",  top: "72%", left: "38%", size: 12, rot: -5 },
+    ];
     return (
       <div className="font-exam min-h-screen pb-28" style={{ backgroundColor: "#FAFAF9" }}>
-        <div className="max-w-lg mx-auto px-5 pt-10">
-          <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-              style={{ backgroundColor: "#EBF5F3" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke={ACCENT}
-                strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
-                <line x1="18" y1="20" x2="18" y2="10" />
-                <line x1="12" y1="20" x2="12" y2="4" />
-                <line x1="6" y1="20" x2="6" y2="14" />
-              </svg>
+
+        {/* ── Hero เขียวแบรนด์ + สัญลักษณ์สถิติลอย ── */}
+        <div className="relative overflow-hidden px-5 pt-9 pb-14"
+          style={{ background: "linear-gradient(160deg, #0B6E65 0%, #0d9488 100%)" }}>
+          {symbols.map((s) => (
+            <span key={s.t} className="absolute font-extrabold select-none pointer-events-none"
+              style={{ top: s.top, left: s.left, fontSize: s.size, color: "white",
+                       opacity: 0.14, transform: `rotate(${s.rot}deg)` }}>
+              {s.t}
+            </span>
+          ))}
+          <div className="relative max-w-lg mx-auto text-center">
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-white/15">
+              <span className="text-[32px] leading-none">📊</span>
             </div>
-            <h1 className="text-[21px] font-extrabold text-gray-900 mb-1">เกมเลือกสถิติ</h1>
-            <p className="text-[13.5px]" style={{ color: MUTED }}>
-              อ่านโจทย์สถานการณ์ แล้วตอบให้ได้ว่าใช้สถิติตัวไหน
+            <span className="inline-block text-[12px] font-extrabold px-3 py-1 rounded-full mb-3"
+              style={{ backgroundColor: "#F59E0B", color: "#412402" }}>
+              🎁 เล่นฟรี ไม่ต้องซื้อคอร์ส
+            </span>
+            <h1 className="text-[26px] font-extrabold text-white leading-tight mb-1.5">
+              เกมเลือกสถิติ
+            </h1>
+            <p className="text-[13.5px]" style={{ color: "#C8EDE2" }}>
+              อ่านโจทย์แบบข้อสอบจริง แล้วตอบให้ได้ว่าใช้สถิติตัวไหน
             </p>
           </div>
+        </div>
 
+        {/* ── แถวตัวเลข คร่อมรอยต่อ hero ── */}
+        <div className="max-w-lg mx-auto px-5 -mt-7 relative">
+          <div className="grid grid-cols-3 gap-2.5">
+            {[
+              { v: `${SCENARIOS.length}`, l: "โจทย์สถานการณ์" },
+              { v: "12", l: "สถิติที่ต้องรู้" },
+              { v: "3",  l: "โหมดเล่น" },
+            ].map((x) => (
+              <div key={x.l} className="bg-white rounded-2xl py-3 text-center"
+                style={{ border: "2px solid #E3E1DC", borderBottomWidth: 4, borderBottomColor: "#D2D0CB" }}>
+                <p className="text-[20px] font-extrabold leading-none tabular-nums" style={{ color: ACCENT }}>
+                  {x.v}
+                </p>
+                <p className="text-[11px] mt-1" style={{ color: MUTED }}>{x.l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="max-w-lg mx-auto px-5 pt-5">
+          {/* สถิติสูงสุดของคุณ */}
+          {best.bestScore > 0 && (
+            <div className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-4"
+              style={{ backgroundColor: "#FDF6E9", border: "2px solid #FCD34D" }}>
+              <span className="text-[22px]">🏆</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-bold" style={{ color: "#92400E" }}>
+                  สถิติของคุณ: {best.bestScore.toLocaleString()} แต้ม · คอมโบ ×{best.bestStreak}
+                </p>
+                <p className="text-[12px]" style={{ color: "#B45309" }}>วันนี้ทำลายมันได้ไหม?</p>
+              </div>
+            </div>
+          )}
+
+          {/* โหมดเล่น 3 แบบ */}
           <div className="space-y-3">
             <button onClick={() => startMode("arcade")}
-              className="chunky w-full text-left p-5"
+              className="chunky w-full text-left p-4 flex items-center gap-3.5"
               style={{ backgroundColor: "white", borderColor: ACCENT, borderBottomColor: "#063E38" }}>
-              <div className="flex items-center gap-2 mb-1">
-                <p className="text-[16px] font-bold" style={{ color: ACCENT }}>🎮 เล่นเกม</p>
-                <span className="text-[10.5px] font-bold px-1.5 py-[2px] rounded-full"
-                  style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
-                  มันส์
-                </span>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: ACCENT }}>
+                <span className="text-[24px] leading-none">🎮</span>
               </div>
-              <p className="text-[13px] leading-relaxed" style={{ color: "#57534E" }}>
-                จับเวลา {TIME_PER_Q} วิ/ข้อ · หัวใจ {MAX_HEARTS} ดวง · ตอบเร็ว+ติดกันได้คอมโบคูณแต้ม
-              </p>
-              {best.bestScore > 0 && (
-                <p className="text-[12px] font-bold mt-1.5" style={{ color: "#B45309" }}>
-                  🏆 สถิติของคุณ: {best.bestScore.toLocaleString()} แต้ม · คอมโบ ×{best.bestStreak}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-[16.5px] font-extrabold" style={{ color: ACCENT }}>เล่นเกม</p>
+                  <span className="text-[10.5px] font-bold px-1.5 py-[2px] rounded-full"
+                    style={{ backgroundColor: "#F59E0B", color: "#412402" }}>
+                    แนะนำ
+                  </span>
+                </div>
+                <p className="text-[12.5px] mt-0.5 leading-snug" style={{ color: "#57534E" }}>
+                  จับเวลา {TIME_PER_Q} วิ · หัวใจ {MAX_HEARTS} ดวง · คอมโบคูณแต้ม
                 </p>
-              )}
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke={ACCENT}
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </button>
 
             <button onClick={() => startMode("recall")}
-              className="chunky w-full text-left p-5"
+              className="chunky w-full text-left p-4 flex items-center gap-3.5"
               style={CH_WHITE}>
-              <p className="text-[16px] font-bold text-gray-900 mb-1">โหมดสอบจริง</p>
-              <p className="text-[13px] leading-relaxed" style={{ color: "#57534E" }}>
-                ตอบสถิติทันทีจาก 4 ตัวเลือกเหมือนในห้องสอบ —
-                ข้อที่ผิดจะวนกลับมาถามซ้ำจนกว่าจะตอบถูกเอง
-              </p>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: "#FDF6E9" }}>
+                <span className="text-[24px] leading-none">📝</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[16px] font-bold text-gray-900">โหมดสอบจริง</p>
+                <p className="text-[12.5px] mt-0.5 leading-snug" style={{ color: "#57534E" }}>
+                  ไม่จับเวลา · ข้อที่ผิดวนกลับมาจนกว่าจะตอบถูกเอง
+                </p>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#D6D3D1"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </button>
 
             <button onClick={() => startMode("practice")}
-              className="chunky w-full text-left p-5"
+              className="chunky w-full text-left p-4 flex items-center gap-3.5"
               style={CH_WHITE}>
-              <p className="text-[16px] font-bold text-gray-900 mb-1">โหมดฝึก</p>
-              <p className="text-[13px] leading-relaxed" style={{ color: "#57534E" }}>
-                มีตัวช่วยไล่เงื่อนไขทีละขั้น (วัตถุประสงค์ → ชนิดข้อมูล → ลักษณะกลุ่ม)
-                เหมาะกับรอบแรก ๆ ที่ยังจำโครงไม่ได้
-              </p>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: "#F5F2FC" }}>
+                <span className="text-[24px] leading-none">🧭</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[16px] font-bold text-gray-900">โหมดฝึก</p>
+                <p className="text-[12.5px] mt-0.5 leading-snug" style={{ color: "#57534E" }}>
+                  มือใหม่เริ่มที่นี่ · มีตัวช่วยไล่เงื่อนไขทีละขั้น
+                </p>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#D6D3D1"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
             </button>
           </div>
 
-          <p className="text-[12.5px] text-center mt-4" style={{ color: MUTED }}>
-            🎁 เล่นฟรีครบทั้ง {SCENARIOS.length} โจทย์ ทุกโหมด
+          <p className="text-[12px] text-center mt-5" style={{ color: "#C9C5C0" }}>
+            เกมทบทวนสำหรับเตรียมสอบนักวิชาการสาธารณสุข · AJ ExamOnline
           </p>
         </div>
         <BottomNav />
