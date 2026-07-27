@@ -351,6 +351,20 @@ export default function HomePage() {
               ),
             },
             {
+              title: "เกมเลือกสถิติ",
+              desc: "ไล่เงื่อนไข → เจอสถิติที่ใช่",
+              href: "/stat-game",
+              badge: "ใหม่",
+              icon: (
+                <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
+                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
+                  <line x1="18" y1="20" x2="18" y2="10" />
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+              ),
+            },
+            {
               title: "คอร์สวิดีโอ",
               desc: "ติวครบทุกหัวข้อ",
               href: "/videos",
