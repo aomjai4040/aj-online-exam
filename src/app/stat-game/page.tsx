@@ -210,12 +210,13 @@ export default function StatGamePage() {
           ))}
           <div className="relative max-w-lg mx-auto text-center">
             <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-white/15">
-              <span className="text-[32px] leading-none">📊</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+              </svg>
             </div>
-            <span className="inline-block text-[12px] font-extrabold px-3 py-1 rounded-full mb-3"
-              style={{ backgroundColor: "#F59E0B", color: "#412402" }}>
-              🎁 เล่นฟรี ไม่ต้องซื้อคอร์ส
-            </span>
             <h1 className="text-[26px] font-extrabold text-white leading-tight mb-1.5">
               เกมเลือกสถิติ
             </h1>
@@ -249,7 +250,11 @@ export default function StatGamePage() {
           {best.bestScore > 0 && (
             <div className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-4"
               style={{ backgroundColor: "#FDF6E9", border: "2px solid #FCD34D" }}>
-              <span className="text-[22px]">🏆</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
+                strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 flex-shrink-0">
+                <circle cx="12" cy="8" r="6" />
+                <path d="M15.5 13l1 8-4.5-2.5L7.5 21l1-8" />
+              </svg>
               <div className="flex-1 min-w-0">
                 <p className="text-[13.5px] font-bold" style={{ color: "#92400E" }}>
                   สถิติของคุณ: {best.bestScore.toLocaleString()} แต้ม · คอมโบ ×{best.bestStreak}
@@ -266,7 +271,14 @@ export default function StatGamePage() {
               style={{ backgroundColor: "white", borderColor: ACCENT, borderBottomColor: "#063E38" }}>
               <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: ACCENT }}>
-                <span className="text-[24px] leading-none">🎮</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                  strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+                  <rect x="2" y="6" width="20" height="12" rx="6" />
+                  <line x1="6" y1="12" x2="10" y2="12" />
+                  <line x1="8" y1="10" x2="8" y2="14" />
+                  <line x1="15" y1="13" x2="15.01" y2="13" />
+                  <line x1="18" y1="11" x2="18.01" y2="11" />
+                </svg>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -291,7 +303,11 @@ export default function StatGamePage() {
               style={CH_WHITE}>
               <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "#FDF6E9" }}>
-                <span className="text-[24px] leading-none">📝</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
+                  strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[16px] font-bold text-gray-900">โหมดสอบจริง</p>
@@ -310,7 +326,11 @@ export default function StatGamePage() {
               style={CH_WHITE}>
               <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "#F5F2FC" }}>
-                <span className="text-[24px] leading-none">🧭</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#6D28D9"
+                  strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+                  <circle cx="12" cy="12" r="10" />
+                  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+                </svg>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[16px] font-bold text-gray-900">โหมดฝึก</p>
