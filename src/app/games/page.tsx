@@ -24,9 +24,9 @@ const IC = { width: 22, height: 22 };
 const GAMES: GameEntry[] = [
   {
     title: "เกมเลือกสถิติ",
-    desc:  "โจทย์แบบข้อสอบจริง — โหมดสอบ (ข้อผิดวนซ้ำ) + โหมดฝึกไล่เงื่อนไข",
+    desc:  "โจทย์แบบข้อสอบจริง — โหมดเกมจับเวลา · สอบจริง · ฝึกไล่เงื่อนไข",
     href:  "/stat-game",
-    badge: "ใหม่",
+    badge: "เล่นฟรี",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke={ACCENT}
         strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={IC}>

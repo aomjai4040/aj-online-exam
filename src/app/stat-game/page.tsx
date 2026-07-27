@@ -7,7 +7,7 @@
  *   เฉลยโชว์เส้นทางเงื่อนไข = ใช้ tree เป็นกระจกส่องจุดพลาด ไม่ใช่ไม้เท้า
  * โหมดฝึก (practice): ไล่เงื่อนไขทีละขั้นแบบเดิม — สำหรับคนเพิ่งเริ่มจับโครง
  *
- * สิทธิ์: login · สมาชิกเล่นครบ · ยังไม่ซื้อเล่น 3 ข้อแรก
+ * สิทธิ์: login เท่านั้น — เล่นฟรีครบทุกข้อทุกโหมด (ของแจกชวนคนยังไม่ซื้อคอร์ส)
  */
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
@@ -29,7 +29,8 @@ const LINE   = "#ECEBE9";
 const MUTED  = "#A8A29E";
 const CARD_SHADOW = "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.05)";
 
-const FREE_SCENARIOS = 3;
+// เกมนี้ "ฟรีทุกโหมดทุกข้อ" (Aj 2026-07-27) — แจกให้คนยังไม่ซื้อคอร์สมาลองเล่น
+// เพื่อการตลาด · ยังต้อง login เพื่อเก็บสถิติสูงสุดต่อคน
 const TIME_PER_Q     = 30;   // วินาทีต่อข้อในโหมดเกม (Aj ปรับจาก 20 — โจทย์ยาว อ่านไม่ทัน)
 const MAX_HEARTS     = 3;
 
@@ -73,6 +74,7 @@ export default function StatGamePage() {
   const [secLeft,   setSecLeft]   = useState(TIME_PER_Q);
   const [floatPts,  setFloatPts]  = useState<number | null>(null);
   const [best,      setBest]      = useState<StatGameBest>({ bestScore: 0, bestStreak: 0 });
+  const [rulesOpen, setRulesOpen] = useState(false); // หน้ากติกาก่อนเริ่มเกม
   const savedRef = useState({ done: false })[0];
 
   const [finished, setFinished] = useState(false);
@@ -99,12 +101,12 @@ export default function StatGamePage() {
     [aCur?.id, aIdx]
   );
 
-  // นาฬิกาไหลเฉพาะตอนกำลังตอบในโหมดเกม
+  // นาฬิกาไหลเฉพาะตอนกำลังตอบในโหมดเกม (ยังไม่เริ่มถ้าหน้ากติกาเปิดอยู่)
   useEffect(() => {
-    if (mode !== "arcade" || finished || aChosen !== null || !aCur) return;
+    if (mode !== "arcade" || rulesOpen || finished || aChosen !== null || !aCur) return;
     const iv = setInterval(() => setSecLeft((s) => Math.max(0, s - 0.1)), 100);
     return () => clearInterval(iv);
-  }, [mode, finished, aChosen, aCur]);
+  }, [mode, rulesOpen, finished, aChosen, aCur]);
 
   // เวลาหมด = ตอบผิด (เสียหัวใจ)
   useEffect(() => {
@@ -125,11 +127,8 @@ export default function StatGamePage() {
 
   if (guard !== "allowed" || isMember === null) return <AccessGuardSpinner />;
 
-  const limit = (list: Scenario[]) =>
-    isMember ? list : list.slice(0, FREE_SCENARIOS);
-
   function startMode(m: Mode) {
-    const list = limit(shuffleScenarios());
+    const list = shuffleScenarios(); // ฟรีครบทุกข้อทุกโหมด
     setMode(m);
     setFinished(false);
     if (m === "recall") {
@@ -139,6 +138,7 @@ export default function StatGamePage() {
       setAQueue(list); setAIdx(0); setAChosen(null);
       setHearts(MAX_HEARTS); setScore(0); setStreak(0); setMaxStreak(0);
       setSecLeft(TIME_PER_Q); setFloatPts(null);
+      setRulesOpen(true); // แจ้งกติกาก่อนเริ่มทุกครั้ง — นาฬิกายังไม่เดิน
       savedRef.done = false;
     } else {
       setPList(list); setPIndex(0); setNodeId("start");
@@ -239,11 +239,9 @@ export default function StatGamePage() {
             </button>
           </div>
 
-          {!isMember && (
-            <p className="text-[12.5px] text-center mt-4" style={{ color: MUTED }}>
-              ทดลองเล่นฟรี {FREE_SCENARIOS} ข้อ · สมาชิกเล่นครบ {SCENARIOS.length} ข้อ
-            </p>
-          )}
+          <p className="text-[12.5px] text-center mt-4" style={{ color: MUTED }}>
+            🎁 เล่นฟรีครบทั้ง {SCENARIOS.length} โจทย์ ทุกโหมด
+          </p>
         </div>
         <BottomNav />
       </div>
@@ -252,6 +250,60 @@ export default function StatGamePage() {
 
   // ═══ โหมดเกม ═══════════════════════════════════════════════════════════════
   if (mode === "arcade") {
+    // ── หน้ากติกา — เข้าใจง่าย อ่านจบใน 10 วินาที แล้วค่อยเริ่มจับเวลา ──
+    if (rulesOpen) {
+      return (
+        <div className="font-exam min-h-screen flex items-center justify-center px-5 pb-24"
+          style={{ backgroundColor: "#FAFAF9" }}>
+          <div className="bg-white rounded-[28px] p-7 w-full max-w-sm"
+            style={{ border: `1px solid ${LINE}`, boxShadow: CARD_SHADOW }}>
+            <h2 className="text-[20px] font-extrabold text-gray-900 text-center mb-1">
+              กติกา 4 ข้อ
+            </h2>
+            <p className="text-[13px] text-center mb-5" style={{ color: MUTED }}>
+              อ่านโจทย์ แล้วตอบให้ได้ว่าใช้ &quot;สถิติ&quot; ตัวไหน
+            </p>
+
+            <div className="space-y-2.5 mb-6">
+              {[
+                { icon: "⏱️", head: `มีเวลา ${TIME_PER_Q} วินาทีต่อข้อ`,
+                  body: "ยิ่งตอบเร็ว ยิ่งได้แต้มเยอะ" },
+                { icon: "❤️", head: `มีหัวใจ ${MAX_HEARTS} ดวง`,
+                  body: "ตอบผิดหรือหมดเวลา เสีย 1 ดวง — หมดเมื่อไหร่เกมจบ" },
+                { icon: "🔥", head: "ตอบถูกติดกัน = คอมโบ",
+                  body: "แต้มคูณเพิ่มเรื่อย ๆ สูงสุด ×3 (ผิดปุ๊บคอมโบแตก)" },
+                { icon: "🏆", head: "ทำลายสถิติตัวเอง",
+                  body: "คะแนนสูงสุดถูกบันทึกไว้ กลับมาแก้มือได้ทุกวัน" },
+              ].map((r) => (
+                <div key={r.head} className="flex items-start gap-3 rounded-xl px-3.5 py-3"
+                  style={{ backgroundColor: "#FAFAF8", border: `1px solid ${LINE}` }}>
+                  <span className="text-[20px] leading-none mt-0.5">{r.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-bold text-gray-900 leading-snug">{r.head}</p>
+                    <p className="text-[12.5px] mt-0.5 leading-snug" style={{ color: "#78716C" }}>
+                      {r.body}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={() => setRulesOpen(false)}
+              className="w-full py-4 rounded-2xl font-extrabold text-[16px] text-white
+                         transition-transform active:scale-[0.98]"
+              style={{ backgroundColor: ACCENT }}>
+              เริ่มเกม!
+            </button>
+            <button onClick={() => setMode(null)}
+              className="w-full py-3 mt-1 rounded-2xl font-semibold text-[13.5px]"
+              style={{ color: MUTED }}>
+              ← กลับไปเลือกโหมด
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     // ── จอจบเกม ──
     if (finished || !aCur) {
       const newRecord = score > 0 && score > best.bestScore;
@@ -309,7 +361,7 @@ export default function StatGamePage() {
               <Link href="/packages"
                 className="block rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold text-left"
                 style={{ backgroundColor: "#FDF6E9", color: "#92400E", border: "1px solid #FDE9C8" }}>
-                🔓 สมาชิกเล่นครบ {SCENARIOS.length} โจทย์ — เริ่ม ฿{PRICING.app.price} →
+                ชอบแนวนี้ใช่ไหม? คลังข้อสอบเต็ม 1,500+ ข้อ พร้อมเฉลยละเอียด — เริ่ม ฿{PRICING.app.price} →
               </Link>
             )}
 
@@ -485,7 +537,7 @@ export default function StatGamePage() {
             <Link href="/packages"
               className="block rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold text-left"
               style={{ backgroundColor: "#FDF6E9", color: "#92400E", border: "1px solid #FDE9C8" }}>
-              🔓 สมาชิกเล่นได้ครบ {SCENARIOS.length} โจทย์ + คลังข้อสอบเต็ม — เริ่ม ฿{PRICING.app.price} →
+              ชอบแนวนี้ใช่ไหม? คลังข้อสอบเต็ม 1,500+ ข้อ พร้อมเฉลยละเอียด — เริ่ม ฿{PRICING.app.price} →
             </Link>
           )}
 

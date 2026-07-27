@@ -352,9 +352,9 @@ export default function HomePage() {
             },
             {
               title: "เกมทบทวน",
-              desc: "เลือกสถิติ · Flash Card · จับคู่",
+              desc: "เกมเลือกสถิติ เล่นฟรี · Flash Card",
               href: "/games",
-              badge: "ใหม่",
+              badge: "ฟรี",
               icon: (
                 <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
