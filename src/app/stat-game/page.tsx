@@ -30,7 +30,7 @@ const MUTED  = "#A8A29E";
 const CARD_SHADOW = "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.05)";
 
 const FREE_SCENARIOS = 3;
-const TIME_PER_Q     = 20;   // วินาทีต่อข้อในโหมดเกม
+const TIME_PER_Q     = 30;   // วินาทีต่อข้อในโหมดเกม (Aj ปรับจาก 20 — โจทย์ยาว อ่านไม่ทัน)
 const MAX_HEARTS     = 3;
 
 type Mode = "recall" | "practice" | "arcade";
