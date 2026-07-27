@@ -29,6 +29,15 @@ const LINE   = "#ECEBE9";
 const MUTED  = "#A8A29E";
 const CARD_SHADOW = "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.05)";
 
+// ── ดีไซน์ "สดใสปุ่มหนา" (แนว A ที่ Aj เลือก 2026-07-27) ──
+// ปุ่ม .chunky (globals.css) + ชุดสีนี้: ขาว/เขียว/แดง มีขอบล่างเข้มให้มิติกด
+const CH_WHITE  = { backgroundColor: "white",   borderColor: "#E3E1DC", borderBottomColor: "#D2D0CB", color: "#374151" };
+const CH_GREEN  = { backgroundColor: ACCENT,    borderColor: ACCENT,    borderBottomColor: "#063E38", color: "white" };
+const CH_RED    = { backgroundColor: "#EF4444", borderColor: "#EF4444", borderBottomColor: "#B91C1C", color: "white" };
+const QCARD     = { backgroundColor: "#F4FBF8", border: "2px solid #C3E5DE" };  // การ์ดโจทย์โทนมินต์
+const HUD_GREEN = { backgroundColor: ACCENT };                                   // แถบบนสีแบรนด์
+const TIMER_TRACK = "#E1F5EE";
+
 // เกมนี้ "ฟรีทุกโหมดทุกข้อ" (Aj 2026-07-27) — แจกให้คนยังไม่ซื้อคอร์สมาลองเล่น
 // เพื่อการตลาด · ยังต้อง login เพื่อเก็บสถิติสูงสุดต่อคน
 const TIME_PER_Q     = 30;   // วินาทีต่อข้อในโหมดเกม (Aj ปรับจาก 20 — โจทย์ยาว อ่านไม่ทัน)
@@ -199,8 +208,8 @@ export default function StatGamePage() {
 
           <div className="space-y-3">
             <button onClick={() => startMode("arcade")}
-              className="w-full text-left rounded-2xl p-5 bg-white active:scale-[0.98] transition-transform"
-              style={{ border: `1.5px solid ${ACCENT}`, boxShadow: CARD_SHADOW }}>
+              className="chunky w-full text-left p-5"
+              style={{ backgroundColor: "white", borderColor: ACCENT, borderBottomColor: "#063E38" }}>
               <div className="flex items-center gap-2 mb-1">
                 <p className="text-[16px] font-bold" style={{ color: ACCENT }}>🎮 เล่นเกม</p>
                 <span className="text-[10.5px] font-bold px-1.5 py-[2px] rounded-full"
@@ -219,8 +228,8 @@ export default function StatGamePage() {
             </button>
 
             <button onClick={() => startMode("recall")}
-              className="w-full text-left rounded-2xl p-5 bg-white active:scale-[0.98] transition-transform"
-              style={{ border: `1px solid ${LINE}` }}>
+              className="chunky w-full text-left p-5"
+              style={CH_WHITE}>
               <p className="text-[16px] font-bold text-gray-900 mb-1">โหมดสอบจริง</p>
               <p className="text-[13px] leading-relaxed" style={{ color: "#57534E" }}>
                 ตอบสถิติทันทีจาก 4 ตัวเลือกเหมือนในห้องสอบ —
@@ -229,8 +238,8 @@ export default function StatGamePage() {
             </button>
 
             <button onClick={() => startMode("practice")}
-              className="w-full text-left rounded-2xl p-5 bg-white active:scale-[0.98] transition-transform"
-              style={{ border: `1px solid ${LINE}` }}>
+              className="chunky w-full text-left p-5"
+              style={CH_WHITE}>
               <p className="text-[16px] font-bold text-gray-900 mb-1">โหมดฝึก</p>
               <p className="text-[13px] leading-relaxed" style={{ color: "#57534E" }}>
                 มีตัวช่วยไล่เงื่อนไขทีละขั้น (วัตถุประสงค์ → ชนิดข้อมูล → ลักษณะกลุ่ม)
@@ -289,9 +298,8 @@ export default function StatGamePage() {
             </div>
 
             <button onClick={() => setRulesOpen(false)}
-              className="w-full py-4 rounded-2xl font-extrabold text-[16px] text-white
-                         transition-transform active:scale-[0.98]"
-              style={{ backgroundColor: ACCENT }}>
+              className="chunky w-full py-4 font-extrabold text-[16px]"
+              style={CH_GREEN}>
               เริ่มเกม!
             </button>
             <button onClick={() => setMode(null)}
@@ -367,14 +375,13 @@ export default function StatGamePage() {
 
             <div className="space-y-2">
               <button onClick={() => startMode("arcade")}
-                className="w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
-                           transition-transform active:scale-[0.98]"
-                style={{ backgroundColor: ACCENT }}>
+                className="chunky w-full py-3.5 font-bold text-[15px]"
+                style={CH_GREEN}>
                 เล่นอีกครั้ง
               </button>
               <button onClick={() => setMode(null)}
-                className="w-full py-3 rounded-2xl font-semibold text-[14px] bg-white"
-                style={{ border: `1px solid ${LINE}`, color: "#44403C" }}>
+                className="chunky w-full py-3 font-semibold text-[14px]"
+                style={CH_WHITE}>
                 เปลี่ยนโหมด
               </button>
             </div>
@@ -388,20 +395,19 @@ export default function StatGamePage() {
     const aCorrect  = aAnswered && aChosen === aCur.answer;
     const aTimeout  = aChosen === "timeout";
     const timerPct  = (secLeft / TIME_PER_Q) * 100;
-    const timerColor = secLeft > 8 ? ACCENT : secLeft > 4 ? "#F59E0B" : "#EF4444";
+    const timerColor = secLeft > 5 ? "#F59E0B" : "#EF4444";
     const mult = 1 + Math.min(streak, 8) * 0.25;
 
     return (
       <div className="font-exam min-h-screen pb-32" style={{ backgroundColor: "#FAFAF9" }}>
-        {/* HUD */}
-        <div className="sticky top-14 z-30 bg-white/95 backdrop-blur-md"
-          style={{ borderBottom: `1px solid ${LINE}` }}>
+        {/* HUD — แถบเขียวแบรนด์แบบเกม */}
+        <div className="sticky top-14 z-30" style={HUD_GREEN}>
           <div className="max-w-lg mx-auto px-5 h-12 flex items-center justify-between">
             {/* หัวใจ */}
             <div className="flex items-center gap-1 text-[15px]">
               {Array.from({ length: MAX_HEARTS }).map((_, i) => (
                 <span key={i} className={i === hearts ? "game-pop" : ""}
-                  style={{ opacity: i < hearts ? 1 : 0.25 }}>
+                  style={{ opacity: i < hearts ? 1 : 0.35 }}>
                   {i < hearts ? "❤️" : "🤍"}
                 </span>
               ))}
@@ -409,65 +415,62 @@ export default function StatGamePage() {
             {/* คอมโบ */}
             {streak >= 2 ? (
               <span key={streak} className="game-pop text-[13px] font-extrabold px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                style={{ backgroundColor: "#F59E0B", color: "#412402" }}>
                 คอมโบ ×{mult.toFixed(2).replace(/\.?0+$/, "")}
               </span>
             ) : (
-              <span className="text-[12px] font-semibold" style={{ color: MUTED }}>
+              <span className="text-[12px] font-semibold" style={{ color: "#9FE1CB" }}>
                 ข้อ {aIdx + 1}/{aQueue.length}
               </span>
             )}
             {/* แต้ม + แต้มลอย */}
             <div className="relative text-right">
-              <span className="text-[16px] font-extrabold tabular-nums" style={{ color: ACCENT }}>
+              <span className="text-[16px] font-extrabold tabular-nums text-white">
                 {score.toLocaleString()}
               </span>
               {floatPts !== null && (
                 <span key={score} className="game-float-up absolute -top-1 right-0 text-[13px] font-extrabold"
-                  style={{ color: "#B45309" }}>
+                  style={{ color: "#FCD34D" }}>
                   +{floatPts.toLocaleString()}
                 </span>
               )}
             </div>
           </div>
           {/* แถบเวลา */}
-          <div className="h-[5px]" style={{ backgroundColor: "#F3F2F0" }}>
-            <div className="h-full"
+          <div className="h-[8px]" style={{ backgroundColor: TIMER_TRACK }}>
+            <div className="h-full rounded-r-full"
               style={{ width: `${timerPct}%`, backgroundColor: timerColor,
                        transition: "width 0.1s linear, background-color 0.3s" }} />
           </div>
         </div>
 
         <div className="max-w-lg mx-auto px-5 pt-5 space-y-4">
-          {/* โจทย์ — สั่นเมื่อตอบผิด/หมดเวลา */}
+          {/* โจทย์ — การ์ดมินต์ สั่นเมื่อตอบผิด/หมดเวลา */}
           <div key={aIdx}
-            className={`bg-white rounded-2xl p-5 ${aAnswered && !aCorrect ? "game-shake" : ""}`}
-            style={{ border: `1px solid ${aAnswered && !aCorrect ? "#FECACA" : LINE}`,
-                     boxShadow: CARD_SHADOW }}>
-            <p className="text-[15.5px] font-semibold text-gray-900 leading-relaxed">
+            className={`rounded-2xl p-5 ${aAnswered && !aCorrect ? "game-shake" : ""}`}
+            style={aAnswered && !aCorrect
+              ? { backgroundColor: "#FEF2F2", border: "2px solid #FCA5A5" }
+              : QCARD}>
+            <p className="text-[15.5px] font-semibold leading-relaxed" style={{ color: "#04342C" }}>
               {aCur.text}
             </p>
           </div>
 
-          {/* ตัวเลือก */}
-          <div className="space-y-2">
+          {/* ตัวเลือก — ปุ่มหนากดยุบ */}
+          <div className="space-y-2.5">
             {aChoices.map((id) => {
               const st = STATS[id];
               const isAnswer = id === aCur.answer;
               const isChosen = id === aChosen;
-              let bg = "white", border = `1px solid ${LINE}`, color = "#374151";
-              if (aAnswered && isAnswer)  { bg = "#EBF5F3"; border = `1.5px solid ${ACCENT}`; color = ACCENT; }
-              if (aAnswered && isChosen && !isAnswer) { bg = "#FEF2F2"; border = "1.5px solid #EF4444"; color = "#DC2626"; }
+              const sty = aAnswered && isAnswer ? CH_GREEN
+                : aAnswered && isChosen ? CH_RED : CH_WHITE;
               return (
                 <button key={id} onClick={() => answerArcade(id)} disabled={aAnswered}
-                  className="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl
-                             transition-all duration-150 active:scale-[0.98] disabled:active:scale-100"
-                  style={{ backgroundColor: bg, border }}>
-                  <span className="text-[15px] font-bold flex-1" style={{ color }}>{st.name}</span>
+                  className="chunky w-full text-left flex items-center gap-3 px-4 py-3.5"
+                  style={sty}>
+                  <span className="text-[15px] font-bold flex-1">{st.name}</span>
                   {aAnswered && isAnswer && (
-                    <span className="text-[12px] font-bold flex-shrink-0" style={{ color: ACCENT }}>
-                      ✓ เฉลย
-                    </span>
+                    <span className="text-[12px] font-bold flex-shrink-0">✓ เฉลย</span>
                   )}
                 </button>
               );
@@ -495,9 +498,8 @@ export default function StatGamePage() {
             <div className="max-w-lg mx-auto px-5 py-4">
               <button
                 onClick={() => (hearts <= 0 ? setFinished(true) : nextArcade())}
-                className="font-exam w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
-                           transition-transform active:scale-[0.98]"
-                style={{ backgroundColor: hearts <= 0 ? "#DC2626" : ACCENT }}>
+                className="chunky font-exam w-full py-3.5 font-bold text-[15px]"
+                style={hearts <= 0 ? CH_RED : CH_GREEN}>
                 {hearts <= 0 ? "ดูสรุปผล" : "ไปต่อ →"}
               </button>
             </div>
@@ -543,14 +545,13 @@ export default function StatGamePage() {
 
           <div className="space-y-2">
             <button onClick={() => startMode(mode)}
-              className="w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
-                         transition-transform active:scale-[0.98]"
-              style={{ backgroundColor: ACCENT }}>
+              className="chunky w-full py-3.5 font-bold text-[15px]"
+              style={CH_GREEN}>
               เล่นอีกรอบ (สุ่มลำดับใหม่)
             </button>
             <button onClick={() => setMode(null)}
-              className="w-full py-3 rounded-2xl font-semibold text-[14px] bg-white"
-              style={{ border: `1px solid ${LINE}`, color: "#44403C" }}>
+              className="chunky w-full py-3 font-semibold text-[14px]"
+              style={CH_WHITE}>
               เปลี่ยนโหมด
             </button>
             <button onClick={() => router.push("/games")}
@@ -593,64 +594,58 @@ export default function StatGamePage() {
 
     return (
       <div className="font-exam min-h-screen pb-32" style={{ backgroundColor: "#FAFAF9" }}>
-        {/* Top bar */}
-        <div className="sticky top-14 z-30 bg-white/95 backdrop-blur-md"
-          style={{ borderBottom: `1px solid ${LINE}` }}>
-          <div className="h-[3px]" style={{ backgroundColor: "#F3F2F0" }}>
-            <div className="h-full transition-all duration-300"
-              style={{ width: `${(solved / total) * 100}%`, backgroundColor: ACCENT }} />
-          </div>
+        {/* Top bar — เขียวแบรนด์ */}
+        <div className="sticky top-14 z-30" style={HUD_GREEN}>
           <div className="max-w-lg mx-auto px-5 h-12 flex items-center justify-between">
-            <span className="text-[13px] font-bold text-gray-900 tabular-nums">
-              เคลียร์แล้ว {solved}<span className="font-normal" style={{ color: MUTED }}> / {total}</span>
+            <span className="text-[13px] font-bold text-white tabular-nums">
+              เคลียร์แล้ว {solved}<span className="font-normal" style={{ color: "#9FE1CB" }}> / {total}</span>
             </span>
-            <span className="text-[12.5px] font-semibold" style={{ color: ACCENT }}>โหมดสอบจริง</span>
+            <span className="text-[12.5px] font-semibold" style={{ color: "#9FE1CB" }}>โหมดสอบจริง</span>
             <div className="flex items-center gap-2 text-[12px] font-semibold tabular-nums">
-              <span style={{ color: ACCENT }}>✓ {tries.filter(Boolean).length}</span>
-              <span className="text-red-500">✗ {tries.filter((v) => !v).length}</span>
+              <span className="text-white">✓ {tries.filter(Boolean).length}</span>
+              <span style={{ color: "#FCA5A5" }}>✗ {tries.filter((v) => !v).length}</span>
             </div>
+          </div>
+          <div className="h-[8px]" style={{ backgroundColor: TIMER_TRACK }}>
+            <div className="h-full rounded-r-full transition-all duration-300"
+              style={{ width: `${(solved / total) * 100}%`, backgroundColor: "#F59E0B" }} />
           </div>
         </div>
 
         <div className="max-w-lg mx-auto px-5 pt-5 space-y-4">
-          {/* โจทย์ */}
-          <div className="bg-white rounded-2xl p-5"
-            style={{ border: `1px solid ${LINE}`, boxShadow: CARD_SHADOW }}>
+          {/* โจทย์ — การ์ดมินต์ */}
+          <div className="rounded-2xl p-5" style={QCARD}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[11.5px] font-bold uppercase tracking-[0.12em]" style={{ color: MUTED }}>
+              <p className="text-[11.5px] font-bold uppercase tracking-[0.12em]" style={{ color: "#1D9E75" }}>
                 โจทย์สถานการณ์
               </p>
               {firstTry.has(current.id) && !answered && (
                 <span className="text-[11px] font-bold px-2 py-[3px] rounded-full"
-                  style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                  style={{ backgroundColor: "#F59E0B", color: "#412402" }}>
                   ข้อวนซ้ำ — รอบนี้ต้องได้
                 </span>
               )}
             </div>
-            <p className="text-[15.5px] font-semibold text-gray-900 leading-relaxed">
+            <p className="text-[15.5px] font-semibold leading-relaxed" style={{ color: "#04342C" }}>
               {current.text}
             </p>
           </div>
 
-          {/* ตัวเลือกสถิติ */}
-          <div className="space-y-2">
+          {/* ตัวเลือกสถิติ — ปุ่มหนากดยุบ */}
+          <div className="space-y-2.5">
             {choices.map((id) => {
               const st = STATS[id];
               const isAnswer = id === current.answer;
               const isChosen = id === chosen;
-              let bg = "white", border = `1px solid ${LINE}`, color = "#374151";
-              if (answered && isAnswer)  { bg = "#EBF5F3"; border = `1.5px solid ${ACCENT}`; color = ACCENT; }
-              if (answered && isChosen && !isAnswer) { bg = "#FEF2F2"; border = "1.5px solid #EF4444"; color = "#DC2626"; }
+              const sty = answered && isAnswer ? CH_GREEN
+                : answered && isChosen ? CH_RED : CH_WHITE;
               return (
                 <button key={id} onClick={() => pickStat(id)} disabled={answered}
-                  className="w-full text-left flex items-center gap-3 px-4 py-3.5 rounded-2xl
-                             transition-all duration-150 active:scale-[0.98] disabled:active:scale-100"
-                  style={{ backgroundColor: bg, border }}>
-                  <span className="text-[15px] font-bold flex-1" style={{ color }}>{st.name}</span>
+                  className="chunky w-full text-left flex items-center gap-3 px-4 py-3.5"
+                  style={sty}>
+                  <span className="text-[15px] font-bold flex-1">{st.name}</span>
                   {answered && isAnswer && (
-                    <span className="text-[12px] font-bold flex-shrink-0" style={{ color: ACCENT }}>
-                      ✓ เฉลย
-                    </span>
+                    <span className="text-[12px] font-bold flex-shrink-0">✓ เฉลย</span>
                   )}
                 </button>
               );
@@ -701,9 +696,8 @@ export default function StatGamePage() {
             style={{ borderTop: `1px solid ${LINE}` }}>
             <div className="max-w-lg mx-auto px-5 py-4">
               <button onClick={next}
-                className="font-exam w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
-                           transition-transform active:scale-[0.98]"
-                style={{ backgroundColor: ACCENT }}>
+                className="chunky font-exam w-full py-3.5 font-bold text-[15px]"
+                style={CH_GREEN}>
                 {queue.length === 1 && correct ? "ดูสรุปผล" : "ข้อต่อไป →"}
               </button>
             </div>
@@ -757,32 +751,30 @@ export default function StatGamePage() {
 
   return (
     <div className="font-exam min-h-screen pb-32" style={{ backgroundColor: "#FAFAF9" }}>
-      <div className="sticky top-14 z-30 bg-white/95 backdrop-blur-md"
-        style={{ borderBottom: `1px solid ${LINE}` }}>
-        <div className="h-[3px]" style={{ backgroundColor: "#F3F2F0" }}>
-          <div className="h-full transition-all duration-300"
-            style={{ width: `${((pIndex + 1) / pList.length) * 100}%`, backgroundColor: ACCENT }} />
-        </div>
+      <div className="sticky top-14 z-30" style={HUD_GREEN}>
         <div className="max-w-lg mx-auto px-5 h-12 flex items-center justify-between">
           <div className="flex items-baseline gap-1">
-            <span className="text-[15px] font-bold text-gray-900">{pIndex + 1}</span>
-            <span className="text-[12px]" style={{ color: MUTED }}>/ {pList.length}</span>
+            <span className="text-[15px] font-bold text-white">{pIndex + 1}</span>
+            <span className="text-[12px]" style={{ color: "#9FE1CB" }}>/ {pList.length}</span>
           </div>
-          <span className="text-[12.5px] font-semibold" style={{ color: ACCENT }}>โหมดฝึก</span>
+          <span className="text-[12.5px] font-semibold" style={{ color: "#9FE1CB" }}>โหมดฝึก</span>
           <div className="flex items-center gap-2 text-[12px] font-semibold tabular-nums">
-            <span style={{ color: ACCENT }}>✓ {pScore}</span>
-            <span className="text-red-500">✗ {pWrong}</span>
+            <span className="text-white">✓ {pScore}</span>
+            <span style={{ color: "#FCA5A5" }}>✗ {pWrong}</span>
           </div>
+        </div>
+        <div className="h-[8px]" style={{ backgroundColor: TIMER_TRACK }}>
+          <div className="h-full rounded-r-full transition-all duration-300"
+            style={{ width: `${((pIndex + 1) / pList.length) * 100}%`, backgroundColor: "#F59E0B" }} />
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-5 pt-5 space-y-4">
-        <div className="bg-white rounded-2xl p-5"
-          style={{ border: `1px solid ${LINE}`, boxShadow: CARD_SHADOW }}>
-          <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: MUTED }}>
+        <div className="rounded-2xl p-5" style={QCARD}>
+          <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: "#1D9E75" }}>
             โจทย์สถานการณ์
           </p>
-          <p className="text-[15.5px] font-semibold text-gray-900 leading-relaxed">
+          <p className="text-[15.5px] font-semibold leading-relaxed" style={{ color: "#04342C" }}>
             {scenario.text}
           </p>
         </div>
@@ -813,9 +805,8 @@ export default function StatGamePage() {
             <div className="space-y-2">
               {node.options.map((opt) => (
                 <button key={opt.label} onClick={() => pick(opt)}
-                  className="w-full text-left px-4 py-3.5 rounded-2xl bg-white text-[14px]
-                             font-semibold leading-snug transition-all duration-150 active:scale-[0.98]"
-                  style={{ border: `1px solid ${LINE}`, color: "#374151" }}>
+                  className="chunky w-full text-left px-4 py-3.5 text-[14px] font-semibold leading-snug"
+                  style={CH_WHITE}>
                   {opt.label}
                 </button>
               ))}
@@ -878,9 +869,8 @@ export default function StatGamePage() {
           style={{ borderTop: `1px solid ${LINE}` }}>
           <div className="max-w-lg mx-auto px-5 py-4">
             <button onClick={pNext}
-              className="font-exam w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
-                         transition-transform active:scale-[0.98]"
-              style={{ backgroundColor: ACCENT }}>
+              className="chunky font-exam w-full py-3.5 font-bold text-[15px]"
+              style={CH_GREEN}>
               {pIndex + 1 >= pList.length ? "ดูสรุปผล" : "ข้อต่อไป →"}
             </button>
           </div>
