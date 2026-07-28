@@ -57,14 +57,29 @@ function killCaptions(p: any) {
   } catch { /* ignore */ }
 }
 
-/* ลายน้ำอีเมลผู้ชมถูกถอดออก 2026-07-28 — น้องแจ้งว่ารบกวนสมาธิเวลาเรียน
-   (เดิมมีไว้ตามรอยการอัดจอแชร์ต่อ — ถ้าจะเอากลับ ดู git history ของไฟล์นี้) */
+/** ลายน้ำมุมจอแบบจาง (แทนแบบลอยไปมาที่น้องบอกว่ารบกวนสมาธิ — Aj เลือก 2026-07-28)
+ *  เล็ก โปร่งแสง อยู่มุมบนพ้นแถบควบคุม พอให้ตามรอยได้ถ้าคลิปถูกอัดจอไปแชร์
+ *  สลับมุมซ้าย-ขวาช้า ๆ ทุก 5 นาที — คนเรียนไม่ทันสังเกต แต่ครอปตัดขอบทิ้งไม่ได้ */
+function CornerWatermark({ label }: { label: string }) {
+  const [right, setRight] = useState(true);
+  useEffect(() => {
+    const t = setInterval(() => setRight((r) => !r), 300_000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span className="absolute top-2 z-20 pointer-events-none select-none whitespace-nowrap"
+      style={{ ...(right ? { right: 10 } : { left: 10 }), fontSize: 10, fontWeight: 500,
+               color: "white", opacity: 0.2, textShadow: "0 0 3px rgba(0,0,0,0.6)" }}>
+      {label}
+    </span>
+  );
+}
 
 export default function CourseVideoPlayer({
-  ytId, hasNext, onNext, initialSeconds = 0, onProgress,
+  ytId, userLabel, hasNext, onNext, initialSeconds = 0, onProgress,
 }: {
   ytId:            string;
-  /** ไม่ได้ใช้แสดงแล้ว (ลายน้ำถูกถอด) — คง prop ไว้ให้ผู้เรียกเดิมไม่พัง */
+  /** อีเมล/ชื่อผู้ชม — แสดงเป็นลายน้ำมุมจอแบบจาง (ตามรอยคลิปหลุด) */
   userLabel:       string;
   hasNext:         boolean;
   onNext:          () => void;
@@ -294,6 +309,8 @@ export default function CourseVideoPlayer({
 
       {/* โล่ใสเต็มจอ — ทุกการแตะเป็นของเรา (เล่น/หยุด) ไม่มีทางแตะโดนลิงก์ YouTube */}
       <div className="absolute inset-0 z-10 cursor-pointer" onClick={toggle} />
+
+      <CornerWatermark label={userLabel} />
 
       {/* ปุ่มเล่นใหญ่ตอนยังไม่เล่น/หยุดพัก */}
       {!playing && !ended && (
