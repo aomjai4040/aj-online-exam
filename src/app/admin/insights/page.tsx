@@ -12,7 +12,10 @@ interface Insights {
   paid: { app: number; full: number; upgrade: number };
   pending: number;
   rejected: number;
-  pendingList: { id: string; email: string; tier: string; amount: number; createdAt: string | null; hasAccess: boolean }[];
+  pendingList: {
+    id: string; email: string; tier: string; amount: number; createdAt: string | null;
+    hasAccess: boolean; failReason: string | null; slipPath: string | null;
+  }[];
   daily: { day: string; people: number; attempts: number; newGrants: number }[];
   generatedAt: string;
 }
@@ -121,6 +124,47 @@ export default function AdminInsights() {
 
   useEffect(() => { load(); }, [load]);
 
+  // ── จัดการออเดอร์ค้าง: อนุมัติมือ / ปิดออเดอร์ / เปิดดูสลิปที่ไม่ผ่าน ──
+  const [busy, setBusy] = useState<string | null>(null);
+  type PendingOrder = Insights["pendingList"][number];
+
+  async function orderAction(o: PendingOrder, action: "approve" | "reject") {
+    if (!user) return;
+    const msg = action === "approve"
+      ? `อนุมัติให้สิทธิ์ ${o.email}\n(${o.tier} ${o.amount}฿)\n\nยืนยันว่าเช็คเงินเข้าบัญชีแล้วจริง?`
+      : `ปิดออเดอร์ของ ${o.email} โดยไม่ให้สิทธิ์?`;
+    if (!confirm(msg)) return;
+    setBusy(o.id);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/order-action", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: o.id, action }),
+      });
+      if (!res.ok) throw new Error("ทำรายการไม่สำเร็จ");
+      await load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function viewSlip(o: PendingOrder) {
+    if (!user || !o.slipPath) return;
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/admin/slip?path=${encodeURIComponent(o.slipPath)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { alert("เปิดสลิปไม่สำเร็จ (อาจเกิน 30 วันถูกลบแล้ว)"); return; }
+      window.open(URL.createObjectURL(await res.blob()), "_blank");
+    } catch {
+      alert("เปิดสลิปไม่สำเร็จ");
+    }
+  }
+
   const totalPaidCount = data ? data.paid.app + data.paid.full + data.paid.upgrade : 0;
 
   return (
@@ -199,11 +243,39 @@ export default function AdminInsights() {
                         <span>·</span>
                         <span>{fmtTime(o.createdAt)}</span>
                       </div>
+                      {o.failReason && (
+                        <p className="text-[12px] mt-1" style={{ color: "#DC2626" }}>
+                          สลิปไม่ผ่านล่าสุด: {o.failReason}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {o.slipPath && (
+                          <button onClick={() => viewSlip(o)}
+                            className="text-[12px] font-semibold px-3 py-1 rounded-lg"
+                            style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}>
+                            🧾 ดูสลิป
+                          </button>
+                        )}
+                        {!o.hasAccess && (
+                          <button onClick={() => orderAction(o, "approve")} disabled={busy === o.id}
+                            className="text-[12px] font-bold px-3 py-1 rounded-lg disabled:opacity-50"
+                            style={{ backgroundColor: "#0B6E65", color: "white" }}>
+                            ✓ อนุมัติให้สิทธิ์
+                          </button>
+                        )}
+                        <button onClick={() => orderAction(o, "reject")} disabled={busy === o.id}
+                          className="text-[12px] font-semibold px-3 py-1 rounded-lg disabled:opacity-50"
+                          style={{ backgroundColor: "#F5F5F4", color: "#78716C" }}>
+                          ปิดออเดอร์
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
                 <p className="text-[11.5px] mt-3 leading-relaxed" style={{ color: "#C4C4C0" }}>
-                  🟢 = ได้สิทธิ์จากโค้ด/ออเดอร์อื่นแล้ว ปิดได้เลย · 🔴 = เช็คบัญชีพร้อมเพย์ว่าเงินเข้าไหม ถ้าเข้าจริงให้ช่วยเปิดสิทธิ์
+                  🟢 = ได้สิทธิ์แล้ว กด &quot;ปิดออเดอร์&quot; เคลียร์ได้เลย · 🔴 = เช็คเงินเข้าบัญชีพร้อมเพย์ก่อน
+                  ถ้าเข้าจริงกด &quot;อนุมัติให้สิทธิ์&quot; — ระบบจะเปิดสิทธิ์และปิดออเดอร์ให้ทันที ·
+                  สลิปที่ตรวจไม่ผ่านหลังจากนี้จะมีปุ่ม &quot;ดูสลิป&quot; ให้เปิดภาพดูเองได้ (เก็บ 30 วัน)
                 </p>
               </div>
               );

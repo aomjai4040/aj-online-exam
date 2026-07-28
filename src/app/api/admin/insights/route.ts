@@ -53,7 +53,10 @@ export async function GET(req: NextRequest) {
     // ── ออเดอร์ในเว็บ ──
     const paid = { app: 0, full: 0, upgrade: 0 } as Record<string, number>;
     let revenue = 0, pending = 0, rejected = 0;
-    const pendingList: { id: string; email: string; tier: string; amount: number; createdAt: string | null; hasAccess: boolean }[] = [];
+    const pendingList: {
+      id: string; email: string; tier: string; amount: number; createdAt: string | null;
+      hasAccess: boolean; failReason: string | null; slipPath: string | null;
+    }[] = [];
     ordersSnap.forEach((d) => {
       const o = d.data();
       if (o.status === "paid") { paid[o.tier] = (paid[o.tier] || 0) + 1; revenue += o.amount || 0; }
@@ -65,6 +68,8 @@ export async function GET(req: NextRequest) {
           id: d.id, email: o.email || "", tier: o.tier, amount: o.amount || 0,
           createdAt: o.createdAt?.toDate?.()?.toISOString() ?? null,
           hasAccess,
+          failReason: o.lastFailReason ? String(o.lastFailReason) : null,
+          slipPath:   o.lastSlipPath   ? String(o.lastSlipPath)   : null,
         });
       } else if (o.status === "rejected") rejected++;
     });

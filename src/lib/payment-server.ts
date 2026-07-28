@@ -10,8 +10,11 @@ import "server-only";
 import generatePayload from "promptpay-qr";
 import QRCode from "qrcode";
 import { FieldValue } from "firebase-admin/firestore";
-import { adminDb } from "./firebase-admin";
+import { adminDb, adminAccessToken } from "./firebase-admin";
 import { tierPlan, type OrderTier } from "./order-types";
+
+/** bucket เก็บรูปสลิปที่ตรวจไม่ผ่าน (ใช้ bucket backup เดิม — lifecycle ลบเอง 30 วัน) */
+export const SLIP_BUCKET = "aj-online-exam-backups";
 
 const PROMPTPAY_ID  = process.env.PROMPTPAY_ID  ?? "";
 const SLIPOK_API_KEY  = process.env.SLIPOK_API_KEY  ?? "";
@@ -106,6 +109,29 @@ async function verifyWithSlipOk(slipDataUrl: string, amount: number): Promise<Sl
   }
 }
 
+/** เก็บรูปสลิปที่ตรวจไม่ผ่านลง GCS — ให้แอดมินเปิดดูตัดสินเองได้ (คืน path หรือ null) */
+async function storeFailedSlip(orderId: string, slipDataUrl: string): Promise<string | null> {
+  try {
+    const [head, b64] = slipDataUrl.split(",");
+    const mime = /data:(.*?);/.exec(head)?.[1] ?? "image/jpeg";
+    const ext  = mime.includes("png") ? "png" : "jpg";
+    const path = `slips/${orderId}-${Date.now()}.${ext}`;
+    const token = await adminAccessToken();
+    const res = await fetch(
+      `https://storage.googleapis.com/upload/storage/v1/b/${SLIP_BUCKET}/o?uploadType=media&name=${encodeURIComponent(path)}`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": mime },
+        body: Buffer.from(b64, "base64"),
+      }
+    );
+    return res.ok ? path : null;
+  } catch (e) {
+    console.error("[storeFailedSlip]", e);
+    return null;
+  }
+}
+
 export type SubmitSlipResult =
   | { ok: true; courseName: string }
   | { ok: false; reason: string };
@@ -130,7 +156,17 @@ export async function submitSlip(
   if (order.status !== "pending") return { ok: false, reason: "คำสั่งซื้อนี้ปิดแล้ว" };
 
   const check = await verifyWithSlipOk(slipBase64, order.amount);
-  if (!check.ok) return { ok: false, reason: check.reason ?? "ตรวจสลิปไม่ผ่าน" };
+  if (!check.ok) {
+    const reason = check.reason ?? "ตรวจสลิปไม่ผ่าน";
+    // เก็บหลักฐานไว้ให้แอดมินตัดสินเอง (ไม่ block การตอบผู้ใช้ถ้าเก็บพลาด)
+    const slipPath = await storeFailedSlip(orderId, slipBase64);
+    await orderRef.update({
+      lastFailReason: reason,
+      lastFailAt:     FieldValue.serverTimestamp(),
+      ...(slipPath ? { lastSlipPath: slipPath } : {}),
+    }).catch(() => {});
+    return { ok: false, reason };
+  }
 
   // กันสลิปซ้ำ — transRef ต้อง unique
   const transRef = check.transRef || `${orderId}-noref`;
