@@ -57,27 +57,14 @@ function killCaptions(p: any) {
   } catch { /* ignore */ }
 }
 
-function Watermark({ label }: { label: string }) {
-  const [pos, setPos] = useState({ top: "10%", left: "8%" });
-  useEffect(() => {
-    const t = setInterval(() => {
-      setPos({ top: `${8 + Math.random() * 62}%`, left: `${5 + Math.random() * 55}%` });
-    }, 8000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <span className="absolute z-20 pointer-events-none select-none whitespace-nowrap"
-      style={{ ...pos, fontSize: 11, fontWeight: 600, color: "white", opacity: 0.35,
-        textShadow: "0 0 4px rgba(0,0,0,0.8)", transition: "top 2s ease, left 2s ease" }}>
-      {label}
-    </span>
-  );
-}
+/* ลายน้ำอีเมลผู้ชมถูกถอดออก 2026-07-28 — น้องแจ้งว่ารบกวนสมาธิเวลาเรียน
+   (เดิมมีไว้ตามรอยการอัดจอแชร์ต่อ — ถ้าจะเอากลับ ดู git history ของไฟล์นี้) */
 
 export default function CourseVideoPlayer({
-  ytId, userLabel, hasNext, onNext, initialSeconds = 0, onProgress,
+  ytId, hasNext, onNext, initialSeconds = 0, onProgress,
 }: {
   ytId:            string;
+  /** ไม่ได้ใช้แสดงแล้ว (ลายน้ำถูกถอด) — คง prop ไว้ให้ผู้เรียกเดิมไม่พัง */
   userLabel:       string;
   hasNext:         boolean;
   onNext:          () => void;
@@ -307,8 +294,6 @@ export default function CourseVideoPlayer({
 
       {/* โล่ใสเต็มจอ — ทุกการแตะเป็นของเรา (เล่น/หยุด) ไม่มีทางแตะโดนลิงก์ YouTube */}
       <div className="absolute inset-0 z-10 cursor-pointer" onClick={toggle} />
-
-      <Watermark label={userLabel} />
 
       {/* ปุ่มเล่นใหญ่ตอนยังไม่เล่น/หยุดพัก */}
       {!playing && !ended && (
