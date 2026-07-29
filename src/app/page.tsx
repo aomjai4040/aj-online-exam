@@ -87,6 +87,8 @@ function LatestSkeleton() {
 export default function HomePage() {
   const { user, signInWithGoogle } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
+  // ตัวเลข hero นับ "รวม Mock Exam" (Aj สั่ง 2026-07-30) — ต่างจาก exams ที่กรอง Mock ออก
+  const [heroStats, setHeroStats] = useState({ questions: 0, sets: 0 });
   const [loading, setLoading] = useState(true);
   const [userCount, setUserCount] = useState<number | null>(null);
   const [greeting, setGreeting] = useState<Greeting | null>(null);
@@ -94,8 +96,14 @@ export default function HomePage() {
 
   useEffect(() => {
     getPublishedExams()
-      // Mock Exam มีเมนูของตัวเอง — ไม่ปนในคลังปกติ
-      .then((all) => setExams(all.filter((e) => !isMockExam(e))))
+      .then((all) => {
+        // Mock Exam มีเมนูของตัวเอง — ไม่ปนในแถบ "เพิ่มล่าสุด" แต่ "นับรวม" ในสถิติ hero
+        setExams(all.filter((e) => !isMockExam(e)));
+        setHeroStats({
+          questions: all.reduce((s, e) => s + (e.questionCount || 0), 0),
+          sets:      all.length,
+        });
+      })
       .finally(() => setLoading(false));
     // จำนวนผู้ใช้ (social proof) — จาก server, cache 1 ชม.
     fetch("/api/stats").then((r) => r.json()).then((d) => setUserCount(d.users ?? null)).catch(() => {});
@@ -121,8 +129,8 @@ export default function HomePage() {
   const latestExams = exams.slice(0, 5);
   const dLeft = daysToExam();
 
-  // ตัวเลขความน่าเชื่อถือใน hero — คำนวณจากข้อมูลจริง
-  const totalQuestions = exams.reduce((s, e) => s + (e.questionCount || 0), 0);
+  // ตัวเลขความน่าเชื่อถือใน hero — คำนวณจากข้อมูลจริง (รวม Mock)
+  const totalQuestions = heroStats.questions;
   const subjectCount   = new Set(exams.map((e) => e.subject)).size;
   // ปัดจำนวนผู้ใช้ลงหลักสิบเพื่อ social proof ("700+ คน" ดูน่าเชื่อกว่าเลขเป๊ะ)
   // ถ้านับไม่ได้ (quota/พัง) → null → ตกกลับไปโชว์ "หมวดวิชา" แทน
@@ -238,7 +246,7 @@ export default function HomePage() {
           <div className="flex pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}>
             {[
               { value: loading ? "…" : totalQuestions.toLocaleString(), label: "ข้อสอบ" },
-              { value: loading ? "…" : `${exams.length}`,               label: "ชุดข้อสอบ" },
+              { value: loading ? "…" : `${heroStats.sets}`,             label: "ชุดข้อสอบ" },
               roundedUsers != null
                 ? { value: `${roundedUsers.toLocaleString()}+`, label: "ผู้เรียน" }
                 : { value: loading ? "…" : `${subjectCount}`,   label: "หมวดวิชา" },
