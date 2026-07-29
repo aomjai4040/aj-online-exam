@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { getUserCourses } from "@/lib/activation";
-import { isAppOnlyCourse } from "@/lib/access";
+import { isFullCourse } from "@/lib/access";
 import { getUserSummaries, getRecentResults } from "@/lib/user-firestore";
 import { getPublishedExams } from "@/lib/firestore";
 import { getPublishedVideos, type CourseVideo } from "@/lib/video-firestore";
@@ -95,7 +95,7 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
         ]);
         if (courses.length === 0) { hide(); return; } // ไม่ใช่สมาชิก — หน้าแรกมีการ์ดชวนอยู่แล้ว
 
-        const full = courses.some((c) => !isAppOnlyCourse(c.courseId));
+        const full = courses.some((c) => isFullCourse(c.courseId));
         const [videos, vprog, dailyDone, streak] = await Promise.all([
           full ? getPublishedVideos().catch(() => [] as CourseVideo[]) : Promise.resolve([] as CourseVideo[]),
           full ? getAllVideoProgress(user.uid).catch(() => new Map<string, VideoProgress>())

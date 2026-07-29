@@ -9,7 +9,7 @@ import {
   type UserExamSummary, type UserResult,
 } from "@/lib/user-firestore";
 import { getUserCourses, type UserCourse } from "@/lib/activation";
-import { isAppOnlyCourse } from "@/lib/access";
+import { isFullCourse, isReviewCourse } from "@/lib/access";
 import { PRICING } from "@/lib/pricing";
 import { getPublishedExams } from "@/lib/firestore";
 import { normalizeSubject, isMockExam, getSubjectShort } from "@/lib/types";
@@ -436,8 +436,8 @@ export default function DashboardPage() {
             </div>
           </Link>
         )}
-        {!dataLoading && courses.length > 0 && !courses.some((c) => !isAppOnlyCourse(c.courseId)) && (
-          <Link href="/checkout/upgrade"
+        {!dataLoading && courses.length > 0 && !courses.some((c) => isFullCourse(c.courseId)) && (
+          <Link href={courses.some((c) => isReviewCourse(c.courseId)) ? "/checkout/up-full2" : "/checkout/upgrade"}
             className="block rounded-2xl p-4 active:scale-[0.99] transition-transform bg-white"
             style={{ border: "1px solid #EBEBEA" }}>
             <div className="flex items-center gap-3.5">
@@ -447,7 +447,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-bold text-gray-900 leading-snug">
-                  อัปเกรดคอร์สเต็ม จ่ายเพิ่ม ฿{PRICING.upgradePrice}
+                  อัปเกรดคอร์สเต็ม จ่ายเพิ่ม ฿{courses.some((c) => isReviewCourse(c.courseId)) ? PRICING.reviewToFullPrice : PRICING.upgradePrice}
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
                   วิดีโอติว 65 คลิป ~45 ชม. + ชีทสรุป ~500 หน้า

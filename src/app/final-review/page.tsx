@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/auth-context";
 import BottomNav from "@/components/BottomNav";
 import { PRICING } from "@/lib/pricing";
 import { getUserCourses } from "@/lib/activation";
-import { isAppOnlyCourse } from "@/lib/access";
+import { isFullCourse, isReviewCourse } from "@/lib/access";
 import { getUserSummaries } from "@/lib/user-firestore";
 import { getPublishedExams } from "@/lib/firestore";
 import { getPublishedVideos, type CourseVideo } from "@/lib/video-firestore";
@@ -175,7 +175,7 @@ function ExamDayChecklist() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 interface MemberData {
-  hasFull:    boolean;
+  hasLap:     boolean;   // ดูคลิปโค้งสุดท้ายได้ (คอร์สเต็ม หรือแพ็กติวทบทวน 499)
   wrongCount: number;
   dailyDone:  boolean;
   plan:       StudyPlan;
@@ -200,15 +200,15 @@ export default function FinalReviewPage() {
       try {
         const courses = await getUserCourses(user.uid);
         if (courses.length === 0) { if (!cancelled) setMember(null); return; }
-        const hasFull = courses.some((c) => !isAppOnlyCourse(c.courseId));
+        const hasLap = courses.some((c) => isFullCourse(c.courseId) || isReviewCourse(c.courseId));
 
         const [summaries, exams, wrongCount, dailyDone, videos, vprog] = await Promise.all([
           getUserSummaries(user.uid),
           getPublishedExams(),
           countWrongQuestions(user.uid).catch(() => 0),
           getDailyDoneToday(user.uid),
-          hasFull ? getPublishedVideos().catch(() => [] as CourseVideo[]) : Promise.resolve([] as CourseVideo[]),
-          hasFull ? getAllVideoProgress(user.uid).catch(() => new Map<string, VideoProgress>())
+          hasLap ? getPublishedVideos().catch(() => [] as CourseVideo[]) : Promise.resolve([] as CourseVideo[]),
+          hasLap ? getAllVideoProgress(user.uid).catch(() => new Map<string, VideoProgress>())
                   : Promise.resolve(new Map<string, VideoProgress>()),
         ]);
 
@@ -217,7 +217,7 @@ export default function FinalReviewPage() {
         const lapDone  = lapClips.filter((v) => vprog.get(v.id)?.completed).length;
         const didMock  = summaries.some((s) => normalizeSubject(s.subject) === "MOCK");
 
-        if (!cancelled) setMember({ hasFull, wrongCount, dailyDone, plan, didMock, lapClips, lapDone });
+        if (!cancelled) setMember({ hasLap, wrongCount, dailyDone, plan, didMock, lapClips, lapDone });
       } catch {
         if (!cancelled) setMember(null);
       } finally {
@@ -453,7 +453,7 @@ export default function FinalReviewPage() {
         )}
 
         {/* คลิปสรุปโค้งสุดท้าย */}
-        {member.hasFull ? (
+        {member.hasLap ? (
           member.lapClips.length > 0 ? (
             <Link href={`/videos?chapter=${encodeURIComponent("ติวโค้งสุดท้าย")}`}
               className="flex items-center gap-3.5 bg-white rounded-2xl px-4 py-4 active:scale-[0.98] transition-transform"
@@ -484,10 +484,10 @@ export default function FinalReviewPage() {
             </div>
           )
         ) : (
-          <Link href="/checkout/upgrade"
+          <Link href="/checkout/up-review"
             className="block rounded-2xl px-4 py-3.5 text-[13px] active:scale-[0.99] transition-transform"
             style={{ backgroundColor: "#FDF6E9", color: "#92400E", border: "1px solid #FDE9C8" }}>
-            🎬 คลิปสรุปโค้งสุดท้ายเป็นของคอร์สเต็ม — อัปเกรดจ่ายเพิ่ม ฿{PRICING.upgradePrice} →
+            🎬 คลิปสรุปโค้งสุดท้ายอยู่ในแพ็กติวทบทวน — อัปเกรดจ่ายเพิ่มแค่ ฿{PRICING.upToReviewPrice} →
           </Link>
         )}
 

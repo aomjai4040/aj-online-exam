@@ -36,11 +36,13 @@ export default function VideosPage() {
       try {
         const a = await getUserAccess(user.uid);
         setAccess(a);
-        if (a.hasFull) {
-          const [vs, pg] = await Promise.all([
+        if (a.hasFull || a.hasReview) {
+          const [vsAll, pg] = await Promise.all([
             getPublishedVideos(),
             getAllVideoProgress(user.uid).catch(() => new Map<string, VideoProgress>()),
           ]);
+          // แพ็กติวทบทวน (499) เห็นเฉพาะบท "โค้งสุดท้าย" — คอร์สเต็มเห็นครบ
+          const vs = a.hasFull ? vsAll : vsAll.filter((v) => v.chapter.includes("โค้งสุดท้าย"));
           setVideos(vs);
           setProgress(pg);
           // โค้ชหลังสอบส่ง ?chapter=บทที่ x มา → เปิดคลิปของบทนั้น (ที่ยังไม่จบก่อน)
@@ -95,8 +97,8 @@ export default function VideosPage() {
 
   if (guard !== "allowed" || loading) return <AccessGuardSpinner />;
 
-  // ── ยังไม่มีสิทธิ์คอร์สเต็ม → upsell ──────────────────────────────────────
-  if (!access.hasFull) {
+  // ── ยังไม่มีสิทธิ์วิดีโอเลย (ไม่มีทั้งเต็มและแพ็กติวทบทวน) → upsell ─────────
+  if (!access.hasFull && !access.hasReview) {
     return (
       <div className="min-h-screen bg-stone-50 pb-28">
         <div className="max-w-lg mx-auto px-5 pt-14 text-center">
@@ -173,9 +175,11 @@ export default function VideosPage() {
               onProgress={handleProgress}
             />
           ) : (
-            <div className="w-full flex items-center justify-center text-white/60 text-[13.5px]"
+            <div className="w-full flex items-center justify-center text-white/60 text-[13.5px] px-6 text-center"
               style={{ aspectRatio: "16/9" }}>
-              ยังไม่มีวิดีโอในคอร์ส — Admin เพิ่มได้ที่ Admin › คอร์สวิดีโอ
+              {access.hasFull
+                ? "ยังไม่มีวิดีโอในคอร์ส — Admin เพิ่มได้ที่ Admin › คอร์สวิดีโอ"
+                : "🎬 คลิปสรุปโค้งสุดท้ายกำลังทยอยมาระหว่าง 1–14 ส.ค. — กลับมาเช็คที่นี่ได้เลย"}
             </div>
           )}
         </div>
@@ -193,9 +197,17 @@ export default function VideosPage() {
         </div>
       )}
 
-      {/* ทรัพยากรคอร์สเต็ม: ชีทสรุป + กลุ่ม LINE (โผล่เมื่อ Aj ใส่ลิงก์) */}
+      {/* ทรัพยากรคอร์สเต็ม: ชีทสรุป + กลุ่ม LINE (เฉพาะคอร์สเต็ม) */}
       <div className="max-w-2xl mx-auto lg:max-w-none px-5 lg:px-0 pt-4">
-        <CourseResources />
+        {access.hasFull ? (
+          <CourseResources />
+        ) : (
+          <Link href="/checkout/up-full2"
+            className="block rounded-2xl px-4 py-3.5 text-[13px] active:scale-[0.99] transition-transform"
+            style={{ backgroundColor: "#FDF6E9", color: "#92400E", border: "1px solid #FDE9C8" }}>
+            🎬 อยากดูวิดีโอติวครบ 65 คลิป + ชีทสรุป? อัปเกรดเป็นคอร์สเต็ม จ่ายเพิ่ม ฿{PRICING.reviewToFullPrice} →
+          </Link>
+        )}
       </div>
 
       </div>{/* /ฝั่งซ้าย */}

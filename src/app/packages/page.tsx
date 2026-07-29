@@ -46,9 +46,10 @@ export default function PackagesPage() {
     if (user) getUserAccess(user.uid).then(setAccess).catch(() => setAccess(EMPTY_ACCESS));
   }, [user]);
 
-  const hasApp  = access.hasAny;               // มีคอร์สอะไรก็ได้ (รวม App Only)
-  const hasFull = access.hasFull;              // มีคอร์สเต็ม
-  const appOnly = hasApp && !hasFull;          // มีแค่ App Only → เสนออัปเกรด
+  const hasApp    = access.hasAny;                          // มีคอร์สอะไรก็ได้
+  const hasReview = access.hasReview;                       // มีแพ็กติวทบทวน 499
+  const hasFull   = access.hasFull;                         // มีคอร์สเต็ม
+  const appOnly   = hasApp && !hasFull && !hasReview;       // มีแค่ App Only → เสนออัปเกรด
 
   const appFeatures = [
     total !== null
@@ -98,8 +99,8 @@ export default function PackagesPage() {
         {/* ── คลิปตัวอย่างฟรี (เฉพาะคนที่ยังไม่ใช่คอร์สเต็ม) ───────────────── */}
         {!hasFull && <SampleVideoTeaser />}
 
-        {/* แพ็กเกจ 2 ใบ — จอกว้าง (≥md) วางเคียงกัน */}
-        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:items-start">
+        {/* แพ็กเกจ 3 ใบ — จอกว้าง (≥md) วางเคียงกัน */}
+        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-4 md:items-start">
 
         {/* ── App Only (แนะนำสำหรับเริ่มต้น) ─────────────────────────────── */}
         <div className="bg-white rounded-2xl overflow-hidden"
@@ -155,6 +156,77 @@ export default function PackagesPage() {
           </div>
         </div>
 
+        {/* ── แพ็กติวทบทวน 499 (ใหม่ — ช่วงโค้งสุดท้าย) ────────────────────── */}
+        <div className="bg-white rounded-2xl overflow-hidden"
+          style={{ border: "2px solid #F59E0B" }}>
+          <div className="px-5 py-2 text-center text-[12px] font-bold"
+            style={{ backgroundColor: "#F59E0B", color: "#412402" }}>
+            🔥 ใหม่! สำหรับติวโค้งสุดท้าย
+          </div>
+          <div className="p-5">
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div>
+                <p className="text-[17px] font-bold text-gray-900">{PRICING.review.name}</p>
+                <p className="text-[12.5px]" style={{ color: "#A8A8A6" }}>{PRICING.review.tagline}</p>
+              </div>
+              <p className="text-[26px] font-extrabold leading-none flex-shrink-0" style={{ color: "#B45309" }}>
+                ฿{PRICING.review.price}
+              </p>
+            </div>
+
+            <div className="space-y-2 mt-4 mb-5">
+              {[
+                "ทุกอย่างใน App Only ครบ (ข้อสอบ + ประเมินรายบุคคล)",
+                "แผนติวโค้งสุดท้าย 14 วัน ปรับตามจุดอ่อนรายคน (1–14 ส.ค.)",
+                "คลิปสรุปโค้งสุดท้ายชุดใหม่จากครูอ้อม",
+                "เกมทบทวนครบทุกโหมด",
+              ].map((f, i) => (
+                <div key={f} className="flex items-start gap-2.5 text-[13.5px]"
+                  style={{ color: i === 0 ? "#A8A8A6" : "#374151" }}>
+                  <Check color={i === 0 ? "#A8A8A6" : "#B45309"} /> <span>{f}</span>
+                </div>
+              ))}
+            </div>
+
+            {hasFull ? (
+              <div className="w-full py-3 rounded-xl text-[14px] font-bold text-center"
+                style={{ backgroundColor: "#EBF5F3", color: BRAND.primary }}>
+                ✓ สิทธิ์นี้รวมอยู่ในคอร์สเต็มของคุณแล้ว
+              </div>
+            ) : hasReview ? (
+              <div className="w-full py-3 rounded-xl text-[14px] font-bold text-center"
+                style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                ✓ คุณมีแพ็กนี้แล้ว
+              </div>
+            ) : appOnly ? (
+              <Link href="/checkout/up-review"
+                className="w-full py-3.5 text-[15px] font-bold rounded-xl flex items-center justify-center gap-2 text-white"
+                style={{ backgroundColor: "#B45309" }}>
+                อัปเกรด จ่ายเพิ่ม ฿{PRICING.upToReviewPrice}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </Link>
+            ) : (
+              <>
+                <Link href="/checkout/review"
+                  className="w-full py-3.5 text-[15px] font-bold rounded-xl flex items-center justify-center gap-2 text-white"
+                  style={{ backgroundColor: "#B45309" }}>
+                  สั่งซื้อ ฿{PRICING.review.price}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </Link>
+                <p className="text-center text-[11.5px] mt-2" style={{ color: "#C4C4C0" }}>
+                  {PRICING.review.period} · จ่ายผ่านพร้อมเพย์ ปลดล็อกอัตโนมัติทันที
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* ── คอร์สเต็ม ───────────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
           <div className="flex items-start justify-between gap-3 mb-1">
@@ -181,6 +253,15 @@ export default function PackagesPage() {
               style={{ backgroundColor: "#EBF5F3", color: BRAND.primary }}>
               ✓ คุณเป็นสมาชิกคอร์สเต็มแล้ว
             </div>
+          ) : hasReview ? (
+            <Link href="/checkout/up-full2"
+              className="btn-primary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
+              อัปเกรดเป็นคอร์สเต็ม จ่ายเพิ่ม ฿{PRICING.reviewToFullPrice}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Link>
           ) : appOnly ? (
             <Link href="/checkout/upgrade"
               className="btn-primary w-full py-3.5 text-[15px] flex items-center justify-center gap-2">
@@ -199,7 +280,7 @@ export default function PackagesPage() {
 
           {/* สิทธิพิเศษ: ชีทสรุป + กลุ่ม LINE — โชว์ทุกคน (ล็อกถ้ายังไม่ใช่คอร์สเต็ม) */}
           <div className="mt-4 pt-4" style={{ borderTop: "1px solid #F3F2F0" }}>
-            <CourseResources compact hideCta lock={hasFull ? undefined : appOnly ? "upgrade" : "full"} />
+            <CourseResources compact hideCta lock={hasFull ? undefined : (appOnly || hasReview) ? "upgrade" : "full"} />
           </div>
         </div>
 

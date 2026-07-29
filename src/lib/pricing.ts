@@ -11,6 +11,12 @@ export const PRICING = {
     tagline:   "คลังข้อสอบเต็ม + เครื่องมือฝึกครบ",
     period:    "ใช้ได้ 12 เดือน",
   },
+  review: {
+    price:   499,
+    name:    "แพ็กติวทบทวน",
+    tagline: "ข้อสอบครบ + ติวโค้งสุดท้าย 14 วัน + คลิปสรุป",
+    period:  "ใช้ได้ 12 เดือน",
+  },
   full: {
     price:   699,
     name:    "คอร์สเต็ม",
@@ -18,6 +24,8 @@ export const PRICING = {
     period:  "ใช้ได้ 12 เดือน",
   },
   upgradePrice: 400,          // App → คอร์สเต็ม จ่ายส่วนต่าง
+  upToReviewPrice: 200,       // App → แพ็กติวทบทวน จ่ายส่วนต่าง
+  reviewToFullPrice: 200,     // แพ็กติวทบทวน → คอร์สเต็ม จ่ายส่วนต่าง
 } as const;
 
 /** ช่องทางติดต่อสั่งซื้อ — LINE OA ของ Aj */

@@ -13,7 +13,7 @@ import CourseResources from "@/components/CourseResources";
 // ─── /checkout/[tier] — จ่ายเงินในเว็บ (PromptPay + อัปสลิป → ตรวจอัตโนมัติ) ────
 
 type Phase = "loading" | "qr" | "verifying" | "success" | "error";
-const TIERS: OrderTier[] = ["app", "full", "upgrade"];
+const TIERS: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2"];
 
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -102,7 +102,15 @@ export default function CheckoutPage() {
         <p className="text-[14px] mb-1" style={{ color: "#A8A8A6" }}>ปลดล็อกเรียบร้อยแล้ว</p>
         <p className="text-[16px] font-bold mb-6" style={{ color: BRAND.primary }}>{okName}</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
-          {tier !== "app" ? (
+          {tier === "review" || tier === "up-review" ? (
+            <>
+              {/* แพ็กติวทบทวน: พาไปแผน 14 วัน + คลิปโค้งสุดท้าย (ไม่มีชีท/กลุ่ม LINE) */}
+              <button onClick={() => router.push("/final-review")}
+                className="btn-primary w-full py-3 text-[14px]">เข้าติวโค้งสุดท้าย 14 วัน</button>
+              <button onClick={() => router.push("/exams")}
+                className="btn-secondary w-full py-3 text-[14px]">ทำข้อสอบ</button>
+            </>
+          ) : tier !== "app" ? (
             <>
               <button onClick={() => router.push("/videos")}
                 className="btn-primary w-full py-3 text-[14px]">ไปดูคอร์สวิดีโอ</button>

@@ -16,18 +16,28 @@ import type { Exam } from "./types";
 export interface UserAccess {
   packageIds: string[]; // courseId ทั้งหมดที่ผู้ใช้เป็นเจ้าของ
   hasAny:     boolean;  // มีคอร์ส/แพ็กอย่างน้อย 1 อัน (legacy fallback)
-  hasFull:    boolean;  // มี "คอร์สเต็ม" → ดูวิดีโอได้
+  hasReview:  boolean;  // มี "แพ็กติวทบทวน 499" → ดูคลิปโค้งสุดท้ายได้ (ไม่เห็นคอร์สวิดีโอเต็ม)
+  hasFull:    boolean;  // มี "คอร์สเต็ม" → ดูวิดีโอได้ครบ
 }
 
-export const EMPTY_ACCESS: UserAccess = { packageIds: [], hasAny: false, hasFull: false };
+export const EMPTY_ACCESS: UserAccess = {
+  packageIds: [], hasAny: false, hasReview: false, hasFull: false,
+};
 
 /**
- * กติกาแยก tier (ตกลงกับ Aj 2026-07-11):
- * code สำหรับ App Only (299) ต้องตั้ง courseId ขึ้นต้นด้วย "app-" เช่น "app-2026"
- * courseId อื่นทั้งหมด = คอร์สเต็ม (ลูกค้าเก่าทุกคนซื้อ 699 → ได้วิดีโออัตโนมัติ)
+ * กติกาแยก tier (ตกลงกับ Aj 2026-07-11, เพิ่ม review 2026-07-29):
+ * - courseId ขึ้นต้น "app-"    = App Only (299)
+ * - courseId ขึ้นต้น "review-" = แพ็กติวทบทวน (499): สิทธิ์ App + คลิปโค้งสุดท้าย
+ * - courseId อื่นทั้งหมด        = คอร์สเต็ม (ลูกค้าเก่าทุกคนซื้อ 699 → ได้วิดีโออัตโนมัติ)
  */
 export function isAppOnlyCourse(courseId: string): boolean {
   return courseId.toLowerCase().startsWith("app-");
+}
+export function isReviewCourse(courseId: string): boolean {
+  return courseId.toLowerCase().startsWith("review-");
+}
+export function isFullCourse(courseId: string): boolean {
+  return !isAppOnlyCourse(courseId) && !isReviewCourse(courseId);
 }
 
 /** ดึงสิทธิ์ทั้งหมดของผู้ใช้ในครั้งเดียว (แทน checkUserHasAnyAccess เดิม) */
@@ -40,8 +50,9 @@ export async function getUserAccess(uid: string): Promise<UserAccess> {
     .filter(Boolean);
   return {
     packageIds,
-    hasAny:  !snap.empty,
-    hasFull: packageIds.some((id) => !isAppOnlyCourse(id)),
+    hasAny:    !snap.empty,
+    hasReview: packageIds.some(isReviewCourse),
+    hasFull:   packageIds.some(isFullCourse),
   };
 }
 

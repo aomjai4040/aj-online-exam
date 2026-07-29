@@ -26,13 +26,14 @@ export async function makePromptPayQR(amount: number): Promise<string> {
   return QRCode.toDataURL(payload, { margin: 1, width: 320 });
 }
 
-/** สิทธิ์ปัจจุบันของผู้ใช้ (ฝั่ง server) */
-async function serverAccess(uid: string): Promise<{ hasAny: boolean; hasFull: boolean }> {
+/** สิทธิ์ปัจจุบันของผู้ใช้ (ฝั่ง server) — กติกา prefix เดียวกับ lib/access.ts */
+async function serverAccess(uid: string): Promise<{ hasAny: boolean; hasReview: boolean; hasFull: boolean }> {
   const snap = await adminDb().collection("userCourses").where("userId", "==", uid).get();
-  const ids  = snap.docs.map((d) => String(d.data().courseId ?? ""));
+  const ids  = snap.docs.map((d) => String(d.data().courseId ?? "").toLowerCase());
   return {
-    hasAny:  ids.length > 0,
-    hasFull: ids.some((id) => !id.toLowerCase().startsWith("app-")),
+    hasAny:    ids.length > 0,
+    hasReview: ids.some((id) => id.startsWith("review-")),
+    hasFull:   ids.some((id) => !id.startsWith("app-") && !id.startsWith("review-")),
   };
 }
 
@@ -42,12 +43,27 @@ export class CheckoutError extends Error {}
 export async function createOrder(
   uid: string, email: string, tier: OrderTier
 ): Promise<{ orderId: string; amount: number; qr: string; courseName: string }> {
-  // กันซื้อซ้ำ / อัปเกรดผิดเงื่อนไข
+  // กันซื้อซ้ำ / อัปเกรดผิดเงื่อนไข / จ่ายแพงเกินจำเป็น
   const acc = await serverAccess(uid);
   if (acc.hasFull) throw new CheckoutError("บัญชีนี้มีคอร์สเต็มอยู่แล้ว");
   if (tier === "app" && acc.hasAny) throw new CheckoutError("บัญชีนี้มีสิทธิ์ App อยู่แล้ว");
-  if (tier === "upgrade" && !acc.hasAny)
-    throw new CheckoutError("อัปเกรดได้เฉพาะผู้ที่มี App Only อยู่แล้ว — กรุณาเลือกคอร์สเต็ม");
+  if (tier === "review") {
+    if (acc.hasReview) throw new CheckoutError("บัญชีนี้มีแพ็กติวทบทวนอยู่แล้ว");
+    if (acc.hasAny)
+      throw new CheckoutError("บัญชีนี้มี App Only แล้ว — อัปเกรดเป็นแพ็กติวทบทวนจ่ายเพิ่มแค่ 200 บาท");
+  }
+  if (tier === "upgrade") {
+    if (!acc.hasAny) throw new CheckoutError("อัปเกรดได้เฉพาะผู้ที่มีสิทธิ์อยู่แล้ว — กรุณาเลือกคอร์สเต็ม");
+    if (acc.hasReview)
+      throw new CheckoutError("บัญชีนี้มีแพ็กติวทบทวน — อัปเกรดเป็นคอร์สเต็มจ่ายเพิ่มแค่ 200 บาท");
+  }
+  if (tier === "up-review") {
+    if (acc.hasReview) throw new CheckoutError("บัญชีนี้มีแพ็กติวทบทวนอยู่แล้ว");
+    if (!acc.hasAny)
+      throw new CheckoutError("อัปเกรดได้เฉพาะผู้ที่มี App Only อยู่แล้ว — กรุณาเลือกแพ็กติวทบทวน 499");
+  }
+  if (tier === "up-full2" && !acc.hasReview)
+    throw new CheckoutError("เมนูนี้สำหรับผู้ที่มีแพ็กติวทบทวนอยู่แล้วเท่านั้น");
 
   const plan = tierPlan(tier);
   const ref  = adminDb().collection("orders").doc();

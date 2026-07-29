@@ -6,7 +6,7 @@ import type { OrderTier } from "@/lib/order-types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const VALID: OrderTier[] = ["app", "full", "upgrade"];
+const VALID: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2"];
 
 export async function POST(req: NextRequest) {
   const user = await verifyBearer(req.headers.get("authorization"));
