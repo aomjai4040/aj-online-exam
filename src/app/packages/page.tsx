@@ -229,13 +229,19 @@ export default function PackagesPage() {
         </div>
 
         {/* ── คอร์สเต็ม ───────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
+        <div className="bg-white rounded-2xl overflow-hidden"
+          style={{ border: "2px solid #7C3AED" }}>
+          <div className="px-5 py-2 text-center text-[12px] font-bold text-white"
+            style={{ backgroundColor: "#7C3AED" }}>
+            👑 จัดเต็ม ครบทุกอย่าง
+          </div>
+          <div className="p-5">
           <div className="flex items-start justify-between gap-3 mb-1">
             <div>
               <p className="text-[17px] font-bold text-gray-900">{PRICING.full.name}</p>
               <p className="text-[12.5px]" style={{ color: "#A8A8A6" }}>{PRICING.full.tagline}</p>
             </div>
-            <p className="text-[26px] font-extrabold leading-none flex-shrink-0 text-gray-900">
+            <p className="text-[26px] font-extrabold leading-none flex-shrink-0" style={{ color: "#7C3AED" }}>
               ฿{PRICING.full.price}
             </p>
           </div>
@@ -282,6 +288,7 @@ export default function PackagesPage() {
           {/* สิทธิพิเศษ: ชีทสรุป + กลุ่ม LINE — โชว์ทุกคน (ล็อกถ้ายังไม่ใช่คอร์สเต็ม) */}
           <div className="mt-4 pt-4" style={{ borderTop: "1px solid #F3F2F0" }}>
             <CourseResources compact hideCta lock={hasFull ? undefined : (appOnly || hasReview) ? "upgrade" : "full"} />
+          </div>
           </div>
         </div>
 

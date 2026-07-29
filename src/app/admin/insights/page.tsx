@@ -9,7 +9,7 @@ interface Insights {
   paidGrants: number;
   trialUsers: number;
   revenue: number;
-  paid: { app: number; full: number; upgrade: number };
+  paid: Record<string, number>; // นับตาม tier: app/review/full/upgrade/up-review/up-full2
   pending: number;
   rejected: number;
   pendingList: {
@@ -165,7 +165,7 @@ export default function AdminInsights() {
     }
   }
 
-  const totalPaidCount = data ? data.paid.app + data.paid.full + data.paid.upgrade : 0;
+  const totalPaidCount = data ? Object.values(data.paid).reduce((s, n) => s + n, 0) : 0;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5FAF9" }}>
@@ -207,9 +207,12 @@ export default function AdminInsights() {
             <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
               <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">ยอดขายผ่านเว็บ (PromptPay)</p>
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.app}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>App 299฿</div></div>
-                <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.full}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>คอร์สเต็ม 699฿</div></div>
-                <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.upgrade}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>อัปเกรด 400฿</div></div>
+                <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.app ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>App 299฿</div></div>
+                <div><div className="text-[22px] font-extrabold" style={{ color: "#B45309" }}>{data.paid.review ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>ติวทบทวน 499฿</div></div>
+                <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.full ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>คอร์สเต็ม 699฿</div></div>
+                <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.upgrade ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>อัป→เต็ม 400฿</div></div>
+                <div><div className="text-[22px] font-extrabold" style={{ color: "#B45309" }}>{data.paid["up-review"] ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>อัป→ทบทวน 200฿</div></div>
+                <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid["up-full2"] ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>ทบทวน→เต็ม 200฿</div></div>
               </div>
             </div>
 
