@@ -112,7 +112,7 @@ export default function VideosPage() {
           </div>
           <h1 className="text-[19px] font-bold text-gray-900 mb-2">คอร์สวิดีโอสำหรับสมาชิกคอร์สเต็ม</h1>
           <p className="text-[13.5px] leading-relaxed mb-4 max-w-xs mx-auto" style={{ color: "#A8A8A6" }}>
-            วิดีโอติวครบทุกหัวข้อ + ชีทสรุป 395 หน้า
+            วิดีโอติวครบทุกบท 47 ชม. + คู่มือฉบับละเอียด 395 หน้า
             {access.hasAny
               ? ` — อัปเกรดจาก App Only จ่ายเพิ่มเพียง ฿${PRICING.upgradePrice}`
               : ` — คอร์สเต็ม ฿${PRICING.full.price} รวมทุกอย่างในแอปด้วย`}

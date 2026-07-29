@@ -55,16 +55,18 @@ export default function PackagesPage() {
     total !== null
       ? `ข้อสอบแยกรายหัวข้อ + ข้อสอบเสมือนจริง พร้อมเฉลย — อัปเพิ่มเรื่อยๆ จนถึงวันสอบ (ตอนนี้ ${questions.toLocaleString()} ข้อ · อาจถึง ~2,000)`
       : "ข้อสอบแยกรายหัวข้อ + ข้อสอบเสมือนจริง พร้อมเฉลย — อัปเพิ่มเรื่อยๆ จนถึงวันสอบ (อาจถึง ~2,000 ข้อ)",
+    "Mock Exam จำลองสนามจริง พร้อมจับเวลา",
+    "ระบบประเมินความพร้อมรายบุคคล",
     "Smart Review — ระบบทบทวนข้อที่เคยผิดอัตโนมัติ",
-    "Flash Card + MOPH Focus ประเด็นเน้นกระทรวง",
+    "Flash Card + เกมทบทวน",
     "ดาวน์โหลดข้อสอบ + เฉลยเป็น PDF ไปปริ๊นอ่านได้",
-    "อัปเดตข้อสอบใหม่ต่อเนื่อง",
   ];
 
   const fullFeatures = [
-    "ทุกอย่างใน App Only ครบ",
-    "วิดีโอติวสอบครบทุกหัวข้อ 65 คลิป รวม ~45 ชม.",
-    "ชีทสรุปเนื้อหา 7 เรื่อง (395 หน้า) ประกอบการติว",
+    "ทุกอย่างในแพ็กติวเข้ม 14 วัน ครบ",
+    "คลิปสอนละเอียดครบทุกบท 65 คลิป รวม 47 ชั่วโมง",
+    "คู่มือฉบับละเอียด 395 หน้า (เป็นไฟล์ PDF)",
+    "กลุ่ม LINE ถามพี่อ้อมได้ตลอดช่วงติว 14 วัน",
   ];
 
   return (
@@ -176,17 +178,21 @@ export default function PackagesPage() {
 
             <div className="space-y-2 mt-4 mb-5">
               {[
-                "ทุกอย่างใน App Only ครบ (ข้อสอบ + ประเมินรายบุคคล)",
-                "แผนติวโค้งสุดท้าย 14 วัน ปรับตามจุดอ่อนรายคน (1–14 ส.ค.)",
-                "คลิปสรุปโค้งสุดท้ายชุดใหม่จากครูอ้อม",
-                "เอกสารประกอบการติวทบทวน (ดาวน์โหลด PDF)",
-                "เกมทบทวนครบทุกโหมด",
+                "ทุกอย่างใน App Only ครบ",
+                "ตารางติวเข้ม 14 วัน ปรับตามจุดอ่อนรายคน (1–14 ส.ค. 69)",
+                "คลิปติวสรุปตามแผน ชุดใหม่จากพี่อ้อม",
+                "ชีทประเด็นสำคัญ 20 เรื่อง (เป็นไฟล์ PDF)",
+                "ข้อสอบฝึกตามเรื่องที่ทบทวน",
               ].map((f, i) => (
                 <div key={f} className="flex items-start gap-2.5 text-[13.5px]"
                   style={{ color: i === 0 ? "#A8A8A6" : "#374151" }}>
                   <Check color={i === 0 ? "#A8A8A6" : "#B45309"} /> <span>{f}</span>
                 </div>
               ))}
+              <div className="flex items-start gap-2.5 text-[13.5px]" style={{ color: "#C4C4C0" }}>
+                <span className="w-4 flex-shrink-0 text-center font-bold mt-0.5">✕</span>
+                <span>ไม่มีกลุ่ม LINE ถาม-ตอบ (มีในคอร์สเต็ม)</span>
+              </div>
             </div>
 
             {hasFull ? (
@@ -241,9 +247,14 @@ export default function PackagesPage() {
               <p className="text-[17px] font-bold text-gray-900">{PRICING.full.name}</p>
               <p className="text-[12.5px]" style={{ color: "#A8A8A6" }}>{PRICING.full.tagline}</p>
             </div>
-            <p className="text-[26px] font-extrabold leading-none flex-shrink-0" style={{ color: "#7C3AED" }}>
-              ฿{PRICING.full.price}
-            </p>
+            <div className="text-right flex-shrink-0">
+              <p className="text-[26px] font-extrabold leading-none" style={{ color: "#7C3AED" }}>
+                ฿{PRICING.full.price}
+              </p>
+              <p className="text-[11px] mt-1 font-semibold" style={{ color: "#7C3AED" }}>
+                เพิ่มจากติวเข้มแค่ ฿{PRICING.reviewToFullPrice}
+              </p>
+            </div>
           </div>
 
           <div className="space-y-2 mt-4 mb-5">
@@ -300,9 +311,8 @@ export default function PackagesPage() {
             style={{ backgroundColor: "#EBF5F3", border: "1px solid #C3E5DE" }}>
             <span className="text-[18px] leading-none mt-0.5">💡</span>
             <p className="text-[12.5px] leading-relaxed" style={{ color: "#0B6E65" }}>
-              ซื้อ App Only ไปแล้ว อยากได้วิดีโอ + ชีทสรุปเพิ่มทีหลัง?
-              <span className="font-bold"> อัปเกรดได้โดยจ่ายส่วนต่าง ฿{PRICING.upgradePrice} เท่านั้น</span>
-              {" "}— ไม่ต้องซื้อใหม่
+              <span className="font-bold">อัปเกรดได้ทุกแพ็กภายหลัง จ่ายเฉพาะส่วนต่าง</span>
+              {" "}— 299→499 เพิ่ม ฿{PRICING.upToReviewPrice} · 499→699 เพิ่ม ฿{PRICING.reviewToFullPrice} · 299→699 เพิ่ม ฿{PRICING.upgradePrice} (ไม่ต้องซื้อใหม่)
             </p>
           </div>
         )}

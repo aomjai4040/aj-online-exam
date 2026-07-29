@@ -82,18 +82,18 @@ export default function CourseResources({
 
       {driveDocs && (locked ? (
         <Row locked bg="#EBF5F3" iconColor={BRAND.primary} icon={driveIcon}
-          title="ชีทสรุป 7 เรื่อง (395 หน้า)" sub="ดาวน์โหลดจาก Google Drive" textColor={BRAND.primary} />
+          title="คู่มือฉบับละเอียด 395 หน้า" sub="ดาวน์โหลดจาก Google Drive" textColor={BRAND.primary} />
       ) : (
         <a href={driveDocs} target="_blank" rel="noopener noreferrer"
           className="block active:scale-[0.99] transition-transform">
           <Row locked={false} bg="#EBF5F3" iconColor={BRAND.primary} icon={driveIcon}
-            title="ดาวน์โหลดชีทสรุป" sub="เนื้อหา 7 เรื่อง 395 หน้า (Google Drive)" textColor={BRAND.primary} />
+            title="ดาวน์โหลดคู่มือฉบับละเอียด" sub="395 หน้า เป็นไฟล์ PDF (Google Drive)" textColor={BRAND.primary} />
         </a>
       ))}
 
       {lineOpenChat && (locked ? (
         <Row locked bg="#EAF7EE" iconColor="#06C755" icon={<LineMark />}
-          title="กลุ่ม LINE ผู้เรียน" sub="ถาม-ตอบ + อัปเดตข่าวสอบ" textColor="#067A38" />
+          title="กลุ่ม LINE ผู้เรียน" sub="ถามพี่อ้อมได้ตลอดช่วงติว" textColor="#067A38" />
       ) : (
         <a href={lineOpenChat} target="_blank" rel="noopener noreferrer"
           className="block active:scale-[0.99] transition-transform">
@@ -104,7 +104,7 @@ export default function CourseResources({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13.5px] font-bold" style={{ color: "#067A38" }}>เข้ากลุ่ม LINE ผู้เรียน</p>
-              <p className="text-[11.5px]" style={{ color: "#3B9E63" }}>ถาม-ตอบ + อัปเดตข่าวสอบกับเพื่อน ๆ</p>
+              <p className="text-[11.5px]" style={{ color: "#3B9E63" }}>ถามพี่อ้อมได้ตลอดช่วงติว 14 วัน</p>
             </div>
             <ChevronOrLock locked={false} />
           </div>

@@ -342,7 +342,7 @@ export default function FinalReviewPage() {
                 <a href={COURSE_RESOURCES.reviewDocs} target="_blank" rel="noopener noreferrer"
                   className="block w-full py-3 rounded-2xl font-semibold text-[14px] bg-white"
                   style={{ border: `1px solid ${LINE}`, color: "#44403C" }}>
-                  📄 ดาวน์โหลดเอกสารติวทบทวน
+                  📄 ชีทประเด็นสำคัญ 20 เรื่อง (PDF)
                 </a>
               )}
             </div>
@@ -494,7 +494,7 @@ export default function FinalReviewPage() {
           <Link href="/checkout/up-review"
             className="block rounded-2xl px-4 py-3.5 text-[13px] active:scale-[0.99] transition-transform"
             style={{ backgroundColor: "#FDF6E9", color: "#92400E", border: "1px solid #FDE9C8" }}>
-            🎬 คลิปสรุปโค้งสุดท้ายอยู่ในแพ็กติวทบทวน — อัปเกรดจ่ายเพิ่มแค่ ฿{PRICING.upToReviewPrice} →
+            🎬 คลิปสรุปโค้งสุดท้ายอยู่ในแพ็กติวเข้ม 14 วัน — อัปเกรดจ่ายเพิ่มแค่ ฿{PRICING.upToReviewPrice} →
           </Link>
         )}
 
@@ -514,8 +514,8 @@ export default function FinalReviewPage() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-bold text-gray-900">ดาวน์โหลดเอกสารติวทบทวน</p>
-              <p className="text-[12.5px]" style={{ color: MUTED }}>PDF ประกอบการติวโค้งสุดท้าย (Google Drive)</p>
+              <p className="text-[15px] font-bold text-gray-900">ชีทประเด็นสำคัญ 20 เรื่อง</p>
+              <p className="text-[12.5px]" style={{ color: MUTED }}>ดาวน์โหลด PDF ประกอบการติว 14 วัน (Google Drive)</p>
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">

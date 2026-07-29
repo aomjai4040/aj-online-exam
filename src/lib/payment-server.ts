@@ -48,22 +48,22 @@ export async function createOrder(
   if (acc.hasFull) throw new CheckoutError("บัญชีนี้มีคอร์สเต็มอยู่แล้ว");
   if (tier === "app" && acc.hasAny) throw new CheckoutError("บัญชีนี้มีสิทธิ์ App อยู่แล้ว");
   if (tier === "review") {
-    if (acc.hasReview) throw new CheckoutError("บัญชีนี้มีแพ็กติวทบทวนอยู่แล้ว");
+    if (acc.hasReview) throw new CheckoutError("บัญชีนี้มีแพ็กติวเข้ม 14 วันอยู่แล้ว");
     if (acc.hasAny)
-      throw new CheckoutError("บัญชีนี้มี App Only แล้ว — อัปเกรดเป็นแพ็กติวทบทวนจ่ายเพิ่มแค่ 200 บาท");
+      throw new CheckoutError("บัญชีนี้มี App Only แล้ว — อัปเกรดเป็นแพ็กติวเข้ม 14 วัน จ่ายเพิ่มแค่ 200 บาท");
   }
   if (tier === "upgrade") {
     if (!acc.hasAny) throw new CheckoutError("อัปเกรดได้เฉพาะผู้ที่มีสิทธิ์อยู่แล้ว — กรุณาเลือกคอร์สเต็ม");
     if (acc.hasReview)
-      throw new CheckoutError("บัญชีนี้มีแพ็กติวทบทวน — อัปเกรดเป็นคอร์สเต็มจ่ายเพิ่มแค่ 200 บาท");
+      throw new CheckoutError("บัญชีนี้มีแพ็กติวเข้ม 14 วัน — อัปเกรดเป็นคอร์สเต็มจ่ายเพิ่มแค่ 200 บาท");
   }
   if (tier === "up-review") {
-    if (acc.hasReview) throw new CheckoutError("บัญชีนี้มีแพ็กติวทบทวนอยู่แล้ว");
+    if (acc.hasReview) throw new CheckoutError("บัญชีนี้มีแพ็กติวเข้ม 14 วันอยู่แล้ว");
     if (!acc.hasAny)
-      throw new CheckoutError("อัปเกรดได้เฉพาะผู้ที่มี App Only อยู่แล้ว — กรุณาเลือกแพ็กติวทบทวน 499");
+      throw new CheckoutError("อัปเกรดได้เฉพาะผู้ที่มี App Only อยู่แล้ว — กรุณาเลือกแพ็กติวเข้ม 14 วัน (499)");
   }
   if (tier === "up-full2" && !acc.hasReview)
-    throw new CheckoutError("เมนูนี้สำหรับผู้ที่มีแพ็กติวทบทวนอยู่แล้วเท่านั้น");
+    throw new CheckoutError("เมนูนี้สำหรับผู้ที่มีแพ็กติวเข้ม 14 วันอยู่แล้วเท่านั้น");
 
   const plan = tierPlan(tier);
   const ref  = adminDb().collection("orders").doc();

@@ -33,14 +33,14 @@ export function tierPlan(tier: OrderTier): { courseId: string; courseName: strin
     case "app":
       return { courseId: "app-2026", courseName: "App Only (แอปข้อสอบ) 2569", amount: 299 };
     case "review":
-      return { courseId: "review-2026", courseName: "แพ็กติวทบทวน (ข้อสอบ+โค้งสุดท้าย) 2569", amount: 499 };
+      return { courseId: "review-2026", courseName: "ติวเข้ม 14 วัน (ข้อสอบ+โค้งสุดท้าย) 2569", amount: 499 };
     case "full":
       return { courseId: "full-2026", courseName: "คอร์สเต็ม (วิดีโอ+ชีท+แอป) 2569", amount: 699 };
     case "upgrade":
       return { courseId: "full-2026", courseName: "อัปเกรดเป็นคอร์สเต็ม", amount: 400 };
     case "up-review":
-      return { courseId: "review-2026", courseName: "อัปเกรดเป็นแพ็กติวทบทวน", amount: 200 };
+      return { courseId: "review-2026", courseName: "อัปเกรดเป็นแพ็กติวเข้ม 14 วัน", amount: 200 };
     case "up-full2":
-      return { courseId: "full-2026", courseName: "อัปเกรดเป็นคอร์สเต็ม (จากแพ็กติวทบทวน)", amount: 200 };
+      return { courseId: "full-2026", courseName: "อัปเกรดเป็นคอร์สเต็ม (จากแพ็กติวเข้ม 14 วัน)", amount: 200 };
   }
 }

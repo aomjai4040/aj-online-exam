@@ -208,11 +208,11 @@ export default function AdminInsights() {
               <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">ยอดขายผ่านเว็บ (PromptPay)</p>
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.app ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>App 299฿</div></div>
-                <div><div className="text-[22px] font-extrabold" style={{ color: "#B45309" }}>{data.paid.review ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>ติวทบทวน 499฿</div></div>
+                <div><div className="text-[22px] font-extrabold" style={{ color: "#B45309" }}>{data.paid.review ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>ติวเข้ม 499฿</div></div>
                 <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.full ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>คอร์สเต็ม 699฿</div></div>
                 <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.upgrade ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>อัป→เต็ม 400฿</div></div>
-                <div><div className="text-[22px] font-extrabold" style={{ color: "#B45309" }}>{data.paid["up-review"] ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>อัป→ทบทวน 200฿</div></div>
-                <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid["up-full2"] ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>ทบทวน→เต็ม 200฿</div></div>
+                <div><div className="text-[22px] font-extrabold" style={{ color: "#B45309" }}>{data.paid["up-review"] ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>อัป→ติวเข้ม 200฿</div></div>
+                <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid["up-full2"] ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>ติวเข้ม→เต็ม 200฿</div></div>
               </div>
             </div>
 
