@@ -73,6 +73,8 @@ export async function GET(req: NextRequest) {
         });
       } else if (o.status === "rejected") rejected++;
     });
+    // เรียงออเดอร์ค้างจากรายการล่าสุดลงไป (ไม่มีวันที่ = ท้ายสุด)
+    pendingList.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
     // ── กิจกรรมทำข้อสอบรายวัน (นับคนจาก userId ถ้ามี ไม่งั้น studentName) ──
     const byDay: Record<string, { attempts: number; people: Set<string> }> = {};
