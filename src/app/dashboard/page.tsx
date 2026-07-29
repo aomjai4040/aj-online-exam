@@ -450,7 +450,7 @@ export default function DashboardPage() {
                   อัปเกรดคอร์สเต็ม จ่ายเพิ่ม ฿{courses.some((c) => isReviewCourse(c.courseId)) ? PRICING.reviewToFullPrice : PRICING.upgradePrice}
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
-                  วิดีโอติว 65 คลิป ~45 ชม. + ชีทสรุป ~500 หน้า
+                  วิดีโอติว 65 คลิป ~45 ชม. + ชีทสรุป 395 หน้า
                 </p>
               </div>
               <svg viewBox="0 0 24 24" fill="none" stroke="#0B6E65"

@@ -38,4 +38,7 @@ export const CONTACT_URL = "https://line.me/R/ti/p/@481ccrkj";
 export const COURSE_RESOURCES = {
   lineOpenChat: "https://line.me/ti/g2/YrFWnValWt4n1raglN3PZ88YlOaiRa7l4HYFIw?utm_source=invitation&utm_medium=link_copy&utm_campaign=default",
   driveDocs:    "https://drive.google.com/drive/folders/1bVYpGvSQXr_KRpDnRlR4F8S2Zv19LlkL?usp=sharing",
+  // เอกสารของแพ็กติวทบทวน 499 (โชว์ในหน้า /final-review ให้ทั้ง 499 และคอร์สเต็ม)
+  // เว้นว่าง = ปุ่มไม่แสดง — Aj ส่งลิงก์มาเมื่อไหร่วางตรงนี้แล้วปุ่มโผล่เอง
+  reviewDocs:   "",
 };

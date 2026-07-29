@@ -82,12 +82,12 @@ export default function CourseResources({
 
       {driveDocs && (locked ? (
         <Row locked bg="#EBF5F3" iconColor={BRAND.primary} icon={driveIcon}
-          title="ชีทสรุป 7 เรื่อง (~500 หน้า)" sub="ดาวน์โหลดจาก Google Drive" textColor={BRAND.primary} />
+          title="ชีทสรุป 7 เรื่อง (395 หน้า)" sub="ดาวน์โหลดจาก Google Drive" textColor={BRAND.primary} />
       ) : (
         <a href={driveDocs} target="_blank" rel="noopener noreferrer"
           className="block active:scale-[0.99] transition-transform">
           <Row locked={false} bg="#EBF5F3" iconColor={BRAND.primary} icon={driveIcon}
-            title="ดาวน์โหลดชีทสรุป" sub="เนื้อหา 7 เรื่อง ~500 หน้า (Google Drive)" textColor={BRAND.primary} />
+            title="ดาวน์โหลดชีทสรุป" sub="เนื้อหา 7 เรื่อง 395 หน้า (Google Drive)" textColor={BRAND.primary} />
         </a>
       ))}
 

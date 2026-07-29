@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import BottomNav from "@/components/BottomNav";
-import { PRICING } from "@/lib/pricing";
+import { PRICING, COURSE_RESOURCES } from "@/lib/pricing";
 import { getUserCourses } from "@/lib/activation";
 import { isFullCourse, isReviewCourse } from "@/lib/access";
 import { getUserSummaries } from "@/lib/user-firestore";
@@ -338,6 +338,13 @@ export default function FinalReviewPage() {
                   เริ่มเคลียร์ข้อที่เคยผิดล่วงหน้า ({member.wrongCount} ข้อ)
                 </Link>
               )}
+              {member.hasLap && COURSE_RESOURCES.reviewDocs !== "" && (
+                <a href={COURSE_RESOURCES.reviewDocs} target="_blank" rel="noopener noreferrer"
+                  className="block w-full py-3 rounded-2xl font-semibold text-[14px] bg-white"
+                  style={{ border: `1px solid ${LINE}`, color: "#44403C" }}>
+                  📄 ดาวน์โหลดเอกสารติวทบทวน
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -489,6 +496,32 @@ export default function FinalReviewPage() {
             style={{ backgroundColor: "#FDF6E9", color: "#92400E", border: "1px solid #FDE9C8" }}>
             🎬 คลิปสรุปโค้งสุดท้ายอยู่ในแพ็กติวทบทวน — อัปเกรดจ่ายเพิ่มแค่ ฿{PRICING.upToReviewPrice} →
           </Link>
+        )}
+
+        {/* เอกสารติวทบทวน (แพ็ก 499 + คอร์สเต็ม) — โผล่เมื่อ Aj ใส่ลิงก์ใน pricing.ts */}
+        {member.hasLap && COURSE_RESOURCES.reviewDocs !== "" && (
+          <a href={COURSE_RESOURCES.reviewDocs} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3.5 bg-white rounded-2xl px-4 py-4
+                       active:scale-[0.98] transition-transform"
+            style={{ border: `1px solid ${LINE}` }}>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "#EBF5F3" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke={ACCENT}
+                strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-bold text-gray-900">ดาวน์โหลดเอกสารติวทบทวน</p>
+              <p className="text-[12.5px]" style={{ color: MUTED }}>PDF ประกอบการติวโค้งสุดท้าย (Google Drive)</p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </a>
         )}
 
         {/* เช็คลิสต์วันสอบ — โผล่ตั้งแต่วันที่ 12 */}
