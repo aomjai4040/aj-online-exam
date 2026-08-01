@@ -515,7 +515,7 @@ export default function FinalReviewPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[15px] font-bold text-gray-900">ชีทประเด็นสำคัญ 20 เรื่อง</p>
-              <p className="text-[12.5px]" style={{ color: MUTED }}>ดาวน์โหลด PDF ประกอบการติว 14 วัน (Google Drive)</p>
+              <p className="text-[12.5px]" style={{ color: MUTED }}>PDF ทยอยอัปเพิ่มตามวันติว — เช็คไฟล์ใหม่ทุกวัน (Google Drive)</p>
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
