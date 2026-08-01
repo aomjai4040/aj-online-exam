@@ -325,6 +325,15 @@ export default function FinalReviewPage() {
               <DayTimeline currentDay={0} />
             </div>
             <div className="space-y-2.5">
+              {/* คลิปติวสรุปมาแล้ว — โชว์ตั้งแต่ก่อนแผนเปิด ไม่ต้องรอ 1 ส.ค. */}
+              {member.hasLap && member.lapClips.length > 0 && (
+                <Link href={`/videos?chapter=${encodeURIComponent("ติวโค้งสุดท้าย")}`}
+                  className="block w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
+                             transition-transform active:scale-[0.98]"
+                  style={{ backgroundColor: "#B45309" }}>
+                  ▶ คลิปติวสรุปมาแล้ว {member.lapClips.length} คลิป — ดูเลย
+                </Link>
+              )}
               <Link href="/exams"
                 className="block w-full py-3.5 rounded-2xl font-bold text-[15px] text-white
                            transition-transform active:scale-[0.98]"
