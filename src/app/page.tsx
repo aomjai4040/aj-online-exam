@@ -8,6 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/lib/auth-context";
 import { subjectColor as dotColor, BRAND } from "@/lib/subjects";
 import { getSubjectShort, isMockExam } from "@/lib/types";
+import { isFinalLapExam } from "@/lib/final-review";
 import { PRICING } from "@/lib/pricing";
 import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
 import { getRecentResults } from "@/lib/user-firestore";
@@ -98,7 +99,7 @@ export default function HomePage() {
     getPublishedExams()
       .then((all) => {
         // Mock Exam มีเมนูของตัวเอง — ไม่ปนในแถบ "เพิ่มล่าสุด" แต่ "นับรวม" ในสถิติ hero
-        setExams(all.filter((e) => !isMockExam(e)));
+        setExams(all.filter((e) => !isMockExam(e) && !isFinalLapExam(e)));
         setHeroStats({
           questions: all.reduce((s, e) => s + (e.questionCount || 0), 0),
           sets:      all.length,

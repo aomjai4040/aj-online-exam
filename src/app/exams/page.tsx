@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
 import { getSubjectShort, normalizeSubject, isMockExam, SUBJECTS } from "@/lib/types";
+import { isFinalLapExam } from "@/lib/final-review";
 import type { Difficulty } from "@/lib/mock-data";
 import { getHistory, type ExamRecord } from "@/lib/exam-history";
 import { getUserHistory } from "@/lib/user-firestore";
@@ -311,7 +312,8 @@ export default function ExamsPage() {
   useEffect(() => {
     getPublishedExams()
       .then((data) => {
-        setExams(data.filter((e) => !isMockExam(e))); // Mock แยกไปเมนูของตัวเอง
+        // Mock กับชุดติวโค้งสุดท้าย แยกไปเมนูของตัวเอง
+        setExams(data.filter((e) => !isMockExam(e) && !isFinalLapExam(e)));
         setLoadError(false);
       })
       .catch(() => setLoadError(true)) // แสดง error จริง ไม่ใช้ข้อมูลจำลอง

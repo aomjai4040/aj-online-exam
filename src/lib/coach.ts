@@ -9,6 +9,7 @@
 import { doc, getDoc, collection, getDocs, query, where, documentId } from "firebase/firestore";
 import { db } from "./firebase";
 import { SUBJECTS, isMockExam, type Exam } from "./types";
+import { isFinalLapExam } from "./final-review";
 import type { UserExamSummary } from "./user-firestore";
 import type { CourseVideo } from "./video-firestore";
 import type { VideoProgress } from "./video-progress";
@@ -37,7 +38,7 @@ interface PlanInput {
 
 export function buildStudyPlan({ exams, summaries, videos, videoProgress, daysLeft }: PlanInput): StudyPlan {
   const days = Math.max(daysLeft, 1);
-  const real = exams.filter((e) => !isMockExam(e));
+  const real = exams.filter((e) => !isMockExam(e) && !isFinalLapExam(e));
 
   const doneMap = new Map(summaries.map((s) => [s.examId, s]));
   const notAttempted = real.filter((e) => !doneMap.has(e.id));

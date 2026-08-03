@@ -45,12 +45,16 @@ export default function VideosPage() {
           const vs = a.hasFull ? vsAll : vsAll.filter((v) => v.chapter.includes("โค้งสุดท้าย"));
           setVideos(vs);
           setProgress(pg);
-          // โค้ชหลังสอบส่ง ?chapter=บทที่ x มา → เปิดคลิปของบทนั้น (ที่ยังไม่จบก่อน)
-          const chParam = new URLSearchParams(window.location.search).get("chapter");
+          // ?v=<id> เจาะไปคลิปตัวนั้นตรง ๆ (ปุ่มวันที่ในหน้าติวโค้งสุดท้ายใช้)
+          // ?chapter=<prefix> เปิดคลิปของบทนั้น (ที่ยังไม่จบก่อน) — โค้ชหลังสอบใช้
+          const sp = new URLSearchParams(window.location.search);
+          const byId = sp.get("v") ? vs.find((v) => v.id === sp.get("v")) : null;
+          const chParam = sp.get("chapter");
           const inChapter = chParam ? vs.filter((v) => v.chapter.startsWith(chParam)) : [];
           const firstUnfinished = vs.find((v) => !pg.get(v.id)?.completed);
           setCurrent(
-            (inChapter.find((v) => !pg.get(v.id)?.completed) ?? inChapter[0])
+            byId
+            ?? (inChapter.find((v) => !pg.get(v.id)?.completed) ?? inChapter[0])
             ?? firstUnfinished ?? vs[0] ?? null
           );
         }

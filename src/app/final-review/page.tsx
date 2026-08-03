@@ -20,12 +20,11 @@ import { getPublishedExams } from "@/lib/firestore";
 import { getPublishedVideos, type CourseVideo } from "@/lib/video-firestore";
 import { getAllVideoProgress, type VideoProgress } from "@/lib/video-progress";
 import { countWrongQuestions } from "@/lib/smart-review";
-import { buildStudyPlan, getDailyDoneToday, bkkTodayClient, type StudyPlan } from "@/lib/coach";
-import { planDaysLeft } from "@/lib/exam-config";
-import { normalizeSubject, SUBJECT_DISPLAY } from "@/lib/types";
+import { bkkTodayClient } from "@/lib/coach";
+import type { Exam } from "@/lib/types";
 import {
-  frDays, frPhase, frDayNumber, frDaysUntilStart, frKind, frReviewQuota,
-  isFinalLapChapter, FR_DAYS, type FRPhase,
+  frDays, frPhase, frDayNumber, frDaysUntilStart, frKind,
+  isFinalLapChapter, isFinalLapExam, lapDayOf, FR_DAYS, type FRPhase,
 } from "@/lib/final-review";
 
 const ACCENT = "#0B6E65";
@@ -45,47 +44,30 @@ function FlameIcon({ size = 20, color = ACCENT }: { size?: number; color?: strin
   );
 }
 
-/** แถวภารกิจของวันนี้ — done = ติ๊กเขียว+ขีดฆ่า */
-function TaskRow({ href, done, title, sub }: {
-  href: string; done?: boolean; title: string; sub?: string;
+/** timeline 14 วัน — วันที่มีคลิปแล้ว = ปุ่มส้มเด่น กดแล้วเด้งไปคลิปแรกของวันนั้นเลย */
+function DayTimeline({ currentDay, clipDays }: {
+  currentDay: number;
+  clipDays:   Map<number, string>;   // เลขวัน → video id ของคลิปแรกของวันนั้น
 }) {
-  return (
-    <Link href={href}
-      className="flex items-center gap-3 rounded-xl px-3.5 py-3 active:scale-[0.99] transition-transform"
-      style={{ backgroundColor: done ? "#F7FDF9" : "#FAFAF8",
-               border: `1px solid ${done ? "#BBF7D0" : "#EBEBEA"}` }}>
-      <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-        style={done ? { backgroundColor: "#DCFCE7" } : { border: "2px solid #D4D4D0" }}>
-        {done && (
-          <svg viewBox="0 0 24 24" fill="none" stroke="#15803D"
-            strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        )}
-      </span>
-      <span className="flex-1 min-w-0">
-        <span className="block text-[15px] font-semibold truncate"
-          style={{ color: done ? "#9CA3AF" : "#1F2937", textDecoration: done ? "line-through" : "none" }}>
-          {title}
-        </span>
-        {sub && <span className="block text-[13px] mt-0.5" style={{ color: MUTED }}>{sub}</span>}
-      </span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
-        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
-        <polyline points="9 18 15 12 9 6" />
-      </svg>
-    </Link>
-  );
-}
-
-/** timeline 14 วัน — จุดไล่วัน: ผ่านแล้ว/วันนี้/ยังไม่ถึง + สีตามช่วง */
-function DayTimeline({ currentDay }: { currentDay: number }) {
   return (
     <div>
       <div className="grid grid-cols-7 gap-1.5">
         {frDays().map((d) => {
+          const vid     = clipDays.get(d.day);
           const past    = d.day < currentDay;
           const current = d.day === currentDay;
+          if (vid) {
+            // มีคลิปแล้ว — สีส้มเด่น กดได้
+            return (
+              <Link key={d.day} href={`/videos?v=${vid}`}
+                className="rounded-lg py-1.5 text-center text-[11.5px] font-bold text-white
+                           active:scale-95 transition-transform"
+                style={{ backgroundColor: "#EA580C",
+                         border: current ? "2px solid #7C2D12" : "none" }}>
+                ▶ {d.day}
+              </Link>
+            );
+          }
           const color = d.kind === "mock" ? "#B45309" : d.kind === "rest" ? "#6D28D9" : ACCENT;
           return (
             <div key={d.day}
@@ -100,7 +82,8 @@ function DayTimeline({ currentDay }: { currentDay: number }) {
           );
         })}
       </div>
-      <div className="flex gap-4 mt-2 text-[11px]" style={{ color: MUTED }}>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px]" style={{ color: MUTED }}>
+        <span className="font-semibold" style={{ color: "#EA580C" }}>▶ มีคลิปแล้ว — กดดูได้เลย</span>
         <span><span style={{ color: ACCENT }}>●</span> วัน 1–10 ทบทวน</span>
         <span><span style={{ color: "#B45309" }}>●</span> วัน 11–13 Mock</span>
         <span><span style={{ color: "#6D28D9" }}>●</span> วัน 14 พัก</span>
@@ -172,16 +155,77 @@ function ExamDayChecklist() {
   );
 }
 
+/** เมนูข้อสอบติวโค้งสุดท้าย — แนวใหม่อิงสนามจริง แยกจากคลังปกติ
+ *  สิทธิ์: สมาชิกทุกแพ็ก (299/499/699) กดเข้าไปทำได้เลย */
+function LapExamsSection({ exams, doneIds }: { exams: Exam[]; doneIds: Set<string> }) {
+  if (exams.length === 0) {
+    return (
+      <div className="rounded-2xl px-4 py-3.5 text-[13px]"
+        style={{ backgroundColor: "#F5FAF9", color: "#0B6E65", border: "1px solid #C3E5DE" }}>
+        📝 ข้อสอบติวโค้งสุดท้าย 14 ชุด (แนวใหม่อิงสนามจริง) กำลังทยอยมาตามวันติว
+      </div>
+    );
+  }
+  return (
+    <div className="bg-white rounded-2xl p-5"
+      style={{ border: `1px solid ${LINE}`, boxShadow: CARD_SHADOW }}>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[12px] font-bold uppercase tracking-[0.12em]" style={{ color: MUTED }}>
+          ข้อสอบติวโค้งสุดท้าย
+        </p>
+        <span className="text-[12px] font-semibold tabular-nums" style={{ color: MUTED }}>
+          {exams.length}/14 ชุด
+        </span>
+      </div>
+      <p className="text-[12px] mb-3" style={{ color: MUTED }}>
+        แนวข้อสอบชุดใหม่อิงสนามจริง — ทยอยเพิ่มตามวันติวจนครบ 14 ชุด
+      </p>
+      <div className="space-y-2">
+        {exams.map((ex) => {
+          const done = doneIds.has(ex.id);
+          const d = lapDayOf(ex.title);
+          const shortTitle = ex.title
+            .replace(/ติวโค้งสุดท้าย\s*/, "").replace(/^วันที่\s*\d+\s*/, "").trim() || ex.title;
+          return (
+            <Link key={ex.id} href={`/exam/${ex.id}`}
+              className="flex items-center gap-3 rounded-xl px-3.5 py-3 active:scale-[0.99] transition-transform"
+              style={{ backgroundColor: done ? "#F7FDF9" : "#FAFAF8",
+                       border: `1px solid ${done ? "#BBF7D0" : "#EBEBEA"}` }}>
+              <span className="text-[11px] font-bold px-2 py-1 rounded-lg flex-shrink-0"
+                style={{ backgroundColor: done ? "#DCFCE7" : "#EBF5F3",
+                         color: done ? "#15803D" : ACCENT }}>
+                {d ? `วันที่ ${d}` : "พิเศษ"}
+              </span>
+              <span className="flex-1 min-w-0 text-[13.5px] font-semibold truncate"
+                style={{ color: done ? "#9CA3AF" : "#1F2937" }}>
+                {shortTitle}
+              </span>
+              {done ? (
+                <span className="text-[12px] font-bold flex-shrink-0" style={{ color: "#15803D" }}>
+                  ✓ ทำแล้ว
+                </span>
+              ) : (
+                <span className="text-[12px] flex-shrink-0" style={{ color: MUTED }}>
+                  {ex.questionCount} ข้อ
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 interface MemberData {
-  hasLap:     boolean;   // ดูคลิปโค้งสุดท้ายได้ (คอร์สเต็ม หรือแพ็กติวทบทวน 499)
-  wrongCount: number;
-  dailyDone:  boolean;
-  plan:       StudyPlan;
-  didMock:    boolean;
-  lapClips:   CourseVideo[];               // คลิปบท "โค้งสุดท้าย"
-  lapDone:    number;                       // ดูจบแล้วกี่คลิป
+  hasLap:      boolean;   // ดูคลิปโค้งสุดท้ายได้ (คอร์สเต็ม หรือแพ็กติวเข้ม 499)
+  wrongCount:  number;
+  lapClips:    CourseVideo[];  // คลิปบท "โค้งสุดท้าย"
+  lapDone:     number;         // ดูจบแล้วกี่คลิป
+  lapExams:    Exam[];         // ชุดข้อสอบแคมป์ (ชื่อมี "ติวโค้งสุดท้าย") — สมาชิกทุกแพ็กทำได้
+  doneExamIds: Set<string>;    // ชุดที่เคยทำแล้ว (ติ๊ก ✓)
 }
 
 export default function FinalReviewPage() {
@@ -202,22 +246,23 @@ export default function FinalReviewPage() {
         if (courses.length === 0) { if (!cancelled) setMember(null); return; }
         const hasLap = courses.some((c) => isFullCourse(c.courseId) || isReviewCourse(c.courseId));
 
-        const [summaries, exams, wrongCount, dailyDone, videos, vprog] = await Promise.all([
+        const [summaries, exams, wrongCount, videos, vprog] = await Promise.all([
           getUserSummaries(user.uid),
           getPublishedExams(),
           countWrongQuestions(user.uid).catch(() => 0),
-          getDailyDoneToday(user.uid),
           hasLap ? getPublishedVideos().catch(() => [] as CourseVideo[]) : Promise.resolve([] as CourseVideo[]),
           hasLap ? getAllVideoProgress(user.uid).catch(() => new Map<string, VideoProgress>())
                   : Promise.resolve(new Map<string, VideoProgress>()),
         ]);
 
-        const plan = buildStudyPlan({ exams, summaries, videos, videoProgress: vprog, daysLeft: planDaysLeft() });
         const lapClips = videos.filter((v) => isFinalLapChapter(v.chapter));
         const lapDone  = lapClips.filter((v) => vprog.get(v.id)?.completed).length;
-        const didMock  = summaries.some((s) => normalizeSubject(s.subject) === "MOCK");
+        // ชุดข้อสอบแคมป์ เรียงตามวัน (ไม่มีเลขวัน = ท้ายสุด)
+        const lapExams = exams.filter(isFinalLapExam)
+          .sort((a, b) => (lapDayOf(a.title) ?? 99) - (lapDayOf(b.title) ?? 99));
+        const doneExamIds = new Set(summaries.map((s) => s.examId));
 
-        if (!cancelled) setMember({ hasLap, wrongCount, dailyDone, plan, didMock, lapClips, lapDone });
+        if (!cancelled) setMember({ hasLap, wrongCount, lapClips, lapDone, lapExams, doneExamIds });
       } catch {
         if (!cancelled) setMember(null);
       } finally {
@@ -260,7 +305,7 @@ export default function FinalReviewPage() {
             {/* โครงแผน (read-only) */}
             <div className="text-left space-y-2 mb-6">
               {[
-                ["วัน 1–10", "ทบทวน: เคลียร์ข้อที่เคยผิด + ชุดหมวดอ่อน + คลิปสรุป", ACCENT],
+                ["วัน 1–10", "คลิปสรุปรายวัน + ข้อสอบแคมป์แนวใหม่ + เอกสารติว", ACCENT],
                 ["วัน 11–13", "โหมดสนามสอบ: Mock Exam จับเวลาเต็มรูปแบบ", "#B45309"],
                 ["วัน 14", "พักสมอง + เช็คลิสต์เตรียมตัววันสอบ", "#6D28D9"],
               ].map(([d, t, c]) => (
@@ -297,6 +342,13 @@ export default function FinalReviewPage() {
     );
   }
 
+  // แผนที่ เลขวัน → คลิปแรกของวันนั้น (จากชื่อคลิป "วันที่ N ...") — ปุ่มวันใน timeline
+  const clipDays = new Map<number, string>();
+  for (const v of member.lapClips) {
+    const dnum = lapDayOf(v.title);
+    if (dnum && !clipDays.has(dnum)) clipDays.set(dnum, v.id);
+  }
+
   // ═══ สมาชิก — ก่อนแผนเปิด (ตอนนี้–31 ก.ค.) ═══════════════════════════════════
   if (phase === "before") {
     const until = frDaysUntilStart(today);
@@ -322,7 +374,7 @@ export default function FinalReviewPage() {
               เรียนจบก่อน ทวนรอบสองจะยิ่งแม่น 💪
             </p>
             <div className="text-left mb-6">
-              <DayTimeline currentDay={0} />
+              <DayTimeline currentDay={0} clipDays={clipDays} />
             </div>
             <div className="space-y-2.5">
               {/* คลิปติวสรุปมาแล้ว — โชว์ตั้งแต่ก่อนแผนเปิด ไม่ต้องรอ 1 ส.ค. */}
@@ -351,11 +403,14 @@ export default function FinalReviewPage() {
                 <a href={COURSE_RESOURCES.reviewDocs} target="_blank" rel="noopener noreferrer"
                   className="block w-full py-3 rounded-2xl font-semibold text-[14px] bg-white"
                   style={{ border: `1px solid ${LINE}`, color: "#44403C" }}>
-                  📄 ชีทประเด็นสำคัญ 20 เรื่อง (PDF)
+                  📄 เอกสารประกอบการติวโค้งสุดท้าย 14 วัน (PDF)
                 </a>
               )}
             </div>
           </div>
+
+          {/* ข้อสอบแคมป์ — สมาชิกทุกแพ็กทำได้ */}
+          <LapExamsSection exams={member.lapExams} doneIds={member.doneExamIds} />
         </div>
         <BottomNav />
       </div>
@@ -386,11 +441,6 @@ export default function FinalReviewPage() {
   // ═══ สมาชิก — ช่วงแผนเดิน (1–14 ส.ค.) ════════════════════════════════════════
   const day  = frDayNumber(today);
   const kind = frKind(day);
-  const quota = frReviewQuota(member.wrongCount, day);
-  const p = member.plan;
-  const subjName = p.focusSubject
-    ? (SUBJECT_DISPLAY[p.focusSubject] ?? p.focusSubject)
-    : null;
 
   return (
     <div className="min-h-screen pb-28" style={{ backgroundColor: "#FAFAF9" }}>
@@ -417,43 +467,10 @@ export default function FinalReviewPage() {
           </span>
         </div>
 
-        {/* Timeline */}
+        {/* Timeline — วันที่มีคลิปกดได้เลย */}
         <div className="bg-white rounded-2xl p-4" style={{ border: `1px solid ${LINE}` }}>
-          <DayTimeline currentDay={day} />
+          <DayTimeline currentDay={day} clipDays={clipDays} />
         </div>
-
-        {/* ภารกิจวันนี้ */}
-        {kind !== "rest" && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: `1px solid ${LINE}`, boxShadow: CARD_SHADOW }}>
-            <p className="text-[12px] font-bold uppercase tracking-[0.12em] mb-3" style={{ color: MUTED }}>
-              ภารกิจวันนี้
-            </p>
-            <div className="space-y-2">
-              {kind === "mock" && (
-                <TaskRow href="/mock-exam" done={false}
-                  title="Mock Exam จับเวลาเสมือนจริง"
-                  sub={member.didMock ? "รอบนี้ลองทำให้ดีกว่าครั้งก่อน" : "ครั้งแรกของคุณ — จัดเวลา 2 ชม.ให้เหมือนวันจริง"} />
-              )}
-              {member.wrongCount > 0 ? (
-                <TaskRow href="/review" done={false}
-                  title={`เคลียร์ข้อที่เคยผิด ~${quota} ข้อ`}
-                  sub={`ค้างในคลัง ${member.wrongCount} ข้อ — เกลี่ยให้หมดก่อนวันที่ 13`} />
-              ) : (
-                <TaskRow href="/review" done
-                  title="คลังข้อผิดว่างแล้ว เยี่ยมมาก!"
-                  sub="ทำข้อสอบต่อได้เลย ข้อที่ผิดใหม่จะเข้ามารอที่นี่" />
-              )}
-              {kind === "review" && p.suggestedExam && (
-                <TaskRow href={`/exam/${p.suggestedExam.id}`} done={false}
-                  title={p.suggestedIsRetry ? `ทำซ้ำ: ${p.suggestedExam.title}` : p.suggestedExam.title}
-                  sub={subjName ? `หมวดที่ควรเก็บเพิ่ม: ${subjName}` : undefined} />
-              )}
-              <TaskRow href="/daily" done={member.dailyDone}
-                title="Daily Quiz วันนี้"
-                sub={member.dailyDone ? "เก็บ streak แล้ววันนี้" : "10 ข้อ เจาะจุดอ่อนของคุณ"} />
-            </div>
-          </div>
-        )}
 
         {/* วัน 14 — พัก + เช็คลิสต์ */}
         {kind === "rest" && (
@@ -523,7 +540,7 @@ export default function FinalReviewPage() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-bold text-gray-900">ชีทประเด็นสำคัญ 20 เรื่อง</p>
+              <p className="text-[15px] font-bold text-gray-900">เอกสารประกอบการติวโค้งสุดท้าย 14 วัน</p>
               <p className="text-[12.5px]" style={{ color: MUTED }}>PDF ทยอยอัปเพิ่มตามวันติว — เช็คไฟล์ใหม่ทุกวัน (Google Drive)</p>
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
@@ -532,6 +549,9 @@ export default function FinalReviewPage() {
             </svg>
           </a>
         )}
+
+        {/* ข้อสอบแคมป์ — สมาชิกทุกแพ็ก (299 ก็ทำได้) */}
+        <LapExamsSection exams={member.lapExams} doneIds={member.doneExamIds} />
 
         {/* เช็คลิสต์วันสอบ — โผล่ตั้งแต่วันที่ 12 */}
         {day >= 12 && <ExamDayChecklist />}

@@ -73,3 +73,18 @@ export function frReviewQuota(wrongCount: number, day: number): number {
 export function isFinalLapChapter(chapter: string): boolean {
   return chapter.includes("โค้งสุดท้าย");
 }
+
+/** ชุดข้อสอบของแคมป์ — Aj ตั้งชื่อชุดให้มีคำว่า "ติวโค้งสุดท้าย" (เช่น "ติวโค้งสุดท้าย วันที่ 1")
+ *  ชุดพวกนี้แยกจากคลังปกติ (ไม่โชว์ใน /exams, หน้าแรก) — โชว์เฉพาะหน้า /final-review
+ *  สิทธิ์: สมาชิกทุกแพ็ก (299/499/699) ตาม legacy hasAny — ห้ามผูก packageId ตอน import */
+export function isFinalLapExam(e: { title: string }): boolean {
+  return e.title.includes("ติวโค้งสุดท้าย");
+}
+
+/** ดึงเลขวันจากชื่อ ("วันที่ 3 EP.1 ..." → 3) — ใช้จับคู่คลิป/ข้อสอบเข้ากับปุ่มวันใน timeline */
+export function lapDayOf(title: string): number | null {
+  const m = title.match(/วันที่\s*(\d+)/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n >= 1 && n <= FR_DAYS ? n : null;
+}
