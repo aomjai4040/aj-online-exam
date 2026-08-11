@@ -44,6 +44,6 @@ export const COURSE_RESOURCES = {
   reviewDocs:   "https://drive.google.com/drive/folders/15ytbYc0tYB0j_Z8_8V0UbbVXiGGh-nlY?usp=sharing",
   // "ชีททวนก่อนสอบ" (21 หัวข้อ 34 หน้า) — แจกสมาชิกทุกแพ็ก (299/499/699)
   // ⚠️ ต้องเป็นลิงก์แชร์ "เฉพาะไฟล์" ไม่ใช่ทั้งโฟลเดอร์ (กันแพ็ก 299 เห็นชีทรายวันของ 499)
-  // เว้นว่าง = การ์ดไม่แสดง — Aj ส่งลิงก์มาแล้ววางตรงนี้
-  preExamSheet: "",
+  // ลิงก์เฉพาะไฟล์ (2026-08-12) — 21 หัวข้อ 34 หน้า
+  preExamSheet: "https://drive.google.com/file/d/1-JlERZU8pkAeo0RhIvp9Mal-DmBKwzP6/view?usp=sharing",
 };
