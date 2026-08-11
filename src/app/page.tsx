@@ -9,7 +9,8 @@ import { useAuth } from "@/lib/auth-context";
 import { subjectColor as dotColor, BRAND } from "@/lib/subjects";
 import { getSubjectShort, isMockExam } from "@/lib/types";
 import { isFinalLapExam } from "@/lib/final-review";
-import { PRICING } from "@/lib/pricing";
+import { PRICING, COURSE_RESOURCES } from "@/lib/pricing";
+import { getUserAccess } from "@/lib/access";
 import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
 import { getRecentResults } from "@/lib/user-firestore";
 import { pickGreeting, type Greeting } from "@/lib/greeting";
@@ -80,6 +81,50 @@ function LatestSkeleton() {
         <div className="h-2.5 w-8 bg-gray-100 rounded-full" />
       </div>
     </div>
+  );
+}
+
+/** การ์ด "ชีททวนก่อนสอบ" บนหน้าแรก — สมาชิกทุกแพ็กเห็นทันทีที่เปิดแอป
+ *  ซ่อนเอง: ยังไม่ login / ไม่มีคอร์ส / ยังไม่ใส่ลิงก์ / เลยวันสอบไปแล้ว */
+function PreExamSheetCard() {
+  const { user } = useAuth();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!user || COURSE_RESOURCES.preExamSheet === "" || daysToExam() < 0) {
+      setShow(false);
+      return;
+    }
+    getUserAccess(user.uid).then((a) => setShow(a.hasAny)).catch(() => setShow(false));
+  }, [user]);
+  if (!show) return null;
+  return (
+    <a href={COURSE_RESOURCES.preExamSheet} target="_blank" rel="noopener noreferrer"
+      className="flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-4
+                 active:scale-[0.98] transition-transform"
+      style={{ backgroundColor: "#FDF6E9", border: "2px solid #FCD34D" }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: "#F59E0B" }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="white"
+          strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[14.5px] font-bold leading-tight" style={{ color: "#7C2D12" }}>
+          ชีททวนก่อนสอบ ✨ มาแล้ว
+        </p>
+        <p className="text-[12px] mt-0.5" style={{ color: "#B45309" }}>
+          สรุป 21 หัวข้อ รวม 34 หน้า — กดดาวน์โหลดได้เลย
+        </p>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </a>
   );
 }
 
@@ -268,6 +313,9 @@ export default function HomePage() {
 
       {/* ── Feature menu ──────────────────────────────────────────────────── */}
       <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-5">
+
+        {/* ชีททวนก่อนสอบ — สมาชิกทุกแพ็กเห็นทันทีที่เปิดแอป (ซ่อนเองหลังวันสอบ) */}
+        <PreExamSheetCard />
 
         {/* ครูอ้อมทักทาย — เฉพาะคน login ที่ "ไม่มี" การ์ดโค้ช (สมาชิกได้คำทักทายในการ์ดโค้ชแล้ว) */}
         {!planShown && greeting && (() => {
