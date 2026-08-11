@@ -444,6 +444,33 @@ export default function FinalReviewPage() {
               ข้อไหนไม่แน่ใจให้ข้ามไว้ก่อนแล้วค่อยวนกลับมา — ครูอ้อมเป็นกำลังใจให้ค่ะ
             </p>
           </div>
+          {COURSE_RESOURCES.preExamSheet !== "" && (
+            <a href={COURSE_RESOURCES.preExamSheet} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3.5 rounded-2xl px-4 py-4
+                         active:scale-[0.98] transition-transform"
+              style={{ backgroundColor: "#FDF6E9", border: "2px solid #FCD34D" }}>
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: "#F59E0B" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                  strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-bold" style={{ color: "#7C2D12" }}>ชีททวนก่อนสอบ ✨</p>
+                <p className="text-[12.5px]" style={{ color: "#B45309" }}>
+                  ทวนรอบสุดท้ายเช้าวันสอบ — 21 หัวข้อ 34 หน้า
+                </p>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
+          )}
           <ExamDayChecklist />
         </div>
         <BottomNav />
@@ -557,6 +584,35 @@ export default function FinalReviewPage() {
               <p className="text-[12.5px]" style={{ color: MUTED }}>PDF ทยอยอัปเพิ่มตามวันติว — เช็คไฟล์ใหม่ทุกวัน (Google Drive)</p>
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </a>
+        )}
+
+        {/* ชีททวนก่อนสอบ — แจกสมาชิกทุกแพ็ก 299/499/699 (โผล่เมื่อ Aj ใส่ลิงก์) */}
+        {COURSE_RESOURCES.preExamSheet !== "" && (
+          <a href={COURSE_RESOURCES.preExamSheet} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3.5 rounded-2xl px-4 py-4
+                       active:scale-[0.98] transition-transform"
+            style={{ backgroundColor: "#FDF6E9", border: "2px solid #FCD34D" }}>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "#F59E0B" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-bold" style={{ color: "#7C2D12" }}>ชีททวนก่อนสอบ ✨</p>
+              <p className="text-[12.5px]" style={{ color: "#B45309" }}>
+                สรุป 21 หัวข้อ รวม 34 หน้า — สมาชิกทุกแพ็กดาวน์โหลดได้
+              </p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
               <polyline points="9 18 15 12 9 6" />
             </svg>
