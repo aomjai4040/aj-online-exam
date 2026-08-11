@@ -24,7 +24,7 @@ import { bkkTodayClient } from "@/lib/coach";
 import type { Exam } from "@/lib/types";
 import {
   frDays, frPhase, frDayNumber, frDaysUntilStart, frKind,
-  isFinalLapChapter, isFinalLapExam, lapDayOf, FR_DAYS, type FRPhase,
+  isFinalLapChapter, isFinalLapExam, lapDayOf, FR_DAYS, FR_DAY_LINKS, type FRPhase,
 } from "@/lib/final-review";
 
 const ACCENT = "#0B6E65";
@@ -53,9 +53,21 @@ function DayTimeline({ currentDay, clipDays }: {
     <div>
       <div className="grid grid-cols-7 gap-1.5">
         {frDays().map((d) => {
+          const special = FR_DAY_LINKS[d.day];   // ลิงก์พิเศษ (เช่น ข้อสอบ Mock) — ชนะลิงก์คลิป
           const vid     = clipDays.get(d.day);
           const past    = d.day < currentDay;
           const current = d.day === currentDay;
+          if (special) {
+            return (
+              <Link key={d.day} href={special}
+                className="rounded-lg py-1.5 text-center text-[11.5px] font-bold text-white
+                           active:scale-95 transition-transform"
+                style={{ backgroundColor: "#B45309",
+                         border: current ? "2px solid #7C2D12" : "none" }}>
+                📝 {d.day}
+              </Link>
+            );
+          }
           if (vid) {
             // มีคลิปแล้ว — สีส้มเด่น กดได้
             return (
@@ -84,6 +96,7 @@ function DayTimeline({ currentDay, clipDays }: {
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px]" style={{ color: MUTED }}>
         <span className="font-semibold" style={{ color: "#EA580C" }}>▶ มีคลิปแล้ว — กดดูได้เลย</span>
+        <span className="font-semibold" style={{ color: "#B45309" }}>📝 กดเข้าทำข้อสอบ</span>
         <span><span style={{ color: ACCENT }}>●</span> วัน 1–10 ทบทวน</span>
         <span><span style={{ color: "#B45309" }}>●</span> วัน 11–13 Mock</span>
         <span><span style={{ color: "#6D28D9" }}>●</span> วัน 14 พัก</span>

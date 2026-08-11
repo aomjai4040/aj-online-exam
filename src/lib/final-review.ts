@@ -81,6 +81,14 @@ export function isFinalLapExam(e: { title: string }): boolean {
   return e.title.includes("ติวโค้งสุดท้าย");
 }
 
+/**
+ * ลิงก์พิเศษรายวันบน timeline — ชนะลิงก์คลิปอัตโนมัติของวันนั้น
+ * ใช้ชี้ปุ่มวันไปที่ไหนก็ได้ (ข้อสอบ Mock, ชุดแคมป์ ฯลฯ) — แก้ที่นี่ที่เดียว
+ */
+export const FR_DAY_LINKS: Record<number, string> = {
+  9: "/exam/p0XIoxEabvwBw4nWo1qP",   // วันที่ 9 → Mock Exam ชุดที่ 4 (Aj สั่ง 2026-08-11)
+};
+
 /** ดึงเลขวันจากชื่อ ("วันที่ 3 EP.1 ..." → 3) — ใช้จับคู่คลิป/ข้อสอบเข้ากับปุ่มวันใน timeline */
 export function lapDayOf(title: string): number | null {
   const m = title.match(/วันที่\s*(\d+)/);
