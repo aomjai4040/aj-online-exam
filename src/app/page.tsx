@@ -128,6 +128,42 @@ function PreExamSheetCard() {
   );
 }
 
+/** การ์ด "ช่วยกันเก็บข้อสอบ" — โผล่หลังวันสอบ 14 วัน ให้คนที่เพิ่งสอบเสร็จ
+ *  ช่วยเติมข้อที่ยังจำได้ก่อนความจำเลือน (login แล้วเห็นทุกคน ไม่ต้องมีคอร์ส) */
+function RecallCard() {
+  const { user } = useAuth();
+  const d = daysToExam();
+  if (!user || d > 0 || d < -14) return null;
+  const left = 14 + d; // เหลืออีกกี่วันก่อนการ์ดหาย
+  return (
+    <Link href="/recall"
+      className="flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-4
+                 active:scale-[0.98] transition-transform"
+      style={{ backgroundColor: "#F5FAF9", border: "2px solid #0B6E65" }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: BRAND.primary }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="white"
+          strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[14.5px] font-bold leading-tight" style={{ color: "#0B4F48" }}>
+          ช่วยกันเก็บข้อสอบ 69 🙏
+        </p>
+        <p className="text-[12px] mt-0.5" style={{ color: BRAND.primary }}>
+          จำข้อไหนได้ช่วยเติมหน่อย · เหลือเวลาอีก {left} วันก่อนความจำเลือน
+        </p>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </Link>
+  );
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
@@ -313,6 +349,9 @@ export default function HomePage() {
 
       {/* ── Feature menu ──────────────────────────────────────────────────── */}
       <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-5">
+
+        {/* ช่วยกันเก็บข้อสอบ — ช่วงหลังสอบ 14 วัน (ความจำยังสด) */}
+        <RecallCard />
 
         {/* ชีททวนก่อนสอบ — สมาชิกทุกแพ็กเห็นทันทีที่เปิดแอป (ซ่อนเองหลังวันสอบ) */}
         <PreExamSheetCard />

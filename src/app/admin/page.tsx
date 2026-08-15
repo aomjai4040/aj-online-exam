@@ -741,6 +741,9 @@ export default function AdminDashboard() {
                 <Link href="/admin/insights" className="btn-primary text-sm">
                   📈 ภาพรวมธุรกิจ
                 </Link>
+                <Link href="/admin/recall" className="btn-primary text-sm">
+                  🧠 ความจำข้อสอบ 69
+                </Link>
                 <Link href="/admin/exams/new" className="btn-secondary text-sm">
                   + สร้างข้อสอบใหม่
                 </Link>

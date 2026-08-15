@@ -131,6 +131,36 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── ความจำข้อสอบที่สมาชิกช่วยกันส่ง (/recall) ───────────────────────────
+    // สมาชิกส่งได้ไม่จำกัดใบ แต่เห็นเฉพาะใบของตัวเอง — Aj อ่านทุกใบที่
+    // /admin/recall แล้วกด "ใช้/ไม่ใช้" (update = admin เท่านั้น)
+    match /recallSubmissions/{docId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'new';
+      allow read:   if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // ตัวนับสาธารณะ "ข้อนี้มีคนช่วยแล้วกี่ครั้ง" — เพิ่มได้ทีละ 1 เท่านั้น
+    // (แพตเทิร์นเดียวกับ usedCount ของ activationCodes)
+    match /recallCounts/{no} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.count == 1;
+      allow update: if isAdmin()
+        || (isSignedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count'])
+            && request.resource.data.count == resource.data.count + 1);
+      allow delete: if isAdmin();
+    }
+
+    // เฉลยรายข้อที่ Aj ตรวจแล้ว — สมาชิกอ่านได้ (เห็นว่าข้อไหนยืนยันแล้ว)
+    match /recallVerdicts/{no} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // ── MOPH Focus ──────────────────────────────────────────────────────────
     // หน้า user query ทั้ง collection แล้วกรอง client-side → ต้องอ่านได้เมื่อ login
     match /mophFocus/{docId} {
