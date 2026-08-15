@@ -431,12 +431,16 @@ export default function AdminRecallPage() {
             {visible.map((item) => {
               const g     = groups.get(item.no) ?? [];
               const color = subjectColor(item.subject);
+              // ยืนยันเฉลยแล้ว → ไม่ต้องขึ้นป้าย "ขาดเฉลย" อีก
+              const confirmed = verdicts[item.no]?.status === "confirmed";
+              const gaps  = confirmed ? item.gaps.filter((x) => x !== "answer") : item.gaps;
+              const settled = isComplete(item) || gaps.length === 0;
               return (
                 <div key={item.no} className="bg-white rounded-2xl p-4"
-                  style={{ border: `1px solid ${isComplete(item) ? "#EBEBEA" : "#FCD34D"}` }}>
+                  style={{ border: `1px solid ${settled ? "#EBEBEA" : "#FCD34D"}` }}>
                   <div className="flex items-start gap-2.5 mb-2">
                     <span className="text-[13px] font-extrabold flex-shrink-0"
-                      style={{ color: isComplete(item) ? "#A8A8A6" : "#B45309" }}>
+                      style={{ color: settled ? "#A8A8A6" : "#B45309" }}>
                       {item.no}.
                     </span>
                     <p className="font-exam text-[14.5px] leading-relaxed text-gray-900 flex-1">
@@ -456,7 +460,11 @@ export default function AdminRecallPage() {
                   )}
 
                   <div className="pl-6 mb-2 flex items-center gap-1.5 flex-wrap">
-                    {item.answer
+                    {confirmed
+                      ? <span className="font-exam text-[13px] font-semibold" style={{ color: "#15803D" }}>
+                          ✓ {verdicts[item.no].answer} · ยืนยันแล้ว
+                        </span>
+                      : item.answer
                       ? <span className="font-exam text-[13px]" style={{ color: "#15803D" }}>✓ {item.answer}</span>
                       : <span className="text-[12.5px] font-semibold" style={{ color: "#DC2626" }}>ยังไม่มีเฉลย</span>}
                   </div>
@@ -466,7 +474,7 @@ export default function AdminRecallPage() {
                       style={{ backgroundColor: `${color}15`, color }}>
                       {SUBJECT_DISPLAY[item.subject] ?? item.subject}
                     </span>
-                    {item.gaps.map((gp) => (
+                    {gaps.map((gp) => (
                       <span key={gp} className="text-[11.5px] font-semibold px-2 py-0.5 rounded-full"
                         style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>
                         ขาด{GAP_LABEL[gp]}
