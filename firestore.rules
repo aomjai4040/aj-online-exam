@@ -175,10 +175,18 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // โค้ดส่วนลด — เขียนผ่าน API (Admin SDK) เท่านั้น กันปลอมโค้ด
+    // อ่าน: เจ้าของโค้ดส่วนตัว (ดูโค้ดตัวเอง) หรือ admin
+    // โค้ดกลางของ Aj ไม่มี userId → client อ่านตรงไม่ได้ ต้องผ่าน /api/checkout/code
     match /discountCodes/{code} {
       allow read:  if isAdmin()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow write: if isAdmin();
+
+      // บันทึกว่าใครใช้โค้ดกลางไปแล้ว (กันคนเดิมใช้ซ้ำ) — server เขียนเท่านั้น
+      match /uses/{userId} {
+        allow read, write: if isAdmin();
+      }
     }
 
     // แบบสอบถามก่อนจ่ายคอร์ส คร. — เขียนผ่าน /api/checkout (Admin SDK) เท่านั้น

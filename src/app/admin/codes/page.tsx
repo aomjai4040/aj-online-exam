@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import DiscountCodesPanel from "@/components/DiscountCodesPanel";
 import {
   getAllCodes, createCode, createSingleUseCodes, setCodeStatus, deleteCode, getCodeUsers,
   type ActivationCode, type UserCourse, type CreateCodeInput,
@@ -773,6 +774,15 @@ export default function CodesPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-5 pt-6 pb-16">
+        {/* โค้ดส่วนลด (ลดราคาบนหน้าชำระเงิน) — คนละอย่างกับโค้ดเปิดคอร์สด้านล่าง */}
+        <div className="mb-6">
+          <DiscountCodesPanel />
+        </div>
+
+        <div className="section-head mb-3">
+          <h2 className="text-[16px] font-bold text-gray-900">โค้ดเปิดคอร์ส (Activation)</h2>
+        </div>
+
         {/* Summary */}
         {!loading && codes.length > 0 && (
           <div className="grid grid-cols-3 gap-3 mb-5">

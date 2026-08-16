@@ -12,6 +12,7 @@ import QRCode from "qrcode";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb, adminAccessToken } from "./firebase-admin";
 import { tierPlan, type OrderTier } from "./order-types";
+import { normalizeCode } from "./discount-types";
 
 /** bucket เก็บรูปสลิปที่ตรวจไม่ผ่าน (ใช้ bucket backup เดิม — lifecycle ลบเอง 30 วัน) */
 export const SLIP_BUCKET = "aj-online-exam-backups";
@@ -112,22 +113,65 @@ export async function createOrder(
 
 interface CodeCheck { code: string; amount: number }
 
-/** ตรวจโค้ดว่าใช้ได้กับบัญชีนี้ไหม — โยน CheckoutError พร้อมเหตุผลถ้าใช้ไม่ได้ */
-export async function checkDiscountCode(uid: string, raw: string): Promise<CodeCheck> {
-  const code = raw.trim().toUpperCase();
+/**
+ * ตรวจโค้ดว่าใช้ได้กับบัญชีนี้/คอร์สนี้ไหม — โยน CheckoutError พร้อมเหตุผลถ้าใช้ไม่ได้
+ *
+ * รองรับ 2 ชนิด (ดู lib/discount-types.ts):
+ *   โค้ดส่วนตัว (มี userId) = ของแบบประเมิน ใช้ได้คนเดียวครั้งเดียว
+ *   โค้ดกลาง  (ไม่มี userId) = Aj สร้างเอง หลายคนใช้ได้ นับ usedCount
+ */
+export async function checkDiscountCode(
+  uid: string, raw: string, tier?: OrderTier
+): Promise<CodeCheck> {
+  const code = normalizeCode(raw);
   if (!code) throw new CheckoutError("กรุณากรอกโค้ด");
 
-  const snap = await adminDb().collection("discountCodes").doc(code).get();
+  const db   = adminDb();
+  const snap = await db.collection("discountCodes").doc(code).get();
   if (!snap.exists) throw new CheckoutError("ไม่พบโค้ดนี้ — ลองตรวจตัวสะกดอีกครั้ง");
 
   const d = snap.data()!;
-  if (d.userId !== uid)        throw new CheckoutError("โค้ดนี้เป็นของบัญชีอื่น ใช้ได้เฉพาะเจ้าของโค้ดค่ะ");
-  if (d.status === "used")     throw new CheckoutError("โค้ดนี้ถูกใช้ไปแล้ว");
-  if (d.status !== "unused")   throw new CheckoutError("โค้ดนี้ใช้ไม่ได้แล้ว");
 
+  // หมดอายุ / ปิดใช้ — ใช้ร่วมกันทั้งสองชนิด
+  if (d.active === false) throw new CheckoutError("โค้ดนี้ปิดใช้งานแล้ว");
   const today = new Date().toISOString().slice(0, 10);
-  if (typeof d.expiresAt === "string" && d.expiresAt < today) {
+  if (typeof d.expiresAt === "string" && d.expiresAt && d.expiresAt < today) {
     throw new CheckoutError(`โค้ดนี้หมดอายุแล้ว (ใช้ได้ถึง ${d.expiresAt})`);
+  }
+
+  // จำกัดคอร์ส
+  const tiers: string[] = Array.isArray(d.tiers) ? d.tiers : [];
+  if (tier && tiers.length > 0 && !tiers.includes(tier)) {
+    throw new CheckoutError("โค้ดนี้ใช้กับคอร์สนี้ไม่ได้ค่ะ");
+  }
+
+  if (d.userId) {
+    // ── โค้ดส่วนตัว ──────────────────────────────────────────────────────
+    if (d.userId !== uid)      throw new CheckoutError("โค้ดนี้เป็นของบัญชีอื่น ใช้ได้เฉพาะเจ้าของโค้ดค่ะ");
+    if (d.status === "used")   throw new CheckoutError("โค้ดนี้ถูกใช้ไปแล้ว");
+    if (d.status !== "unused") throw new CheckoutError("โค้ดนี้ใช้ไม่ได้แล้ว");
+  } else {
+    // ── โค้ดกลาง ─────────────────────────────────────────────────────────
+    const maxUses   = Number(d.maxUses ?? 0);
+    const usedCount = Number(d.usedCount ?? 0);
+    if (maxUses > 0 && usedCount >= maxUses) {
+      throw new CheckoutError("โค้ดนี้ถูกใช้ครบจำนวนแล้วค่ะ");
+    }
+    // คนเดิมใช้ซ้ำไม่ได้
+    const mine = await db.collection("discountCodes").doc(code)
+      .collection("uses").doc(uid).get();
+    if (mine.exists) throw new CheckoutError("บัญชีนี้ใช้โค้ดนี้ไปแล้วค่ะ");
+
+    // โค้ดศิษย์เก่า — ต้องเคยมีคอร์สอื่นมาก่อน (กันคนนอกเอาไปใช้)
+    if (d.alumniOnly === true) {
+      const courses = await db.collection("userCourses").where("userId", "==", uid).get();
+      const plan    = tier ? tierPlan(tier) : null;
+      const isPrior = courses.docs.some((c) =>
+        String(c.data().courseId ?? "") !== (plan?.courseId ?? ""));
+      if (!isPrior) {
+        throw new CheckoutError("โค้ดนี้สำหรับศิษย์เก่าที่เคยเรียนคอร์สกับพี่อ้อมมาก่อนค่ะ");
+      }
+    }
   }
 
   const amount = Number(d.amount ?? 0);
@@ -151,7 +195,8 @@ export async function applyDiscount(
   if (order.userId !== uid)       throw new CheckoutError("คำสั่งซื้อไม่ใช่ของบัญชีนี้");
   if (order.status !== "pending") throw new CheckoutError("คำสั่งซื้อนี้ปิดแล้ว ใช้โค้ดไม่ได้");
 
-  const { code, amount: discount } = await checkDiscountCode(uid, rawCode);
+  const { code, amount: discount } = await checkDiscountCode(
+    uid, rawCode, order.tier as OrderTier | undefined);
 
   // ยอดเต็ม = ยอดก่อนหักส่วนลด (กันกดใช้โค้ดซ้ำแล้วลดซ้อน)
   const fullAmount = Number(order.fullAmount ?? order.amount);
@@ -305,24 +350,40 @@ export async function submitSlip(
       const g = await tx.get(slipGuard);
       if (g.exists) throw new Error("สลิปนี้ถูกใช้ไปแล้ว");
 
-      // โค้ดส่วนลด: ตัดเป็น "used" พร้อมกับการให้สิทธิ์ — อ่านก่อนเขียนตามกฎ tx
-      // ถ้าโค้ดถูกใช้ไปกับออเดอร์อื่นแล้ว ไม่ล้มรายการนี้ (เงินเข้ามาแล้ว) แค่ไม่ตัดซ้ำ
+      // โค้ดส่วนลด: ตัดพร้อมกับการให้สิทธิ์ — อ่านก่อนเขียนตามกฎ tx
+      // โค้ดส่วนตัว → status "used" | โค้ดกลาง → +usedCount + จดว่าใครใช้
+      // ถ้าถูกใช้ไปแล้วกับออเดอร์อื่น ไม่ล้มรายการนี้ (เงินเข้ามาแล้ว) แค่ไม่ตัดซ้ำ
       const codeRef = order.discountCode
         ? db.collection("discountCodes").doc(String(order.discountCode))
         : null;
       const codeSnap = codeRef ? await tx.get(codeRef) : null;
+      const useRef   = codeRef ? codeRef.collection("uses").doc(uid) : null;
+      const useSnap  = useRef ? await tx.get(useRef) : null;
 
       const courseRef = db.collection("userCourses").doc();
       tx.set(slipGuard, { orderId, uid, at: FieldValue.serverTimestamp() });
       tx.update(orderRef, {
         status: "paid", slipRef: transRef, paidAt: FieldValue.serverTimestamp(),
       });
-      if (codeRef && codeSnap?.exists && codeSnap.data()!.status === "unused") {
-        tx.update(codeRef, {
-          status: "used",
-          usedAt: FieldValue.serverTimestamp(),
-          usedOrderId: orderId,
-        });
+      if (codeRef && codeSnap?.exists) {
+        const cd = codeSnap.data()!;
+        if (cd.userId) {
+          // โค้ดส่วนตัว — ตัดครั้งเดียว
+          if (cd.status === "unused") {
+            tx.update(codeRef, {
+              status: "used",
+              usedAt: FieldValue.serverTimestamp(),
+              usedOrderId: orderId,
+            });
+          }
+        } else if (useRef && !useSnap?.exists) {
+          // โค้ดกลาง — นับจำนวนครั้ง (ตัววัด referral) + จดว่าบัญชีนี้ใช้แล้ว
+          tx.update(codeRef, { usedCount: FieldValue.increment(1) });
+          tx.set(useRef, {
+            uid, orderId, email: order.email ?? "",
+            at: FieldValue.serverTimestamp(),
+          });
+        }
       }
       tx.set(courseRef, {
         userId: uid, email: order.email,
