@@ -3,7 +3,7 @@
  * TodayPlanCard — "การ์ดโค้ช" ใบเดียวบนหน้าแรก (สมาชิกเท่านั้น)
  *
  * สไตล์ตามระบบเดิมของแอป (Aj รีวิว 2026-07-14: ลดอีโมจิ ใช้หัวข้อเทา
- * uppercase + ไอคอน SVG แบบเดียวกับหน้าอื่น): ทักทายครูอ้อมเป็นหัวการ์ด →
+ * + ไอคอน SVG แบบเดียวกับหน้าอื่น): ทักทายครูอ้อมเป็นหัวการ์ด →
  * เช็คลิสต์วันนี้ + ตัวนับ → ท้ายการ์ด framing บวก "ทำไปแล้ว a/b"
  */
 import { useEffect, useState } from "react";
@@ -146,7 +146,7 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
 
       {/* ── ครูอ้อมทักทาย — หัวข้อเทาแบบเดียวกับ section อื่นทั้งแอป ─────── */}
       <div className="pb-3.5 mb-3.5" style={{ borderBottom: "1px solid #F3F2F0" }}>
-        <p className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+        <p className="text-[13px] font-bold text-gray-400 mb-1">
           ครูอ้อมทักทาย
         </p>
         <p className="text-[16px] leading-relaxed text-gray-800">
@@ -156,7 +156,7 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
 
       {/* ── หัวแผน + ตัวนับ ─────────────────────────────────────────────── */}
       <div className="flex items-baseline justify-between mb-2">
-        <p className="text-[13px] font-bold text-gray-400 uppercase tracking-widest">
+        <p className="text-[13px] font-bold text-gray-400">
           แผนของฉันวันนี้
         </p>
         {allDone ? (

@@ -523,7 +523,7 @@ export default function FlashCardDeckPage() {
             </button>
 
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] leading-none mb-1"
+              <p className="text-[11px] font-semibold leading-none mb-1"
                 style={{ color: MUTED }}>
                 {deck.name}
               </p>

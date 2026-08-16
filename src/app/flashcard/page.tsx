@@ -69,10 +69,8 @@ function DeckCard({
   return (
     <Link
       href={`/flashcard/${deck.id}`}
-      className="flex items-center gap-3.5 rounded-2xl px-4 py-3.5 bg-white
-                 active:scale-[0.98] transition-transform"
-      style={{ border: `1px solid ${LINE}`,
-               boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}
+      className="card-elev card-elev-hover flex items-center gap-3.5 px-4 py-3.5
+                 active:scale-[0.98]"
     >
       {/* Emoji chip */}
       <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -158,7 +156,7 @@ function GroupSection({
   const theme = DECK_THEME[type];
   return (
     <section>
-      <p className="text-[11.5px] font-semibold uppercase tracking-[0.12em] mb-2.5"
+      <p className="text-[11.5px] font-semibold mb-2.5"
         style={{ color: MUTED }}>
         {theme.groupLabel}
       </p>
@@ -248,7 +246,7 @@ export default function FlashCardListPage() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="bg-white" style={{ borderBottom: `1px solid ${LINE}` }}>
         <div className="max-w-2xl mx-auto px-5 py-5">
-          <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] mb-1"
+          <p className="text-[11.5px] font-semibold mb-1"
             style={{ color: MUTED }}>
             Flash Card
           </p>
@@ -269,8 +267,7 @@ export default function FlashCardListPage() {
         {loading && <Skeleton />}
 
         {error && (
-          <div className="bg-white rounded-2xl p-6 text-center"
-            style={{ border: "1px solid #EBEBEA" }}>
+          <div className="card-elev p-6 text-center">
             <p className="text-[15px] text-red-500 mb-3">{error}</p>
             <button
               onClick={() => {

@@ -26,7 +26,7 @@ export default function SampleVideoTeaser() {
   const userLabel = user?.email || "ตัวอย่างคอร์ส AJ";
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid #EBEBEA" }}>
+    <div className="card-elev overflow-hidden">
       <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: "1px solid #F3F2F0" }}>
         <span className="text-[15px]">🎁</span>
         <p className="text-[13.5px] font-bold" style={{ color: BRAND.primary }}>

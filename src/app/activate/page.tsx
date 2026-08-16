@@ -128,7 +128,7 @@ export default function ActivatePage() {
                 </label>
                 <input
                   className="w-full rounded-2xl px-5 py-4 text-[20px] font-bold font-mono
-                             uppercase tracking-[0.2em] text-center focus:outline-none transition-all"
+                             tracking-[0.2em] text-center focus:outline-none transition-all"
                   style={{
                     border:      status === "error" ? "1.5px solid #DC2626" : "1.5px solid #E0DFDC",
                     boxShadow:   status === "error" ? "0 0 0 3px rgba(220,38,38,0.1)" : "none",

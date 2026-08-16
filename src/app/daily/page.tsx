@@ -29,7 +29,7 @@ type View =
 const OPT = ["ก", "ข", "ค", "ง"];
 
 export default function DailyQuizPage() {
-  const guard    = useLoginGuard();
+  const guard = useLoginGuard();
   const { user } = useAuth();
   const [view, setView] = useState<View>({ s: "loading" });
 
@@ -177,7 +177,7 @@ export default function DailyQuizPage() {
             </div>
           </div>
 
-          <p className="text-[12.5px] font-bold uppercase tracking-wider mb-2.5" style={{ color: "#A8A8A6" }}>
+          <p className="text-[15.5px] font-bold text-gray-900 mb-2.5">
             เฉลยรายข้อ
           </p>
           <div className="space-y-3 mb-6">
@@ -270,7 +270,7 @@ export default function DailyQuizPage() {
         </div>
 
         {/* Question — font-exam: ฟอนต์มีหัว อ่านโจทย์ง่ายกว่า */}
-        <div className="font-exam bg-white rounded-2xl p-5 mb-4" style={{ border: "1px solid #EBEBEA" }}>
+        <div className="card-elev font-exam p-5 mb-4">
           <p className="text-[16px] font-semibold text-gray-900 leading-relaxed mb-4">
             <span style={{ color: "#A8A8A6" }}>{current + 1}.</span> {q.text}
           </p>

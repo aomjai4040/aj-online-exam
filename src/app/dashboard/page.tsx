@@ -76,7 +76,7 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
         {/* Preview stats (blurred) */}
         <div className="w-full max-w-sm grid grid-cols-2 gap-2.5 mb-6 opacity-30 blur-[2px] pointer-events-none select-none">
           {["12 ชุด", "72%", "🔥 5", "ระบาดฯ"].map((v, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4" style={{ border: "1px solid #EBEBEA" }}>
+            <div key={i} className="card-elev p-4">
               <div className="text-[20px] font-extrabold text-gray-900">{v}</div>
               <div className="text-[12px] text-gray-400 mt-0.5">—</div>
             </div>
@@ -110,7 +110,7 @@ function SignInPrompt({ onSignIn }: { onSignIn: () => void }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const guard  = useLoginGuard();
+  const guard = useLoginGuard();
   const router = useRouter();
   const { user, signOut } = useAuth();
 
@@ -304,7 +304,7 @@ export default function DashboardPage() {
             </div>
             {/* Name */}
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "#A8A8A6" }}>
+              <p className="text-[12px] font-bold mb-0.5" style={{ color: "#A8A8A6" }}>
                 Dashboard ของฉัน
               </p>
               <p className="text-[17px] font-bold text-gray-900 truncate">
@@ -438,8 +438,7 @@ export default function DashboardPage() {
         )}
         {!dataLoading && courses.length > 0 && !courses.some((c) => isFullCourse(c.courseId)) && (
           <Link href={courses.some((c) => isReviewCourse(c.courseId)) ? "/checkout/up-full2" : "/checkout/upgrade"}
-            className="block rounded-2xl p-4 active:scale-[0.99] transition-transform bg-white"
-            style={{ border: "1px solid #EBEBEA" }}>
+            className="card-elev block p-4 active:scale-[0.99] transition-transform">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center text-[20px] flex-shrink-0"
                 style={{ backgroundColor: "#EBF5F3" }}>
@@ -482,8 +481,7 @@ export default function DashboardPage() {
               <div className="space-y-2.5">
                 {showWeak && (
                   <Link href="/exams"
-                    className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform"
-                    style={{ border: "1px solid #EBEBEA" }}>
+                    className="card-elev flex items-center gap-3 px-4 py-3 active:scale-[0.99] transition-transform">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#FEF2F2" }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"
                         strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -517,8 +515,7 @@ export default function DashboardPage() {
                 )}
                 {showMock && (
                   <Link href="/mock-exam"
-                    className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform"
-                    style={{ border: "1px solid #EBEBEA" }}>
+                    className="card-elev flex items-center gap-3 px-4 py-3 active:scale-[0.99] transition-transform">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#EBF5F3" }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="#0B6E65" strokeWidth="2"
                         strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -554,7 +551,7 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11.5px] font-bold uppercase tracking-wider mb-0.5"
+                    <p className="text-[11.5px] font-bold mb-0.5"
                       style={{ color: "#0B6E65" }}>
                       {continueTarget.type === "resume" ? "ทำต่อจากที่ค้างไว้" : "พิชิตชุดที่ยังไม่ผ่าน"}
                     </p>
@@ -580,12 +577,12 @@ export default function DashboardPage() {
 
         {/* ═══ Subject progress ════════════════════════════════════════ */}
         {stats.subjectStats.length > 0 && (
-          <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
+          <div className="card-elev p-5">
 
             {/* Header + legend */}
             <div className="flex items-start justify-between gap-3 mb-5">
               <div>
-                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="text-[15.5px] font-bold text-gray-900">
                   ความก้าวหน้ารายวิชา
                 </p>
                 <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
@@ -697,7 +694,7 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
+              <p className="text-[15.5px] font-bold text-gray-900">
                 คอร์สของฉัน
               </p>
               <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
@@ -720,7 +717,7 @@ export default function DashboardPage() {
           {dataLoading ? (
             <div className="space-y-2">
               {[1, 2].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-4 animate-pulse" style={{ border: "1px solid #EBEBEA" }}>
+                <div key={i} className="card-elev p-4 animate-pulse">
                   <div className="h-4 bg-gray-100 rounded w-2/3 mb-2" />
                   <div className="h-3 bg-gray-100 rounded w-1/3" />
                 </div>

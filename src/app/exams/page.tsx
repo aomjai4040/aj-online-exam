@@ -38,8 +38,7 @@ const DIFF_STYLE: Record<Difficulty, { color: string; bg: string }> = {
 function SkeletonCard() {
   return (
     <div
-      className="bg-white rounded-2xl overflow-hidden animate-pulse"
-      style={{ border: "1px solid #EBEBEA" }}
+      className="card-elev overflow-hidden animate-pulse"
     >
       <div className="h-[3px] bg-gray-200" />
       <div className="p-5">
@@ -101,9 +100,8 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
   return (
     <Link
       href={`/exam/${exam.id}`}
-      className="block bg-white rounded-2xl overflow-hidden
-                 hover:shadow-md active:scale-[0.99] transition-all duration-150"
-      style={{ border: `1px solid ${isDone ? "#C3E5DE" : "#EBEBEA"}` }}
+      className="card-elev card-elev-hover block overflow-hidden active:scale-[0.99]"
+      style={isDone ? { border: "1px solid #C3E5DE" } : undefined}
     >
       {/* Subject accent bar */}
       <div className="h-[3px]" style={{ backgroundColor: color }} />
@@ -393,7 +391,7 @@ export default function ExamsPage() {
           <div className="flex items-start justify-between mb-5">
             <div>
               <p
-                className="text-[12px] font-semibold tracking-[0.12em] uppercase mb-1"
+                className="text-[12px] font-semibold mb-1"
                 style={{ color: "#A8A8A6" }}
               >
                 AJ ExamOnline

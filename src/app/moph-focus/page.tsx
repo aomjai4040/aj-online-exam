@@ -162,7 +162,7 @@ export default function MOPHFocusListPage() {
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div className="bg-white" style={{ borderBottom: "1px solid #BAE6FD" }}>
         <div className="max-w-2xl mx-auto px-5 pt-5 pb-4">
-          <p className="text-[12px] font-bold uppercase tracking-widest mb-0.5"
+          <p className="text-[12px] font-bold mb-0.5"
             style={{ color: "#64748B" }}>
             MOPH FOCUS
           </p>

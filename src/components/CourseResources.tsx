@@ -74,7 +74,7 @@ export default function CourseResources({
   const body = (
     <>
       {!compact && (
-        <p className="text-[12px] font-bold uppercase tracking-wider mb-1"
+        <p className="text-[12px] font-bold mb-1"
           style={{ color: locked ? "#A8A8A6" : BRAND.primary }}>
           {locked ? "สิทธิพิเศษคอร์สเต็ม" : "สมาชิกคอร์สเต็ม"}
         </p>

@@ -230,7 +230,7 @@ export default function VideosPage() {
           return (
           <section key={chapter}>
             <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[12.5px] font-bold uppercase tracking-wider"
+              <p className="text-[12.5px] font-bold"
                 style={{ color: "#A8A8A6" }}>
                 {chapter}
               </p>

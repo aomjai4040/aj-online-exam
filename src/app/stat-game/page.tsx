@@ -439,7 +439,7 @@ export default function StatGamePage() {
             ) : (
               <div className="text-[36px] mb-2">{hearts <= 0 ? "💔" : "🎉"}</div>
             )}
-            <p className="text-[13px] font-semibold uppercase tracking-wider mb-1" style={{ color: MUTED }}>
+            <p className="text-[13px] font-semibold mb-1" style={{ color: MUTED }}>
               {hearts <= 0 ? "หัวใจหมดแล้ว" : "รอดครบทุกข้อ!"}
             </p>
             <p className="text-[40px] font-extrabold leading-none mb-1 tabular-nums" style={{ color: ACCENT }}>
@@ -713,7 +713,7 @@ export default function StatGamePage() {
           {/* โจทย์ — การ์ดมินต์ */}
           <div className="rounded-2xl p-5" style={QCARD}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[11.5px] font-bold uppercase tracking-[0.12em]" style={{ color: "#1D9E75" }}>
+              <p className="text-[11.5px] font-bold" style={{ color: "#1D9E75" }}>
                 โจทย์สถานการณ์
               </p>
               {firstTry.has(current.id) && !answered && (
@@ -763,7 +763,7 @@ export default function StatGamePage() {
                 <span className="font-semibold">จุดสังเกต · </span>{current.clue}
               </div>
               <div className="bg-white rounded-2xl px-4 py-3.5" style={{ border: `1px solid ${LINE}` }}>
-                <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: MUTED }}>
+                <p className="text-[11.5px] font-bold mb-2" style={{ color: MUTED }}>
                   ไล่เงื่อนไขให้ดู
                 </p>
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -868,7 +868,7 @@ export default function StatGamePage() {
 
       <div className="max-w-lg mx-auto px-5 pt-5 space-y-4">
         <div className="rounded-2xl p-5" style={QCARD}>
-          <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: "#1D9E75" }}>
+          <p className="text-[11.5px] font-bold mb-2" style={{ color: "#1D9E75" }}>
             โจทย์สถานการณ์
           </p>
           <p className="text-[15.5px] font-semibold leading-relaxed" style={{ color: "#04342C" }}>
@@ -917,7 +917,7 @@ export default function StatGamePage() {
               style={pCorrect
                 ? { backgroundColor: "#EBF5F3", border: "1.5px solid #C3E5DE" }
                 : { backgroundColor: "#FEF2F2", border: "1.5px solid #FECACA" }}>
-              <p className="text-[12px] font-bold uppercase tracking-wider mb-1"
+              <p className="text-[12px] font-bold mb-1"
                 style={{ color: pCorrect ? ACCENT : "#DC2626" }}>
                 {pCorrect ? "ถูกต้อง!" : "ยังไม่ใช่"}
               </p>
@@ -936,7 +936,7 @@ export default function StatGamePage() {
               <span className="font-semibold">จุดสังเกต · </span>{scenario.clue}
             </div>
             <div className="bg-white rounded-2xl px-4 py-3.5" style={{ border: `1px solid ${LINE}` }}>
-              <p className="text-[11.5px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: MUTED }}>
+              <p className="text-[11.5px] font-bold mb-2" style={{ color: MUTED }}>
                 เส้นทางที่แนะนำ
               </p>
               <div className="flex flex-wrap items-center gap-1.5">

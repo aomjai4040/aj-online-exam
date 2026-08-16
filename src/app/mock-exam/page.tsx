@@ -84,7 +84,7 @@ export default function MockExamPage() {
         {loading && (
           <div className="space-y-3 animate-pulse">
             {[1, 2].map((i) => (
-              <div key={i} className="bg-white rounded-2xl h-32" style={{ border: "1px solid #EBEBEA" }} />
+              <div key={i} className="card-elev h-32" />
             ))}
           </div>
         )}
@@ -112,9 +112,8 @@ export default function MockExamPage() {
             <Link
               key={exam.id}
               href={`/exam/${exam.id}`}
-              className="block bg-white rounded-2xl overflow-hidden hover:shadow-md
+              className="card-elev block overflow-hidden hover:shadow-md
                          active:scale-[0.99] transition-all"
-              style={{ border: "1px solid #EBEBEA" }}
             >
               <div className="h-[3px]" style={{ backgroundColor: locked ? "#D4D4D0" : BRAND.primary }} />
               <div className="p-5">

@@ -278,7 +278,7 @@ export default function FeedbackPage() {
           </div>
 
           <div className="bg-white rounded-2xl px-5 py-4 mb-4" style={CARD}>
-            <p className="text-[12px] font-bold uppercase tracking-widest mb-3" style={{ color: "#A8A8A6" }}>
+            <p className="text-[12px] font-bold mb-3" style={{ color: "#A8A8A6" }}>
               วิธีใช้
             </p>
             <ul className="space-y-2.5 text-[13.5px] leading-relaxed text-gray-700">

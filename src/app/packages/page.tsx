@@ -103,7 +103,7 @@ export default function PackagesPage() {
           <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #0B6E65" }}>
             <div className="px-5 py-4" style={{ backgroundColor: "#0B4F48" }}>
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
                   style={{ backgroundColor: "#FBBF24", color: "#7C2D12" }}>
                   สนามใหม่ · เปิดรับสมัครแล้ว
                 </span>
@@ -171,7 +171,7 @@ export default function PackagesPage() {
         {/* ── คลิปตัวอย่างฟรี (เฉพาะคนที่ยังไม่ใช่คอร์สเต็ม) ───────────────── */}
         {!hasFull && <SampleVideoTeaser />}
 
-        <p className="text-[12px] font-bold uppercase tracking-widest pt-2" style={{ color: "#A8A8A6" }}>
+        <p className="text-[12px] font-bold pt-2" style={{ color: "#A8A8A6" }}>
           สนาม สป.สธ. 2569
         </p>
 
@@ -394,7 +394,7 @@ export default function PackagesPage() {
         {/* ── Free trial ──────────────────────────────────────────────────── */}
         {freeCount > 0 && (
           <Link href="/free"
-            className="block rounded-2xl p-5 bg-white hover:shadow-md active:scale-[0.99] transition-all"
+            className="card-elev block p-5 hover:shadow-md active:scale-[0.99] transition-all"
             style={{ border: "1px dashed #C3E5DE" }}>
             <div className="flex items-center gap-3">
               <div className="text-2xl">🎁</div>
@@ -414,8 +414,7 @@ export default function PackagesPage() {
 
         {/* ── Activate code ───────────────────────────────────────────────── */}
         <Link href="/activate"
-          className="block rounded-2xl p-5 bg-white hover:shadow-md active:scale-[0.99] transition-all"
-          style={{ border: "1px solid #EBEBEA" }}>
+          className="card-elev block p-5 hover:shadow-md active:scale-[0.99] transition-all">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: "#EBF5F3" }}>

@@ -266,8 +266,7 @@ export default function CheckoutPage() {
             {DCD_INTAKE.map((q) => {
               const cur = intake[q.id];
               return (
-                <div key={q.id} className="bg-white rounded-2xl px-4 py-4 mb-3"
-                  style={{ border: "1px solid #EBEBEA" }}>
+                <div key={q.id} className="card-elev px-4 py-4 mb-3">
                   <p className="text-[14.5px] font-bold text-gray-900 leading-snug mb-0.5">
                     {q.title}
                   </p>
@@ -338,7 +337,7 @@ export default function CheckoutPage() {
         {order && (phase === "qr" || phase === "verifying") && (
           <>
             {/* QR */}
-            <div className="bg-white rounded-2xl p-6 text-center mb-4" style={{ border: "1px solid #EBEBEA" }}>
+            <div className="card-elev p-6 text-center mb-4">
               <p className="text-[13px] font-semibold mb-3" style={{ color: "#0B6E65" }}>
                 สแกนจ่ายด้วยแอปธนาคาร (พร้อมเพย์)
               </p>
@@ -368,7 +367,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* ── โค้ดส่วนลด ─────────────────────────────────────────────── */}
-            <div className="bg-white rounded-2xl px-4 py-4 mb-4" style={{ border: "1px solid #EBEBEA" }}>
+            <div className="card-elev px-4 py-4 mb-4">
               {order.discountCode ? (
                 <div className="flex items-center gap-3">
                   <span className="text-[20px]">🎁</span>

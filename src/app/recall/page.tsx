@@ -377,7 +377,7 @@ function NewQuestionForm({ onSent }: { onSent: () => void }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
+    <div className="card-elev p-5">
       {sent && (
         <p className="text-[14px] font-semibold text-center py-2.5 rounded-xl mb-4"
           style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
@@ -554,8 +554,7 @@ export default function RecallPage() {
         {/* ── เนื้อหา ───────────────────────────────────────────────────── */}
         {mode === "queue" && (
           remaining.length === 0 ? (
-            <div className="bg-white rounded-2xl px-5 py-12 text-center"
-              style={{ border: "1px solid #EBEBEA" }}>
+            <div className="card-elev px-5 py-12 text-center">
               <div className="text-[42px] mb-3">🎉</div>
               <p className="text-[16px] font-bold text-gray-900 mb-1.5">ช่วยครบทุกข้อแล้ว</p>
               <p className="text-[13.5px] leading-relaxed mb-6" style={{ color: "#A8A8A6" }}>

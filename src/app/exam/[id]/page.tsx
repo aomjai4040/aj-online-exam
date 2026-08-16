@@ -308,7 +308,7 @@ export default function ExamPage() {
                 <path d="M7 11V7a5 5 0 0110 0v4" />
               </svg>
             </div>
-            <p className="text-[12px] font-bold tracking-widest uppercase text-white/70 mb-1">
+            <p className="text-[12px] font-bold tracking-widest text-white/70 mb-1">
               เนื้อหาล็อกอยู่
             </p>
             <h1 className="text-[19px] font-bold text-white leading-snug mb-1">{locked.title}</h1>
@@ -537,7 +537,7 @@ export default function ExamPage() {
             style={{ backgroundColor: g.bg, border: `1px solid ${g.border}` }}
           >
             <p
-              className="text-[12px] font-bold tracking-[0.14em] uppercase mb-4"
+              className="text-[12px] font-bold tracking-[0.14em] mb-4"
               style={{ color: g.accent }}
             >
               ผลการสอบ{user?.displayName ? ` · ${user.displayName}` : ""}
@@ -599,7 +599,7 @@ export default function ExamPage() {
             return (
               <div className="rounded-2xl p-4 mb-5"
                 style={{ backgroundColor: "#F5FAF9", border: "1.5px solid #C3E5DE" }}>
-                <p className="text-[12px] font-bold uppercase tracking-wider mb-1.5" style={{ color: "#0B6E65" }}>
+                <p className="text-[12px] font-bold mb-1.5" style={{ color: "#0B6E65" }}>
                   โค้ชครูอ้อม · ขั้นต่อไปของคุณ
                 </p>
                 <p className="text-[13.5px] leading-relaxed text-gray-800 mb-3">
@@ -662,7 +662,7 @@ export default function ExamPage() {
           <div className="h-px mb-6" style={{ backgroundColor: "#EBEBEA" }} />
 
           {/* Review label */}
-          <p className="text-[12px] font-bold tracking-[0.12em] uppercase mb-5" style={{ color: "#A8A8A6" }}>
+          <p className="text-[12px] font-bold mb-5" style={{ color: "#A8A8A6" }}>
             เฉลยและคำอธิบาย
           </p>
 

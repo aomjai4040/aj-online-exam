@@ -69,7 +69,7 @@ export default function GamesPage() {
       {/* Header */}
       <div className="bg-white" style={{ borderBottom: `1px solid ${LINE}` }}>
         <div className="max-w-2xl mx-auto px-5 py-5">
-          <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] mb-1"
+          <p className="text-[11.5px] font-semibold mb-1"
             style={{ color: MUTED }}>
             Games
           </p>
@@ -85,9 +85,8 @@ export default function GamesPage() {
         {GAMES.map((g) =>
           g.href ? (
             <Link key={g.title} href={g.href}
-              className="flex items-center gap-3.5 rounded-2xl px-4 py-4 bg-white
-                         active:scale-[0.98] transition-transform"
-              style={{ border: `1px solid ${LINE}`, boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+              className="card-elev card-elev-hover flex items-center gap-3.5 px-4 py-4
+                         active:scale-[0.98]">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "#EBF5F3" }}>
                 {g.icon}

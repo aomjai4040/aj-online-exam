@@ -183,7 +183,7 @@ function LapExamsSection({ exams, doneIds }: { exams: Exam[]; doneIds: Set<strin
     <div className="bg-white rounded-2xl p-5"
       style={{ border: `1px solid ${LINE}`, boxShadow: CARD_SHADOW }}>
       <div className="flex items-center justify-between mb-1">
-        <p className="text-[12px] font-bold uppercase tracking-[0.12em]" style={{ color: MUTED }}>
+        <p className="text-[15.5px] font-bold text-gray-900">
           ข้อสอบติวโค้งสุดท้าย
         </p>
         <span className="text-[12px] font-semibold tabular-nums" style={{ color: MUTED }}>
