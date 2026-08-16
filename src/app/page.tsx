@@ -192,8 +192,10 @@ export default function HomePage() {
   }, []);
 
   // การ์ดต้อนรับตามพฤติกรรม — ดูจากวันล่าสุดที่ทำข้อสอบ (อ่าน 1 รายการ)
+  // เลยวันสอบแล้วไม่ทัก: ข้อความเป็นโทนทวงการบ้าน/ดุคนที่หายไป ซึ่งไม่เข้ากับ
+  // คนที่เพิ่งสอบเสร็จ — กลับมาเองรอบหน้าเมื่อแก้ COUNTDOWN_DATE
   useEffect(() => {
-    if (!user) { setGreeting(null); return; }
+    if (!user || daysToExam() < 0) { setGreeting(null); return; }
     getRecentResults(user.uid, 1)
       .then((rs) => {
         let daysSince: number | null = null;

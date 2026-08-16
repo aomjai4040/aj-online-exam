@@ -85,6 +85,9 @@ export default function TodayPlanCard({ onVisible }: { onVisible?: (v: boolean) 
     let cancelled = false;
     const hide = () => { if (!cancelled) { setData(null); onVisible?.(false); } };
     if (!user) { hide(); return; }
+    // เลยวันสอบแล้ว → ไม่มีแผนให้ทำต่อ (ไม่งั้นขึ้น "เหลือ -1 วัน" กับ
+    // "วันละ 54 ชุด ก็ทันสอบ") — กลับมาเองรอบหน้าเมื่อแก้ PLAN_TARGET_DATE
+    if (planDaysLeft() < 0) { hide(); return; }
     (async () => {
       try {
         const [courses, summaries, exams, results] = await Promise.all([
