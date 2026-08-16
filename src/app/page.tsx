@@ -14,7 +14,8 @@ import { FEEDBACK_REWARD } from "@/lib/feedback-types";
 import { getUserAccess } from "@/lib/access";
 import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
 import ExamFieldGrid from "@/components/ExamFieldGrid";
-import { examSetField } from "@/lib/exam-fields";
+import { examSetField, type ExamFieldKey } from "@/lib/exam-fields";
+import { getActiveField } from "@/lib/active-field";
 import { getRecentResults } from "@/lib/user-firestore";
 import { pickGreeting, type Greeting } from "@/lib/greeting";
 import TodayPlanCard from "@/components/TodayPlanCard";
@@ -250,6 +251,7 @@ function RecallCard() {
 export default function HomePage() {
   const { user, signInWithGoogle } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
+  const [homeField, setHomeField] = useState<ExamFieldKey>("moph");
   // ตัวเลข hero นับ "รวม Mock Exam" (Aj สั่ง 2026-07-30) — ต่างจาก exams ที่กรอง Mock ออก
   const [heroStats, setHeroStats] = useState({ questions: 0, sets: 0 });
   const [loading, setLoading] = useState(true);
@@ -261,7 +263,8 @@ export default function HomePage() {
     getPublishedExams()
       .then((all) => {
         // Mock Exam มีเมนูของตัวเอง — ไม่ปนในแถบ "เพิ่มล่าสุด" แต่ "นับรวม" ในสถิติ hero
-        setExams(all.filter((e) => !isMockExam(e) && !isFinalLapExam(e) && examSetField(e) !== "dcd"));
+        setHomeField(getActiveField());
+        setExams(all.filter((e) => !isMockExam(e) && !isFinalLapExam(e)));
         setHeroStats({
           questions: all.reduce((s, e) => s + (e.questionCount || 0), 0),
           sets:      all.length,
@@ -291,7 +294,8 @@ export default function HomePage() {
       .catch(() => setGreeting(null));
   }, [user]);
 
-  const latestExams = exams.slice(0, 5);
+  // แถบ "เพิ่มล่าสุด" ตามสนามที่เลือกไว้ — แยกให้ขาด (Aj 2026-08-16)
+  const latestExams = exams.filter((e) => examSetField(e) === homeField).slice(0, 5);
   const dLeft = daysToExam();
 
   // ตัวเลขความน่าเชื่อถือใน hero — คำนวณจากข้อมูลจริง (รวม Mock)

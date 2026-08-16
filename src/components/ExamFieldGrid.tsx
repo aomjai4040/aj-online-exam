@@ -15,7 +15,13 @@ import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 import {
   EXAM_FIELDS, ownsField, daysUntil, sortFields, type ExamField,
 } from "@/lib/exam-fields";
+import { setActiveField } from "@/lib/active-field";
 import { dcdCurrentPrice } from "@/lib/pricing";
+
+/** กดการ์ดสนามไหน = เลือกสนามนั้นทั้งแอป (คลังข้อสอบ/Mock ตามไปหมด) */
+function rememberField(field: ExamField) {
+  setActiveField(field.id === "dcd" ? "dcd" : "moph");
+}
 
 function statusChip(field: ExamField, owned: boolean) {
   if (owned) return { text: "มีสิทธิ์แล้ว", bg: "#F0FDF4", fg: "#15803D" };
@@ -42,6 +48,7 @@ function FieldCard({ field, access }: { field: ExamField; access: UserAccess }) 
     return (
       <Wrapper
         {...(wrapperProps as { href: string })}
+        onClick={() => rememberField(field)}
         className="card-elev-hover relative block rounded-2xl overflow-hidden active:scale-[0.98]"
         style={{
           background: `linear-gradient(150deg, ${field.accent} 0%, #0B4F48 80%)`,
@@ -89,6 +96,7 @@ function FieldCard({ field, access }: { field: ExamField; access: UserAccess }) 
   return (
     <Wrapper
       {...(wrapperProps as { href: string })}
+      onClick={() => rememberField(field)}
       className={`card-elev block overflow-hidden ${
         href ? "card-elev-hover active:scale-[0.98]" : "opacity-60"
       }`}>

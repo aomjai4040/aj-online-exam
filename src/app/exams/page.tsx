@@ -5,7 +5,9 @@ import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
 import { getSubjectShort, normalizeSubject, isMockExam, SUBJECTS } from "@/lib/types";
 import { isFinalLapExam } from "@/lib/final-review";
-import { examSetField } from "@/lib/exam-fields";
+import { examSetField, type ExamFieldKey } from "@/lib/exam-fields";
+import { getActiveField, setActiveField } from "@/lib/active-field";
+import FieldSwitcher from "@/components/FieldSwitcher";
 import type { Difficulty } from "@/lib/mock-data";
 import { getHistory, type ExamRecord } from "@/lib/exam-history";
 import { getUserHistory } from "@/lib/user-firestore";
@@ -310,24 +312,32 @@ export default function ExamsPage() {
     else      setAccess(EMPTY_ACCESS);
   }, [user]);
 
-  // สนามที่กำลังดู — ?field=dcd จากการ์ด "เข้าเรียน" ของสนาม คร.
-  // ไม่มีพารามิเตอร์ = คลัง สป.สธ. เดิม (แยกฐานกันเด็ดขาด — Aj 2026-08-16)
-  const [fieldParam, setFieldParam] = useState<"moph" | "dcd">("moph");
+  // สนามที่กำลังดู — แยกกันเด็ดขาด (Aj 2026-08-16):
+  // ?field=dcd (จากการ์ดสนาม) > ค่าที่จำไว้ตอนกดเลือกคอร์สหน้าแรก > สป.สธ.
+  // เลือกแล้วจำค้างทั้งแอป — ไปเมนูไหนก็ยังอยู่สนามเดิมจนกว่าจะสลับ
+  const [fieldParam, setFieldParam] = useState<ExamFieldKey>("moph");
+  const [allExams,   setAllExams]   = useState<ExamCard[]>([]);
 
   useEffect(() => {
     const f = new URLSearchParams(window.location.search).get("field");
-    const viewing: "moph" | "dcd" = f === "dcd" ? "dcd" : "moph";
+    const viewing: ExamFieldKey =
+      f === "dcd" ? "dcd" : f === "moph" ? "moph" : getActiveField();
     setFieldParam(viewing);
+    setActiveField(viewing);
     getPublishedExams()
       .then((data) => {
-        // Mock กับชุดติวโค้งสุดท้าย แยกไปเมนูของตัวเอง + กรองตามสนามที่กำลังดู
-        setExams(data.filter((e) =>
-          !isMockExam(e) && !isFinalLapExam(e) && examSetField(e) === viewing));
+        // Mock กับชุดติวโค้งสุดท้าย แยกไปเมนูของตัวเอง (สนามกรองทีหลัง — สลับได้ไม่ต้องโหลดใหม่)
+        setAllExams(data.filter((e) => !isMockExam(e) && !isFinalLapExam(e)));
         setLoadError(false);
       })
       .catch(() => setLoadError(true)) // แสดง error จริง ไม่ใช้ข้อมูลจำลอง
       .finally(() => setLoading(false));
   }, []);
+
+  // ชุดของสนามที่กำลังดู
+  useEffect(() => {
+    setExams(allExams.filter((e) => examSetField(e) === fieldParam));
+  }, [allExams, fieldParam]);
 
   const subjects = useMemo(
     () => ["ทั้งหมด", ...Array.from(new Set(exams.map((e) => e.subject))).sort()],
@@ -412,6 +422,14 @@ export default function ExamsPage() {
           </div>
 
           {/* Search input */}
+          {/* สลับสนาม — เห็นเฉพาะคนมีคอร์ส คร. หรือกำลังดูสนาม คร. */}
+          <FieldSwitcher current={fieldParam}
+            show={access.hasDcd || fieldParam === "dcd"}
+            onChange={(f) => {
+              setFieldParam(f);
+              window.history.replaceState(null, "", f === "dcd" ? "/exams?field=dcd" : "/exams");
+            }} />
+
           <div className="relative">
             <svg
               viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"

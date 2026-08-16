@@ -86,8 +86,16 @@ export const EXAM_FIELDS: ExamField[] = [
   },
 ];
 
+/** สนามที่ระบบรู้จักตอนนี้ (ใช้ทั้ง active-field และการกรองชุดข้อสอบ) */
+export type ExamFieldKey = "moph" | "dcd";
+
+export const FIELD_SHORT: Record<ExamFieldKey, string> = {
+  moph: "สป.สธ.",
+  dcd:  "กรมควบคุมโรค",
+};
+
 /** สนามของชุดข้อสอบ — ตัดสินจาก packageId prefix (ไม่มี = คลัง สป.สธ. เดิม) */
-export function examSetField(exam: { packageId?: string }): "dcd" | "moph" {
+export function examSetField(exam: { packageId?: string }): ExamFieldKey {
   return String(exam.packageId ?? "").toLowerCase().startsWith("dcd-") ? "dcd" : "moph";
 }
 

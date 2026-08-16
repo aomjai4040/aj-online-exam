@@ -9,6 +9,9 @@ import { useLoginGuard } from "@/lib/use-login-guard";
 import { getUserAccess, decideExamAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 import { PRICING } from "@/lib/pricing";
 import { BRAND } from "@/lib/subjects";
+import { examSetField, FIELD_SHORT, type ExamFieldKey } from "@/lib/exam-fields";
+import { getActiveField } from "@/lib/active-field";
+import FieldSwitcher from "@/components/FieldSwitcher";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
 
@@ -16,28 +19,32 @@ import BottomNav from "@/components/BottomNav";
 // ใช้ engine ทำข้อสอบเดิม (/exam/[id]) — หน้านี้เป็นทางเข้า + วิธีใช้ให้เหมือนสนามจริง
 
 export default function MockExamPage() {
-  const guard    = useLoginGuard();
+  const guard = useLoginGuard();
   const { user } = useAuth();
 
-  const [mocks,   setMocks]   = useState<Exam[]>([]);
-  const [access,  setAccess]  = useState<UserAccess>(EMPTY_ACCESS);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState("");
+  const [allMocks, setAllMocks] = useState<Exam[]>([]);
+  const [field,    setField]    = useState<ExamFieldKey>("moph");
+  const [access,   setAccess]   = useState<UserAccess>(EMPTY_ACCESS);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState("");
 
   useEffect(() => {
     if (guard !== "allowed" || !user) return;
+    setField(getActiveField()); // สนามจำค้างจากการ์ดหน้าแรก — แยกให้ขาด (Aj 2026-08-16)
     (async () => {
       try {
         const [all, a] = await Promise.all([
           getPublishedExams(),
           getUserAccess(user.uid),
         ]);
-        setMocks(all.filter(isMockExam));
+        setAllMocks(all.filter(isMockExam));
         setAccess(a);
       } catch { setError("โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่"); }
       finally { setLoading(false); }
     })();
   }, [guard, user]);
+
+  const mocks = allMocks.filter((e) => examSetField(e) === field);
 
   if (guard !== "allowed") return <AccessGuardSpinner />;
 
@@ -62,6 +69,10 @@ export default function MockExamPage() {
 
       <div className="max-w-lg mx-auto px-5 py-5 space-y-4">
 
+        {/* สลับสนาม — เห็นเฉพาะคนมีคอร์ส คร. */}
+        <FieldSwitcher current={field} show={access.hasDcd}
+          onChange={setField} />
+
         {/* วิธีใช้ให้ได้ผล */}
         <div className="rounded-2xl px-4 py-3.5 text-[12.5px] leading-relaxed"
           style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}>
@@ -83,9 +94,13 @@ export default function MockExamPage() {
         {!loading && !error && mocks.length === 0 && (
           <div className="bg-white rounded-2xl p-10 text-center" style={{ border: "1px dashed #E0DFDC" }}>
             <div className="text-4xl mb-3">⏱️</div>
-            <p className="text-[15px] font-semibold text-gray-800 mb-1">Mock Exam กำลังจะมา</p>
+            <p className="text-[15px] font-semibold text-gray-800 mb-1">
+              Mock Exam สนาม{FIELD_SHORT[field]} กำลังจะมา
+            </p>
             <p className="text-[13px]" style={{ color: "#A8A8A6" }}>
-              ข้อสอบเสมือนจริงชุดแรกจะปรากฏที่นี่เร็ว ๆ นี้
+              {field === "dcd"
+                ? "พี่อ้อมกำลังทำชุดเสมือนจริงเจาะจงสนามนี้ — มีเมื่อไหร่แจ้งในกลุ่ม LINE ค่ะ"
+                : "ข้อสอบเสมือนจริงชุดแรกจะปรากฏที่นี่เร็ว ๆ นี้"}
             </p>
           </div>
         )}
