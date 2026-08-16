@@ -10,11 +10,15 @@ import { subjectColor as dotColor, BRAND } from "@/lib/subjects";
 import { getSubjectShort, isMockExam } from "@/lib/types";
 import { isFinalLapExam } from "@/lib/final-review";
 import { PRICING, COURSE_RESOURCES } from "@/lib/pricing";
+import { FEEDBACK_REWARD } from "@/lib/feedback-types";
 import { getUserAccess } from "@/lib/access";
 import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
+import ExamFieldGrid from "@/components/ExamFieldGrid";
 import { getRecentResults } from "@/lib/user-firestore";
 import { pickGreeting, type Greeting } from "@/lib/greeting";
 import TodayPlanCard from "@/components/TodayPlanCard";
+import LineJoinButton from "@/components/LineJoinButton";
+import DriveFilesButton from "@/components/DriveFilesButton";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -33,10 +37,8 @@ function LatestCard({ exam }: { exam: Exam }) {
   return (
     <Link
       href={`/exam/${exam.id}`}
-      className="flex-shrink-0 w-[172px] bg-white rounded-2xl p-4
-                 flex flex-col hover:bg-stone-50 active:scale-[0.97]
-                 transition-all duration-150"
-      style={{ border: "1px solid #EBEBEA" }}
+      className="card-elev card-elev-hover flex-shrink-0 w-[172px] p-4
+                 flex flex-col active:scale-[0.97]"
     >
       {/* Subject accent bar */}
       <div className="w-8 h-[3px] rounded-full mb-4" style={{ backgroundColor: color }} />
@@ -70,8 +72,7 @@ function LatestCard({ exam }: { exam: Exam }) {
 function LatestSkeleton() {
   return (
     <div
-      className="flex-shrink-0 w-[158px] bg-white rounded-2xl p-4 animate-pulse"
-      style={{ border: "1px solid #EBEBEA" }}
+      className="card-elev flex-shrink-0 w-[158px] p-4 animate-pulse"
     >
       <div className="w-7 h-[3px] rounded-full bg-gray-100 mb-3.5" />
       <div className="h-3.5 bg-gray-100 rounded-full w-full mb-1.5" />
@@ -128,6 +129,85 @@ function PreExamSheetCard() {
   );
 }
 
+/** การ์ดเข้ากลุ่ม LINE คอร์ส คร. — เฉพาะคนที่ซื้อแล้ว (เผื่อพลาดปุ่มตอนจ่ายเสร็จ)
+ *  ลิงก์ไม่อยู่ในหน้า — LineJoinButton ขอจาก server ตอนกดเท่านั้น */
+function DcdLineCard() {
+  const { user } = useAuth();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!user) { setShow(false); return; }
+    getUserAccess(user.uid).then((a) => setShow(a.hasDcd)).catch(() => setShow(false));
+  }, [user]);
+  if (!show) return null;
+  return (
+    <div className="card-elev px-4 py-3.5 mb-4">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: "linear-gradient(135deg, #07C160, #06AD56)" }}>
+          <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5">
+            <path d="M12 3C6.48 3 2 6.64 2 11.13c0 4.03 3.58 7.4 8.41 8.04.33.07.77.22.89.5.1.26.07.66.03.92l-.14.86c-.04.26-.2 1.01.89.55 1.09-.46 5.87-3.46 8.01-5.92C21.62 14.4 22 12.83 22 11.13 22 6.64 17.52 3 12 3z" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[14.5px] font-bold text-gray-900 leading-tight">กลุ่ม LINE คอร์ส คร.</p>
+          <p className="text-[12px] mt-0.5" style={{ color: "#A8A8A6" }}>
+            ประกาศคลิปใหม่ · ถามพี่อ้อม · เฉพาะสมาชิกคอร์ส
+          </p>
+        </div>
+      </div>
+      <LineJoinButton field="dcd" label="เข้ากลุ่มเลย" />
+      <DriveFilesButton field="dcd" className="mt-2" />
+    </div>
+  );
+}
+
+/** การ์ด "ประเมินการสอน รับโค้ดลด ฿100" — สมาชิกเท่านั้น
+ *  ซ่อนเองเมื่อตอบไปแล้ว (ถาม /api/feedback ครั้งเดียวตอนเปิดหน้า) */
+function FeedbackCard() {
+  const { user } = useAuth();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!user) { setShow(false); return; }
+    let cancelled = false;
+    user.getIdToken()
+      .then((t) => fetch("/api/feedback", { headers: { Authorization: `Bearer ${t}` } }))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled) setShow(!!d && d.done === false); })
+      .catch(() => { if (!cancelled) setShow(false); });
+    return () => { cancelled = true; };
+  }, [user]);
+  if (!show) return null;
+  return (
+    <Link href="/feedback"
+      className="card-elev card-elev-hover flex items-center gap-3 px-4 py-3.5 mb-4
+                 active:scale-[0.98]">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)" }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="white"
+          strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+          <polyline points="20 12 20 22 4 22 4 12" />
+          <rect x="2" y="7" width="20" height="5" />
+          <line x1="12" y1="22" x2="12" y2="7" />
+          <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z" />
+          <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[14.5px] font-bold leading-tight" style={{ color: "#7C2D12" }}>
+          ช่วยประเมินการสอน · รับโค้ดลด ฿{FEEDBACK_REWARD.amount}
+        </p>
+        <p className="text-[12px] mt-0.5" style={{ color: "#B45309" }}>
+          ใช้เวลา 2 นาที · ใช้กับคอร์สไหนก็ได้ที่พี่อ้อมเปิดต่อจากนี้
+        </p>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </Link>
+  );
+}
+
 /** การ์ด "ช่วยกันเก็บข้อสอบ" — โผล่หลังวันสอบ 14 วัน ให้คนที่เพิ่งสอบเสร็จ
  *  ช่วยเติมข้อที่ยังจำได้ก่อนความจำเลือน (login แล้วเห็นทุกคน ไม่ต้องมีคอร์ส) */
 function RecallCard() {
@@ -137,9 +217,9 @@ function RecallCard() {
   const left = 14 + d; // เหลืออีกกี่วันก่อนการ์ดหาย
   return (
     <Link href="/recall"
-      className="flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-4
-                 active:scale-[0.98] transition-transform"
-      style={{ backgroundColor: "#F5FAF9", border: "2px solid #0B6E65" }}>
+      className="card-elev card-elev-hover flex items-center gap-3 px-4 py-3.5 mb-4
+                 active:scale-[0.98]"
+      style={{ borderLeft: "4px solid #0B6E65" }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: BRAND.primary }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="white"
@@ -269,28 +349,36 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ── Hero (สีเรียบเข้ม เน้นข้อเสนอ) ─────────────────────────────────── */}
-      <section className="px-5 pt-9 pb-7" style={{ backgroundColor: BRAND.primaryDark }}>
-        <div className="max-w-lg md:max-w-4xl mx-auto">
+      {/* ── Hero — gradient หลายชั้น + แสงประดับ ให้มีมิติไม่แบน ─────────────── */}
+      <section className="relative overflow-hidden px-5 pt-9 pb-7"
+        style={{ background: "linear-gradient(160deg, #0E5F56 0%, #0B4F48 48%, #083B36 100%)" }}>
+        {/* แสงประดับ — วงเบลอจาง ๆ สองมุม */}
+        <div aria-hidden className="absolute -top-24 -right-14 w-72 h-72 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(closest-side, rgba(23,160,143,0.35), transparent)" }} />
+        <div aria-hidden className="absolute -bottom-32 -left-20 w-80 h-80 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(closest-side, rgba(251,191,36,0.16), transparent)" }} />
+        <div className="relative max-w-lg md:max-w-4xl mx-auto">
           <span
             className="inline-block text-[12px] font-semibold px-3 py-1 rounded-full mb-4"
             style={{ backgroundColor: "rgba(255,255,255,0.1)", color: "#9FE1CB" }}
           >
-            สนามสอบ สป.สธ.
+            สายสาธารณสุขและสิ่งแวดล้อม
           </span>
           <h1 className="text-[1.9rem] font-bold leading-[1.25] tracking-tight mb-2 text-white">
-            เตรียมพร้อมสอบ
+            เตรียมสอบราชการ
             <br />
-            <span style={{ color: "#9FE1CB" }}>นักวิชาการสาธารณสุข</span>
+            <span style={{ color: "#9FE1CB" }}>สายสาธารณสุข</span>
           </h1>
           <p className="text-[14px] leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.65)" }}>
-            แนวข้อสอบพร้อมเฉลยละเอียดทุกข้อ · ฝึกทำได้ทุกวัน
+            ศูนย์รวมทุกสนามสอบ · แนวข้อสอบพร้อมเฉลยละเอียดทุกข้อ · ฝึกทำได้ทุกวัน
           </p>
 
           {/* นับถอยหลัง — เลขเด่น */}
           {dLeft >= 0 && (
             <div className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-5"
-              style={{ backgroundColor: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}>
+              style={{ backgroundColor: "rgba(255,255,255,0.08)",
+                       border: "1px solid rgba(255,255,255,0.15)",
+                       backdropFilter: "blur(8px)" }}>
               <div className="flex items-baseline gap-1.5 flex-shrink-0">
                 <span className="text-[34px] font-extrabold leading-none" style={{ color: "#FBBF24" }}>
                   {dLeft}
@@ -349,11 +437,20 @@ export default function HomePage() {
       </section>
 
 
+      {/* ── สนามสอบทั้งหมด — การ์ดต่อสนาม (เพิ่มสนามใหม่ที่ lib/exam-fields.ts) ── */}
+      <ExamFieldGrid />
+
       {/* ── Feature menu ──────────────────────────────────────────────────── */}
       <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-5">
 
         {/* ช่วยกันเก็บข้อสอบ — ช่วงหลังสอบ 14 วัน (ความจำยังสด) */}
         <RecallCard />
+
+        {/* กลุ่ม LINE คอร์ส คร. — เฉพาะเจ้าของคอร์ส */}
+        <DcdLineCard />
+
+        {/* ประเมินการสอน → โค้ดลด ฿100 (สมาชิกที่ยังไม่ตอบ) */}
+        <FeedbackCard />
 
         {/* ชีททวนก่อนสอบ — สมาชิกทุกแพ็กเห็นทันทีที่เปิดแอป (ซ่อนเองหลังวันสอบ) */}
         <PreExamSheetCard />
@@ -383,16 +480,19 @@ export default function HomePage() {
         {/* เริ่มแบบติวเตอร์ (Mock ประเมิน) + แผนของฉันวันนี้ — สมาชิกเท่านั้น */}
         <TodayPlanCard onVisible={setPlanShown} />
 
-        <p className="text-[15px] font-bold tracking-[0.12em] uppercase mb-4" style={{ color: "#A8A8A6" }}>
-          เมนูหลัก
-        </p>
+        <div className="section-head mb-4">
+          <p className="text-[17px] font-bold text-gray-900">เมนูหลัก</p>
+        </div>
 
         {/* Primary banner */}
         <Link
           href="/exams"
           className="flex items-center gap-3.5 w-full rounded-2xl px-5 py-4 mb-3
                      hover:opacity-95 active:scale-[0.98] transition-all duration-150"
-          style={{ backgroundColor: BRAND.primary }}
+          style={{
+            background: "linear-gradient(135deg, #10857A 0%, #0B6E65 60%, #095B54 100%)",
+            boxShadow: "0 4px 16px -4px rgba(11,110,101,0.45)",
+          }}
         >
           <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/20">
             <svg viewBox="0 0 24 24" fill="none" stroke="white"
@@ -417,16 +517,21 @@ export default function HomePage() {
         {!planShown && (
         <Link
           href="/daily"
-          className="flex items-center gap-3 w-full rounded-2xl px-4 py-3 mb-3
-                     active:scale-[0.98] transition-transform bg-white"
-          style={{ border: "1.5px solid #FCD34D" }}
+          className="card-elev card-elev-hover flex items-center gap-3 w-full px-4 py-3.5 mb-3
+                     active:scale-[0.98]"
         >
-          <span className="text-[20px] flex-shrink-0">🔥</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-bold text-gray-900 leading-tight">Daily Quiz วันนี้</p>
-            <p className="text-[12px]" style={{ color: "#B45309" }}>10 ข้อเจาะจุดอ่อนของคุณ · เก็บ streak ทุกวัน</p>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="white"
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z" />
+            </svg>
           </div>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
+          <div className="flex-1 min-w-0">
+            <p className="text-[14.5px] font-bold text-gray-900 leading-tight">Daily Quiz วันนี้</p>
+            <p className="text-[12px] mt-0.5" style={{ color: "#B45309" }}>10 ข้อเจาะจุดอ่อนของคุณ · เก็บ streak ทุกวัน</p>
+          </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C4C4C0"
             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
             <polyline points="9 18 15 12 9 6" />
           </svg>
@@ -520,9 +625,8 @@ export default function HomePage() {
               key={item.title}
               href={item.href}
               {...("external" in item && item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className="bg-white rounded-2xl px-4 py-4 flex items-center gap-3
-                         active:scale-[0.97] transition-all duration-150 hover:bg-stone-50"
-              style={{ border: "1px solid #EBEBEA" }}
+              className="card-elev card-elev-hover px-4 py-4 flex items-center gap-3
+                         active:scale-[0.97]"
             >
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -559,9 +663,9 @@ export default function HomePage() {
       {/* ── Latest Exams (horizontal scroll) ──────────────────────────────── */}
       <section className="max-w-lg md:max-w-4xl mx-auto py-5">
         <div className="flex items-center justify-between mb-4 px-5">
-          <p className="text-[15px] font-bold tracking-[0.12em] uppercase" style={{ color: "#A8A8A6" }}>
-            เพิ่มล่าสุด
-          </p>
+          <div className="section-head">
+            <p className="text-[17px] font-bold text-gray-900">เพิ่มล่าสุด</p>
+          </div>
           <Link
             href="/exams"
             className="text-[15px] font-medium transition-colors"

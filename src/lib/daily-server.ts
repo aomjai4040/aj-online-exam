@@ -76,13 +76,25 @@ async function subjectsWeakFirst(db: Firestore, uid: string): Promise<string[]> 
     .map((x) => x.s);
 }
 
-/** เลือกชุด + 10 ข้อของวันนั้น — เจาะหมวดอ่อนของ uid (deterministic ต่อ วัน+คน) */
+/** เลือกชุด + 10 ข้อของวันนั้น — เจาะหมวดอ่อนของ uid (deterministic ต่อ วัน+คน)
+ *
+ *  ownedPackageIds: courseId ทั้งหมดของผู้ใช้ — ใช้กรองชุดตาม "สนาม" ที่ซื้อ
+ *  (Aj 2026-08-16: แต่ละสนามแยกขาด) ชุดไม่ผูก packageId = คลัง สป.สธ. เดิม
+ *  ต้องมีคอร์สฝั่ง สป.สธ. (ไม่ใช่ dcd-) จึงเห็น · ชุดผูกแพ็ก = ต้องเป็นเจ้าของแพ็กนั้น */
 export async function pickDaily(
-  db: Firestore, dateStr: string, uid?: string
+  db: Firestore, dateStr: string, uid?: string, ownedPackageIds?: string[]
 ): Promise<DailyPick | null> {
+  const owned     = ownedPackageIds ?? [];
+  const hasLegacy = ownedPackageIds === undefined // ไม่ส่งมา = พฤติกรรมเดิม (เผื่อ caller อื่น)
+    || owned.some((id) => !id.toLowerCase().startsWith("dcd-"));
+
   const snap = await db.collection("exams").where("isPublished", "==", true).get();
   let exams = snap.docs
     .filter((d) => !isMockLike(d.data()) && Number(d.data().questionCount ?? 0) >= 5)
+    .filter((d) => {
+      const pid = String(d.data().packageId ?? "");
+      return pid ? owned.includes(pid) : hasLegacy;
+    })
     .sort((a, b) => a.id.localeCompare(b.id)); // เรียงคงที่ ให้ index เสถียร
   if (exams.length === 0) return null;
 

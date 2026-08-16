@@ -18,17 +18,22 @@ export interface UserAccess {
   hasAny:     boolean;  // มีคอร์ส/แพ็กอย่างน้อย 1 อัน (legacy fallback)
   hasReview:  boolean;  // มี "แพ็กติวทบทวน 499" → ดูคลิปโค้งสุดท้ายได้ (ไม่เห็นคอร์สวิดีโอเต็ม)
   hasFull:    boolean;  // มี "คอร์สเต็ม" → ดูวิดีโอได้ครบ
+  hasDcd:     boolean;  // มีคอร์สสนามกรมควบคุมโรค (สนามคนละสนามกับ สป.สธ.)
 }
 
 export const EMPTY_ACCESS: UserAccess = {
-  packageIds: [], hasAny: false, hasReview: false, hasFull: false,
+  packageIds: [], hasAny: false, hasReview: false, hasFull: false, hasDcd: false,
 };
 
 /**
  * กติกาแยก tier (ตกลงกับ Aj 2026-07-11, เพิ่ม review 2026-07-29):
  * - courseId ขึ้นต้น "app-"    = App Only (299)
  * - courseId ขึ้นต้น "review-" = แพ็กติวทบทวน (499): สิทธิ์ App + คลิปโค้งสุดท้าย
+ * - courseId ขึ้นต้น "dcd-"    = สนามกรมควบคุมโรค (คนละสนามกับ สป.สธ. — 2026-08-16)
  * - courseId อื่นทั้งหมด        = คอร์สเต็ม (ลูกค้าเก่าทุกคนซื้อ 699 → ได้วิดีโออัตโนมัติ)
+ *
+ * ⚠️ dcd- ต้องถูกกันออกจาก isFullCourse ไม่งั้นคนซื้อคอร์ส คร. จะได้คอร์ส
+ * วิดีโอ สป.สธ. 68 คลิป (ของแพ็ก 699) ไปด้วยโดยไม่ได้ตั้งใจ
  */
 export function isAppOnlyCourse(courseId: string): boolean {
   return courseId.toLowerCase().startsWith("app-");
@@ -36,8 +41,11 @@ export function isAppOnlyCourse(courseId: string): boolean {
 export function isReviewCourse(courseId: string): boolean {
   return courseId.toLowerCase().startsWith("review-");
 }
+export function isDcdCourse(courseId: string): boolean {
+  return courseId.toLowerCase().startsWith("dcd-");
+}
 export function isFullCourse(courseId: string): boolean {
-  return !isAppOnlyCourse(courseId) && !isReviewCourse(courseId);
+  return !isAppOnlyCourse(courseId) && !isReviewCourse(courseId) && !isDcdCourse(courseId);
 }
 
 /** ดึงสิทธิ์ทั้งหมดของผู้ใช้ในครั้งเดียว (แทน checkUserHasAnyAccess เดิม) */
@@ -50,9 +58,13 @@ export async function getUserAccess(uid: string): Promise<UserAccess> {
     .filter(Boolean);
   return {
     packageIds,
-    hasAny:    !snap.empty,
+    // hasAny = legacy fallback ของ "คลัง สป.สธ. เดิม" (ชุดที่ยังไม่ผูก packageId)
+    // Aj ยืนยัน 2026-08-16: แต่ละสนามแยกขาด ซื้อคอร์สไหนได้แค่คอร์สนั้น
+    // → คอร์ส คร. (dcd-) ไม่นับ ไม่งั้นคนซื้อ คร. จะได้คลัง สป.สธ. 68 ชุดไปด้วย
+    hasAny:    packageIds.some((id) => !isDcdCourse(id)),
     hasReview: packageIds.some(isReviewCourse),
     hasFull:   packageIds.some(isFullCourse),
+    hasDcd:    packageIds.some(isDcdCourse),
   };
 }
 

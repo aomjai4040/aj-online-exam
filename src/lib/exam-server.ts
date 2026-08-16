@@ -28,7 +28,9 @@ export async function serverExamAllowed(
   const packageIds = snap.docs.map((d) => String(d.data().courseId ?? "")).filter(Boolean);
   const packageId  = String(exam.packageId ?? "");
   if (packageId) return packageIds.includes(packageId);
-  return packageIds.length > 0; // legacy: มีคอร์สอะไรก็ได้
+  // legacy (ไม่ผูก packageId) = คลัง สป.สธ. เดิม — สนามใหม่ (dcd-) ไม่นับ
+  // ตรงกับ hasAny ฝั่ง client (access.ts): แต่ละสนามแยกขาด ซื้อคอร์สไหนได้แค่คอร์สนั้น
+  return packageIds.some((id) => !id.toLowerCase().startsWith("dcd-"));
 }
 
 /** โหลด exam + questions พร้อมตัดสินสิทธิ์ (ใช้ร่วม 3 endpoint) */

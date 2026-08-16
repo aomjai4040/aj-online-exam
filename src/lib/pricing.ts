@@ -24,10 +24,33 @@ export const PRICING = {
     tagline: "สำหรับคนอยากได้ครบ และถามพี่อ้อมได้ตลอด",
     period:  "ใช้ได้ 12 เดือน",
   },
+  /**
+   * สนามกรมควบคุมโรค 2569 — คนละสนามกับ สป.สธ. ซื้อแยก (Aj ยืนยันราคา 2026-08-16)
+   * ราคาเต็ม 699 · โปรเปิดตัว 499 ถึง 31 ส.ค. · โค้ดแบบประเมิน −100 → เหลือ 399
+   * ไทม์ไลน์ทางการ: รับสมัคร 17 ส.ค. – 4 ก.ย. · สอบข้อเขียน 20 ก.ย. 69
+   */
+  dcd: {
+    price:       699,
+    launchPrice: 499,
+    launchUntil: "2026-08-31",   // ถึงสิ้นวัน (เวลาไทย)
+    name:        "ติวเข้มกรมควบคุมโรค",
+    tagline:     "นักวิชาการสาธารณสุข กรมควบคุมโรค — สอบข้อเขียน 20 ก.ย.",
+    period:      "ใช้ได้ 12 เดือน",
+  },
   upgradePrice: 400,          // App → คอร์สเต็ม จ่ายส่วนต่าง
   upToReviewPrice: 200,       // App → แพ็กติวทบทวน จ่ายส่วนต่าง
   reviewToFullPrice: 200,     // แพ็กติวทบทวน → คอร์สเต็ม จ่ายส่วนต่าง
 } as const;
+
+/**
+ * ราคาคอร์ส คร. ณ ตอนนี้ — โปรเปิดตัวถึงสิ้นวัน 31 ส.ค. (เวลาไทย) แล้วกลับราคาเต็มเอง
+ * ใช้ทั้งฝั่งแสดงผลและฝั่ง server ตอนสร้างออเดอร์ (แหล่งเดียว ราคาไม่มีทางไม่ตรงกัน)
+ */
+export function dcdCurrentPrice(now: Date = new Date()): { amount: number; isLaunch: boolean } {
+  const bkkDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(now);
+  const isLaunch = bkkDate <= PRICING.dcd.launchUntil;
+  return { amount: isLaunch ? PRICING.dcd.launchPrice : PRICING.dcd.price, isLaunch };
+}
 
 /** ช่องทางติดต่อสั่งซื้อ — LINE OA ของ Aj */
 export const CONTACT_URL = "https://line.me/R/ti/p/@481ccrkj";

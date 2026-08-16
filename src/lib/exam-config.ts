@@ -25,3 +25,19 @@ export function daysToExam(now: Date = new Date()): number {
 export function planDaysLeft(now: Date = new Date()): number {
   return diffDays(PLAN_TARGET_DATE, now);
 }
+
+// ── สนามกรมควบคุมโรค 2569 (สนามที่สอง) ────────────────────────────────────────
+// ไทม์ไลน์ทางการจากประกาศกรมควบคุมโรค:
+//   รับสมัคร 17 ส.ค. – 4 ก.ย. · ประกาศรายชื่อ 11 ก.ย. · สอบข้อเขียน 20 ก.ย.
+//   ประกาศผู้มีสิทธิสัมภาษณ์ 5 ต.ค. · สัมภาษณ์ 14-20 ต.ค. · ขึ้นบัญชี 16 พ.ย. 69
+export const DCD_EXAM_DATE  = new Date("2026-09-20T00:00:00+07:00");
+export const DCD_EXAM_LABEL = "สอบข้อเขียน 20 ก.ย.";
+/** ปิดรับสมัครสอบ (ของกรมฯ ไม่ใช่ของคอร์ส) — ใช้เตือนคนที่ยังไม่ได้สมัคร */
+export const DCD_APPLY_CLOSE = new Date("2026-09-04T00:00:00+07:00");
+
+export function daysToDcdExam(now: Date = new Date()): number {
+  return diffDays(DCD_EXAM_DATE, now);
+}
+export function daysToDcdApplyClose(now: Date = new Date()): number {
+  return diffDays(DCD_APPLY_CLOSE, now);
+}

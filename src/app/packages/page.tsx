@@ -6,10 +6,10 @@ import BottomNav from "@/components/BottomNav";
 import CourseResources from "@/components/CourseResources";
 import SampleVideoTeaser from "@/components/SampleVideoTeaser";
 import { BRAND } from "@/lib/subjects";
-import { PRICING } from "@/lib/pricing";
+import { PRICING, dcdCurrentPrice } from "@/lib/pricing";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
-import { daysToExam } from "@/lib/exam-config";
+import { daysToExam, daysToDcdExam, daysToDcdApplyClose } from "@/lib/exam-config";
 
 // ─── /packages — แพ็กเกจ + ราคา (Aj ยืนยัน 299/699/+400) ─────────────────────
 // การซื้อตอนนี้: ทักแชทแอดมิน → รับรหัส → กรอกที่ /activate
@@ -98,8 +98,82 @@ export default function PackagesPage() {
 
       <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-6 space-y-4">
 
+        {/* ── สนามกรมควบคุมโรค — สนามที่กำลังเปิดรับสมัคร วางไว้บนสุด ─────── */}
+        {!access.hasDcd && daysToDcdExam() >= 0 && (
+          <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #0B6E65" }}>
+            <div className="px-5 py-4" style={{ backgroundColor: "#0B4F48" }}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: "#FBBF24", color: "#7C2D12" }}>
+                  สนามใหม่ · เปิดรับสมัครแล้ว
+                </span>
+              </div>
+              <p className="text-[19px] font-bold text-white leading-tight">{PRICING.dcd.name}</p>
+              <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,0.72)" }}>
+                {PRICING.dcd.tagline}
+              </p>
+            </div>
+
+            <div className="bg-white px-5 py-4">
+              <div className="rounded-xl px-3.5 py-2.5 mb-3.5 text-[12.5px] leading-relaxed"
+                style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}>
+                <span className="font-bold">ไทม์ไลน์กรมควบคุมโรค:</span> รับสมัคร 17 ส.ค. – 4 ก.ย. ·
+                ประกาศรายชื่อ 11 ก.ย. · <span className="font-bold">สอบข้อเขียน 20 ก.ย.</span>
+                {daysToDcdApplyClose() >= 0 && (
+                  <> · เหลือเวลาสมัครสอบอีก {daysToDcdApplyClose()} วัน</>
+                )}
+              </div>
+
+              <div className="flex items-baseline gap-2 mb-1">
+                {dcdCurrentPrice().isLaunch && (
+                  <span className="text-[15px] line-through" style={{ color: "#C4C4C0" }}>
+                    ฿{PRICING.dcd.price}
+                  </span>
+                )}
+                <span className="text-[30px] font-extrabold" style={{ color: BRAND.primary }}>
+                  ฿{dcdCurrentPrice().amount}
+                </span>
+                <span className="text-[12.5px]" style={{ color: "#A8A8A6" }}>
+                  {PRICING.dcd.period}
+                </span>
+              </div>
+              {dcdCurrentPrice().isLaunch && (
+                <p className="text-[12.5px] font-semibold mb-3" style={{ color: "#B45309" }}>
+                  🔥 โปรเปิดตัว ฿{PRICING.dcd.launchPrice} ถึง 31 ส.ค. เท่านั้น —
+                  น้องคอร์ส สป.สธ. ใช้โค้ดแบบประเมินลดอีก ฿100 เหลือ ฿{PRICING.dcd.launchPrice - 100}
+                </p>
+              )}
+
+              <ul className="space-y-2 mb-4">
+                {[
+                  "คอร์สวิดีโอ + คลังข้อสอบ ทำใหม่เจาะจงสนามกรมควบคุมโรค (ทยอยเพิ่มถึงวันสอบ)",
+                  "Mock Exam จำลองสนามจริง จับเวลา + เกมทบทวน",
+                  "Daily Quiz เจาะจุดอ่อนรายคน ชุดใหม่ทุกวัน",
+                  "กลุ่ม LINE เฉพาะคอร์ส — สมัครแล้วกดเข้าจากในแอปได้เลย",
+                ].map((t) => (
+                  <li key={t} className="flex items-start gap-2 text-[13.5px] leading-relaxed text-gray-700">
+                    <Check /> <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link href="/checkout/dcd"
+                className="btn-primary w-full py-3.5 text-[15px] block text-center">
+                สมัครคอร์สกรมควบคุมโรค ฿{dcdCurrentPrice().amount}
+              </Link>
+              <p className="text-[12px] text-center mt-2" style={{ color: "#A8A8A6" }}>
+                มีโค้ดส่วนลดจากการทำแบบประเมิน ใช้ได้ในหน้าถัดไป
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── คลิปตัวอย่างฟรี (เฉพาะคนที่ยังไม่ใช่คอร์สเต็ม) ───────────────── */}
         {!hasFull && <SampleVideoTeaser />}
+
+        <p className="text-[12px] font-bold uppercase tracking-widest pt-2" style={{ color: "#A8A8A6" }}>
+          สนาม สป.สธ. 2569
+        </p>
 
         {/* แพ็กเกจ 3 ใบ — จอกว้าง (≥md) วางเคียงกัน */}
         <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-4 md:items-start">

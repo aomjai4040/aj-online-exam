@@ -26,14 +26,21 @@ export async function makePromptPayQR(amount: number): Promise<string> {
   return QRCode.toDataURL(payload, { margin: 1, width: 320 });
 }
 
-/** สิทธิ์ปัจจุบันของผู้ใช้ (ฝั่ง server) — กติกา prefix เดียวกับ lib/access.ts */
-async function serverAccess(uid: string): Promise<{ hasAny: boolean; hasReview: boolean; hasFull: boolean }> {
+/** สิทธิ์ปัจจุบันของผู้ใช้ (ฝั่ง server) — กติกา prefix เดียวกับ lib/access.ts
+ *
+ *  แยกตาม "สนาม": สิทธิ์ของ สป.สธ. (app/review/full) กับ กรมควบคุมโรค (dcd-)
+ *  ไม่เกี่ยวกัน — คนที่ซื้อคอร์สเต็ม สป.สธ. ต้องซื้อคอร์ส คร. ได้ตามปกติ */
+async function serverAccess(uid: string): Promise<{
+  hasAny: boolean; hasReview: boolean; hasFull: boolean; hasDcd: boolean;
+}> {
   const snap = await adminDb().collection("userCourses").where("userId", "==", uid).get();
   const ids  = snap.docs.map((d) => String(d.data().courseId ?? "").toLowerCase());
+  const isDcd = (id: string) => id.startsWith("dcd-");
   return {
-    hasAny:    ids.length > 0,
+    hasAny:    ids.some((id) => !isDcd(id)),   // สิทธิ์ฝั่ง สป.สธ. เท่านั้น
     hasReview: ids.some((id) => id.startsWith("review-")),
-    hasFull:   ids.some((id) => !id.startsWith("app-") && !id.startsWith("review-")),
+    hasFull:   ids.some((id) => !id.startsWith("app-") && !id.startsWith("review-") && !isDcd(id)),
+    hasDcd:    ids.some(isDcd),
   };
 }
 
@@ -45,6 +52,24 @@ export async function createOrder(
 ): Promise<{ orderId: string; amount: number; qr: string; courseName: string }> {
   // กันซื้อซ้ำ / อัปเกรดผิดเงื่อนไข / จ่ายแพงเกินจำเป็น
   const acc = await serverAccess(uid);
+
+  // สนามกรมควบคุมโรค — คนละสนามกับ สป.สธ. ตรวจแยก และไม่ติดเงื่อนไขของสนามเดิม
+  if (tier === "dcd") {
+    if (acc.hasDcd) throw new CheckoutError("บัญชีนี้มีคอร์สกรมควบคุมโรคอยู่แล้ว");
+    const plan = tierPlan(tier);
+    const ref  = adminDb().collection("orders").doc();
+    await ref.set({
+      userId: uid, email, tier,
+      amount: plan.amount, status: "pending",
+      courseId: plan.courseId, courseName: plan.courseName,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return {
+      orderId: ref.id, amount: plan.amount, courseName: plan.courseName,
+      qr: await makePromptPayQR(plan.amount),
+    };
+  }
+
   if (acc.hasFull) throw new CheckoutError("บัญชีนี้มีคอร์สเต็มอยู่แล้ว");
   if (tier === "app" && acc.hasAny) throw new CheckoutError("บัญชีนี้มีสิทธิ์ App อยู่แล้ว");
   if (tier === "review") {
@@ -77,6 +102,93 @@ export async function createOrder(
     orderId: ref.id, amount: plan.amount, courseName: plan.courseName,
     qr: await makePromptPayQR(plan.amount),
   };
+}
+
+// ─── โค้ดส่วนลด (ได้จากการทำแบบประเมินที่ /feedback) ──────────────────────────
+//
+// โค้ดผูกกับ userId → คนอื่นเอาไปใช้ไม่ได้แม้รู้โค้ด
+// ตัดสถานะเป็น "used" ตอนจ่ายเงินสำเร็จเท่านั้น (ไม่ใช่ตอนสร้างออเดอร์) —
+// ถ้าไม่จ่าย/สลิปไม่ผ่าน โค้ดยังอยู่ครบ
+
+interface CodeCheck { code: string; amount: number }
+
+/** ตรวจโค้ดว่าใช้ได้กับบัญชีนี้ไหม — โยน CheckoutError พร้อมเหตุผลถ้าใช้ไม่ได้ */
+export async function checkDiscountCode(uid: string, raw: string): Promise<CodeCheck> {
+  const code = raw.trim().toUpperCase();
+  if (!code) throw new CheckoutError("กรุณากรอกโค้ด");
+
+  const snap = await adminDb().collection("discountCodes").doc(code).get();
+  if (!snap.exists) throw new CheckoutError("ไม่พบโค้ดนี้ — ลองตรวจตัวสะกดอีกครั้ง");
+
+  const d = snap.data()!;
+  if (d.userId !== uid)        throw new CheckoutError("โค้ดนี้เป็นของบัญชีอื่น ใช้ได้เฉพาะเจ้าของโค้ดค่ะ");
+  if (d.status === "used")     throw new CheckoutError("โค้ดนี้ถูกใช้ไปแล้ว");
+  if (d.status !== "unused")   throw new CheckoutError("โค้ดนี้ใช้ไม่ได้แล้ว");
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (typeof d.expiresAt === "string" && d.expiresAt < today) {
+    throw new CheckoutError(`โค้ดนี้หมดอายุแล้ว (ใช้ได้ถึง ${d.expiresAt})`);
+  }
+
+  const amount = Number(d.amount ?? 0);
+  if (!Number.isFinite(amount) || amount <= 0) throw new CheckoutError("โค้ดนี้ใช้ไม่ได้");
+  return { code, amount };
+}
+
+/**
+ * ใช้โค้ดกับออเดอร์ที่ยังไม่จ่าย → คืนยอดใหม่ + QR ใหม่ (ยอดฝังใน QR ต้องตรงกัน)
+ * ยอดขั้นต่ำ 1 บาท เพราะ QR พร้อมเพย์ยอด 0 สร้างไม่ได้
+ */
+export async function applyDiscount(
+  uid: string, orderId: string, rawCode: string
+): Promise<{ amount: number; fullAmount: number; discountAmount: number; code: string; qr: string }> {
+  const db  = adminDb();
+  const ref = db.collection("orders").doc(orderId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new CheckoutError("ไม่พบคำสั่งซื้อ");
+
+  const order = snap.data()!;
+  if (order.userId !== uid)       throw new CheckoutError("คำสั่งซื้อไม่ใช่ของบัญชีนี้");
+  if (order.status !== "pending") throw new CheckoutError("คำสั่งซื้อนี้ปิดแล้ว ใช้โค้ดไม่ได้");
+
+  const { code, amount: discount } = await checkDiscountCode(uid, rawCode);
+
+  // ยอดเต็ม = ยอดก่อนหักส่วนลด (กันกดใช้โค้ดซ้ำแล้วลดซ้อน)
+  const fullAmount = Number(order.fullAmount ?? order.amount);
+  const amount     = Math.max(1, fullAmount - discount);
+
+  await ref.update({
+    fullAmount, amount,
+    discountCode: code, discountAmount: fullAmount - amount,
+  });
+
+  return {
+    amount, fullAmount, discountAmount: fullAmount - amount, code,
+    qr: await makePromptPayQR(amount),
+  };
+}
+
+/** ยกเลิกโค้ดที่ใส่ไว้ → กลับไปยอดเต็ม */
+export async function removeDiscount(
+  uid: string, orderId: string
+): Promise<{ amount: number; qr: string }> {
+  const db  = adminDb();
+  const ref = db.collection("orders").doc(orderId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new CheckoutError("ไม่พบคำสั่งซื้อ");
+
+  const order = snap.data()!;
+  if (order.userId !== uid)       throw new CheckoutError("คำสั่งซื้อไม่ใช่ของบัญชีนี้");
+  if (order.status !== "pending") throw new CheckoutError("คำสั่งซื้อนี้ปิดแล้ว");
+
+  const amount = Number(order.fullAmount ?? order.amount);
+  await ref.update({
+    amount,
+    fullAmount:     FieldValue.delete(),
+    discountCode:   FieldValue.delete(),
+    discountAmount: FieldValue.delete(),
+  });
+  return { amount, qr: await makePromptPayQR(amount) };
 }
 
 interface SlipOkResult {
@@ -193,11 +305,25 @@ export async function submitSlip(
       const g = await tx.get(slipGuard);
       if (g.exists) throw new Error("สลิปนี้ถูกใช้ไปแล้ว");
 
+      // โค้ดส่วนลด: ตัดเป็น "used" พร้อมกับการให้สิทธิ์ — อ่านก่อนเขียนตามกฎ tx
+      // ถ้าโค้ดถูกใช้ไปกับออเดอร์อื่นแล้ว ไม่ล้มรายการนี้ (เงินเข้ามาแล้ว) แค่ไม่ตัดซ้ำ
+      const codeRef = order.discountCode
+        ? db.collection("discountCodes").doc(String(order.discountCode))
+        : null;
+      const codeSnap = codeRef ? await tx.get(codeRef) : null;
+
       const courseRef = db.collection("userCourses").doc();
       tx.set(slipGuard, { orderId, uid, at: FieldValue.serverTimestamp() });
       tx.update(orderRef, {
         status: "paid", slipRef: transRef, paidAt: FieldValue.serverTimestamp(),
       });
+      if (codeRef && codeSnap?.exists && codeSnap.data()!.status === "unused") {
+        tx.update(codeRef, {
+          status: "used",
+          usedAt: FieldValue.serverTimestamp(),
+          usedOrderId: orderId,
+        });
+      }
       tx.set(courseRef, {
         userId: uid, email: order.email,
         courseId: order.courseId, courseName: order.courseName,

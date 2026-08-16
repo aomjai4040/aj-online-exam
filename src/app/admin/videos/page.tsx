@@ -2,12 +2,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   getAllVideos, saveVideo, deleteVideo, parseYouTubeId,
-  type CourseVideo, type VideoInput,
+  type CourseVideo, type VideoInput, type VideoField,
 } from "@/lib/video-firestore";
 
 // ─── /admin/videos — จัดการคอร์สวิดีโอ (YouTube unlisted) ─────────────────────
 
-const EMPTY_FORM = { title: "", url: "", chapter: "", order: "", duration: "", isSample: false };
+const EMPTY_FORM = { title: "", url: "", chapter: "", order: "", duration: "", isSample: false, field: "dcd" as VideoField };
 
 interface BulkRow {
   line:     number;
@@ -81,7 +81,7 @@ export default function AdminVideosPage() {
     setForm({
       title: v.title, url: `https://youtu.be/${v.ytId}`,
       chapter: v.chapter, order: String(v.order), duration: v.duration,
-      isSample: v.isSample,
+      isSample: v.isSample, field: v.field,
     });
     setShowForm(true);
   }
@@ -102,6 +102,7 @@ export default function AdminVideosPage() {
       duration:    form.duration.trim(),
       isPublished: editing ? editing.isPublished : true,
       isSample:    form.isSample,
+      field:       form.field,
     };
     setSaving(true);
     try {
@@ -124,7 +125,7 @@ export default function AdminVideosPage() {
       for (const r of good) {
         await saveVideo(null, {
           title: r.title, ytId: r.ytId!, chapter: r.chapter,
-          order: r.order ?? autoOrder++, duration: r.duration, isPublished: true, isSample: false,
+          order: r.order ?? autoOrder++, duration: r.duration, isPublished: true, isSample: false, field: "dcd",
         });
         saved++;
       }
@@ -146,7 +147,7 @@ export default function AdminVideosPage() {
     try {
       await saveVideo(v.id, {
         title: v.title, ytId: v.ytId, chapter: v.chapter,
-        order: v.order, duration: v.duration, isPublished: !v.isPublished, isSample: v.isSample,
+        order: v.order, duration: v.duration, isPublished: !v.isPublished, isSample: v.isSample, field: v.field,
       });
       setVideos((prev) => prev.map((x) => x.id === v.id ? { ...x, isPublished: !v.isPublished } : x));
     } catch { setError("บันทึกไม่สำเร็จ"); }
@@ -158,7 +159,7 @@ export default function AdminVideosPage() {
     try {
       await saveVideo(v.id, {
         title: v.title, ytId: v.ytId, chapter: v.chapter,
-        order: v.order, duration: v.duration, isPublished: v.isPublished, isSample: !v.isSample,
+        order: v.order, duration: v.duration, isPublished: v.isPublished, isSample: !v.isSample, field: v.field,
       });
       setVideos((prev) => prev.map((x) => x.id === v.id ? { ...x, isSample: !v.isSample } : x));
     } catch { setError("บันทึกไม่สำเร็จ"); }
@@ -348,6 +349,30 @@ export default function AdminVideosPage() {
                 </div>
               </div>
             </div>
+            {/* สนามของคลิป — ตัดสินว่าใครเห็น (สป.สธ. = คอร์สเต็มเดิม / คร. = คนซื้อคอร์ส คร.) */}
+            <div>
+              <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
+                สนามของคลิป
+              </label>
+              <div className="flex gap-2">
+                {([
+                  { v: "dcd",  label: "กรมควบคุมโรค (คร.)" },
+                  { v: "moph", label: "สป.สธ. (คอร์สเดิม)" },
+                ] as const).map((f) => (
+                  <button key={f.v} type="button"
+                    onClick={() => setForm({ ...form, field: f.v })}
+                    className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
+                    style={{
+                      backgroundColor: form.field === f.v ? "#EBF5F3" : "#FAFAF8",
+                      border: `1.5px solid ${form.field === f.v ? "#0B6E65" : "#EBEBEA"}`,
+                      color: form.field === f.v ? "#0B6E65" : "#6B7280",
+                    }}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* คลิปตัวอย่างฟรี */}
             <label className="flex items-start gap-2.5 cursor-pointer rounded-xl px-3.5 py-3"
               style={{ backgroundColor: form.isSample ? "#FEF9EC" : "#FAFAF8", border: `1px solid ${form.isSample ? "#FCD34D" : "#EBEBEA"}` }}>
@@ -418,6 +443,10 @@ export default function AdminVideosPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[13.5px] font-bold text-gray-900 truncate">
                           {v.order}. {v.title}
+                          {v.field === "dcd" && (
+                            <span className="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full align-middle"
+                              style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>คร.</span>
+                          )}
                           {v.isSample && (
                             <span className="ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full align-middle"
                               style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>🎁 ตัวอย่างฟรี</span>

@@ -13,16 +13,18 @@ import { FieldValue } from "firebase-admin/firestore";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function hasAnyCourse(uid: string): Promise<boolean> {
+/** courseId ทั้งหมดของผู้ใช้ — ใช้ทั้งเช็คสิทธิ์และกรองชุดตามสนามใน pickDaily */
+async function userCourseIds(uid: string): Promise<string[]> {
   const snap = await adminDb().collection("userCourses")
-    .where("userId", "==", uid).limit(1).get();
-  return !snap.empty;
+    .where("userId", "==", uid).get();
+  return snap.docs.map((d) => String(d.data().courseId ?? "")).filter(Boolean);
 }
 
 export async function GET(req: NextRequest) {
   const user = await verifyBearer(req.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await hasAnyCourse(user.uid))) {
+  const courseIds = await userCourseIds(user.uid);
+  if (courseIds.length === 0) {
     return NextResponse.json({ error: "no-access" }, { status: 403 });
   }
 
@@ -42,7 +44,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const pick = await pickDaily(db, today, user.uid);
+    const pick = await pickDaily(db, today, user.uid, courseIds);
     if (!pick) return NextResponse.json({ error: "no-quiz" }, { status: 404 });
 
     return NextResponse.json({
@@ -64,7 +66,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await verifyBearer(req.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await hasAnyCourse(user.uid))) {
+  const courseIds = await userCourseIds(user.uid);
+  if (courseIds.length === 0) {
     return NextResponse.json({ error: "no-access" }, { status: 403 });
   }
 
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest) {
     const ref   = db.collection("users").doc(user.uid).collection("dailyQuiz").doc(today);
 
     // ตรวจว่าชุดที่ส่งมาเป็นชุดของวันนี้จริง (กันยิง exam อื่น)
-    const pick = await pickDaily(db, today, user.uid);
+    const pick = await pickDaily(db, today, user.uid, courseIds);
     if (!pick || pick.examId !== body.examId) {
       return NextResponse.json({ error: "wrong-quiz" }, { status: 409 });
     }

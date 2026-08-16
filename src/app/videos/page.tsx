@@ -36,13 +36,17 @@ export default function VideosPage() {
       try {
         const a = await getUserAccess(user.uid);
         setAccess(a);
-        if (a.hasFull || a.hasReview) {
+        if (a.hasFull || a.hasReview || a.hasDcd) {
           const [vsAll, pg] = await Promise.all([
             getPublishedVideos(),
             getAllVideoProgress(user.uid).catch(() => new Map<string, VideoProgress>()),
           ]);
-          // แพ็กติวทบทวน (499) เห็นเฉพาะบท "โค้งสุดท้าย" — คอร์สเต็มเห็นครบ
-          const vs = a.hasFull ? vsAll : vsAll.filter((v) => v.chapter.includes("โค้งสุดท้าย"));
+          // แยกตามสนาม (Aj 2026-08-16): คลิป คร. เห็นเฉพาะคนซื้อคอร์ส คร.
+          // ฝั่ง สป.สธ.: คอร์สเต็มเห็นครบ · แพ็กติวทบทวน (499) เห็นเฉพาะบท "โค้งสุดท้าย"
+          const vs = vsAll.filter((v) =>
+            v.field === "dcd"
+              ? a.hasDcd
+              : (a.hasFull || (a.hasReview && v.chapter.includes("โค้งสุดท้าย"))));
           setVideos(vs);
           setProgress(pg);
           // ?v=<id> เจาะไปคลิปตัวนั้นตรง ๆ (ปุ่มวันที่ในหน้าติวโค้งสุดท้ายใช้)
@@ -102,7 +106,7 @@ export default function VideosPage() {
   if (guard !== "allowed" || loading) return <AccessGuardSpinner />;
 
   // ── ยังไม่มีสิทธิ์วิดีโอเลย (ไม่มีทั้งเต็มและแพ็กติวทบทวน) → upsell ─────────
-  if (!access.hasFull && !access.hasReview) {
+  if (!access.hasFull && !access.hasReview && !access.hasDcd) {
     return (
       <div className="min-h-screen bg-stone-50 pb-28">
         <div className="max-w-lg mx-auto px-5 pt-14 text-center">
@@ -183,7 +187,9 @@ export default function VideosPage() {
               style={{ aspectRatio: "16/9" }}>
               {access.hasFull
                 ? "ยังไม่มีวิดีโอในคอร์ส — Admin เพิ่มได้ที่ Admin › คอร์สวิดีโอ"
-                : "🎬 คลิปสรุปโค้งสุดท้ายกำลังทยอยมาระหว่าง 1–14 ส.ค. — กลับมาเช็คที่นี่ได้เลย"}
+                : access.hasDcd
+                ? "คลิปติวสนามกรมควบคุมโรคกำลังทยอยมา — มีคลิปใหม่พี่อ้อมแจ้งในกลุ่ม LINE ทุกครั้ง"
+                : "คลิปสรุปโค้งสุดท้ายกำลังทยอยมา — กลับมาเช็คที่นี่ได้เลย"}
             </div>
           )}
         </div>
@@ -205,7 +211,7 @@ export default function VideosPage() {
       <div className="max-w-2xl mx-auto lg:max-w-none px-5 lg:px-0 pt-4">
         {access.hasFull ? (
           <CourseResources />
-        ) : (
+        ) : !access.hasReview ? null : (
           <Link href="/checkout/up-full2"
             className="block rounded-2xl px-4 py-3.5 text-[13px] active:scale-[0.99] transition-transform"
             style={{ backgroundColor: "#FDF6E9", color: "#92400E", border: "1px solid #FDE9C8" }}>

@@ -27,9 +27,11 @@
            rounded-xl text-sm font-semibold text-white
            active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed
            transition-all duration-150;
-    background-color: #0B6E65;
+    background-color: #0B6E65; /* fallback */
+    background-image: linear-gradient(135deg, #10857A 0%, #0B6E65 55%, #095B54 100%);
+    box-shadow: 0 2px 10px -2px rgba(11, 110, 101, 0.45);
   }
-  .btn-primary:hover:not(:disabled) { background-color: #095E57; }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
@@ -44,6 +46,36 @@
            hover:bg-red-700 active:bg-red-800 active:scale-[0.97]
            disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150;
   }
+  /* ── Cards ────────────────────────────────────── */
+  /* การ์ดยกลอยด้วยเงานุ่ม แทนกรอบเทา 1px แข็ง ๆ ที่ซ้ำกันทุกใบ
+     (ใช้แทน style={{ border: "1px solid #EBEBEA" }} เดิมทีละจุด) */
+  .card-elev {
+    @apply bg-white rounded-2xl;
+    border: 1px solid rgba(17, 24, 39, 0.05);
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 8px 20px -8px rgba(16, 24, 40, 0.10);
+  }
+  .card-elev-hover {
+    @apply transition-all duration-200;
+  }
+  .card-elev-hover:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 2px 4px rgba(16, 24, 40, 0.05),
+      0 14px 28px -10px rgba(16, 24, 40, 0.14);
+  }
+
+  /* หัวข้อ section: แท่งสีแบรนด์ + ตัวหนาเข้ม (แทนตัวเทา uppercase แบบ template) */
+  .section-head {
+    @apply flex items-center gap-2.5;
+  }
+  .section-head::before {
+    content: "";
+    @apply block w-1 h-5 rounded-full flex-shrink-0;
+    background: linear-gradient(180deg, #10857A, #0B6E65);
+  }
+
   /* kept for admin pages that still use the gradient accent */
   .btn-mint {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5

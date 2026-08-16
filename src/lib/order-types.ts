@@ -9,7 +9,8 @@ export type OrderTier =
   | "full"       // 699 คอร์สเต็ม
   | "upgrade"    // 400: app → full
   | "up-review"  // 200: app → review
-  | "up-full2";  // 200: review → full
+  | "up-full2"   // 200: review → full
+  | "dcd";       // สนามกรมควบคุมโรค 2569 — ซื้อแยกจาก สป.สธ.
 export type OrderStatus = "pending" | "paid" | "rejected" | "expired";
 
 export interface Order {
@@ -17,7 +18,11 @@ export interface Order {
   userId:     string;
   email:      string;
   tier:       OrderTier;
-  amount:     number;        // บาท (จำนวนเต็ม)
+  amount:     number;        // บาท (จำนวนเต็ม) — ยอดที่ต้องโอนจริง (หักส่วนลดแล้ว)
+  /** ยอดเต็มก่อนหักส่วนลด — มีค่าเฉพาะออเดอร์ที่ใช้โค้ด */
+  fullAmount?:     number;
+  discountCode?:   string;
+  discountAmount?: number;
   status:     OrderStatus;
   courseId:   string;        // สิทธิ์ที่จะได้เมื่อจ่ายสำเร็จ (app-* = App Only)
   courseName: string;
@@ -27,9 +32,18 @@ export interface Order {
   createdAt:  Date;
 }
 
+import { PRICING, dcdCurrentPrice } from "./pricing";
+
 /** map tier → courseId/courseName/ราคา (ฝั่ง server ใช้กำหนดของจริง) */
 export function tierPlan(tier: OrderTier): { courseId: string; courseName: string; amount: number } {
   switch (tier) {
+    case "dcd":
+      // ราคาตามช่วงเวลา — โปรเปิดตัว 499 ถึง 31 ส.ค. แล้วกลับ 699 เอง
+      return {
+        courseId:   "dcd-2026",
+        courseName: `${PRICING.dcd.name} (สอบ 20 ก.ย. 69)`,
+        amount:     dcdCurrentPrice().amount,
+      };
     case "app":
       return { courseId: "app-2026", courseName: "App Only (แอปข้อสอบ) 2569", amount: 299 };
     case "review":

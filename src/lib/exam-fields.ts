@@ -1,0 +1,127 @@
+/**
+ * exam-fields.ts — ทะเบียน "สนามสอบ" ทั้งหมดของแอป (แหล่งเดียว)
+ *
+ * แอปเริ่มจากสนาม สป.สธ. สนามเดียว แล้วขยายเป็นศูนย์รวมของคนเตรียมสอบ
+ * สายสาธารณสุขและสิ่งแวดล้อม — เพิ่มสนามใหม่ = เติม 1 entry ใน EXAM_FIELDS
+ * ไม่ต้องแก้หน้าแรก/หน้าแพ็กเกจอีก
+ *
+ * กติกาสิทธิ์: ผูกกับ courseId prefix (ownPrefixes) แบบเดียวกับ lib/access.ts
+ *   สป.สธ. = app- / review- / full- (และ courseId เก่า moph69)
+ *   กรมควบคุมโรค = dcd-
+ * สนามใหม่ต้องใช้ prefix ของตัวเอง และต้องไปเพิ่มใน access.ts ด้วยถ้าจะแยก tier
+ */
+
+import type { UserAccess } from "./access";
+
+export type FieldStatus =
+  | "open"    // เปิดขายคอร์สอยู่
+  | "soon"    // ประกาศไว้ ยังไม่เปิดขาย
+  | "ended";  // สอบไปแล้ว (ยังเข้าทบทวนได้ถ้าเป็นสมาชิก)
+
+export interface ExamField {
+  id:      string;
+  /** ป้ายสั้นบนการ์ด */
+  code:    string;
+  name:    string;
+  blurb:   string;
+  status:  FieldStatus;
+  /** สีประจำสนาม — ใช้เป็นแถบ/ป้ายบนการ์ด */
+  accent:  string;
+  /** วันสอบข้อเขียน (ถ้าประกาศแล้ว) */
+  examDate?:   string;   // YYYY-MM-DD
+  examLabel?:  string;
+  /** วันปิดรับสมัครสอบของหน่วยงาน (ไม่ใช่ของคอร์ส) */
+  applyClose?: string;   // YYYY-MM-DD
+  /** courseId prefix ที่นับว่าเป็นเจ้าของสนามนี้ */
+  ownPrefixes: string[];
+  /** ปลายทางเมื่อ "มีสิทธิ์แล้ว" */
+  hrefOwned:   string;
+  /** ปลายทางเมื่อ "ยังไม่มีสิทธิ์" — ไม่มี = ยังขายไม่ได้ */
+  hrefBuy?:    string;
+  price?:      number;
+}
+
+export const EXAM_FIELDS: ExamField[] = [
+  {
+    id: "dcd", code: "คร.",
+    name:  "กรมควบคุมโรค",
+    blurb: "นักวิชาการสาธารณสุขปฏิบัติการ",
+    status: "open",
+    accent: "#0B6E65",
+    examDate: "2026-09-20", examLabel: "สอบข้อเขียน 20 ก.ย.",
+    applyClose: "2026-09-04",
+    ownPrefixes: ["dcd-"],
+    hrefOwned: "/exams",
+    hrefBuy:   "/checkout/dcd",
+  },
+  {
+    id: "moph", code: "สป.สธ.",
+    name:  "สำนักงานปลัดกระทรวงสาธารณสุข",
+    blurb: "นักวิชาการสาธารณสุขปฏิบัติการ",
+    status: "ended",
+    accent: "#7C3AED",
+    examDate: "2026-08-15", examLabel: "สอบไปแล้ว 15 ส.ค.",
+    ownPrefixes: ["app-", "review-", "full-", "moph"],
+    hrefOwned: "/exams",
+    hrefBuy:   "/packages",
+  },
+  // ── สนามที่ประกาศไว้ ยังไม่เปิดขาย (Aj แจ้งแผน 2026-08-16) ────────────────
+  // เปิดขายเมื่อไหร่: เปลี่ยน status เป็น "open" + ใส่ hrefBuy/price
+  {
+    id: "license", code: "ใบประกอบ",
+    name:  "ใบประกอบวิชาชีพการสาธารณสุขชุมชน",
+    blurb: "สอบขึ้นทะเบียนผู้ประกอบวิชาชีพ",
+    status: "soon", accent: "#F59E0B",
+    ownPrefixes: ["license-"],
+    hrefOwned: "/exams",
+  },
+  {
+    id: "bma", code: "กทม.",
+    name:  "ข้าราชการกรุงเทพมหานคร",
+    blurb: "สายสาธารณสุขและสิ่งแวดล้อม",
+    status: "soon", accent: "#EF4444",
+    ownPrefixes: ["bma-"],
+    hrefOwned: "/exams",
+  },
+  {
+    id: "govemp", code: "พนักงานราชการ",
+    name:  "พนักงานราชการ สายสาธารณสุข",
+    blurb: "หลายหน่วยงาน เปิดรับตลอดปี",
+    status: "soon", accent: "#3B82F6",
+    ownPrefixes: ["govemp-"],
+    hrefOwned: "/exams",
+  },
+];
+
+// ─── Helpers (pure) ───────────────────────────────────────────────────────────
+
+export function ownsField(field: ExamField, access: UserAccess): boolean {
+  return access.packageIds.some((id) => {
+    const low = id.toLowerCase();
+    return field.ownPrefixes.some((p) => low.startsWith(p));
+  });
+}
+
+/** จำนวนวันถึงวันที่กำหนด (0 = วันนี้, ติดลบ = ผ่านไปแล้ว) */
+export function daysUntil(isoDate: string, now: Date = new Date()): number {
+  const a = new Date(now);            a.setHours(0, 0, 0, 0);
+  const b = new Date(`${isoDate}T00:00:00+07:00`); b.setHours(0, 0, 0, 0);
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+}
+
+/** เรียงลำดับที่ควรโชว์: สนามที่ซื้อแล้ว → เปิดขาย (ใกล้สอบก่อน) → เร็ว ๆ นี้ → จบแล้ว */
+export function sortFields(fields: ExamField[], access: UserAccess): ExamField[] {
+  const rank = (f: ExamField) => {
+    if (ownsField(f, access)) return 0;
+    if (f.status === "open")  return 1;
+    if (f.status === "soon")  return 2;
+    return 3;
+  };
+  return [...fields].sort((a, b) => {
+    const r = rank(a) - rank(b);
+    if (r !== 0) return r;
+    const da = a.examDate ? daysUntil(a.examDate) : 9999;
+    const db = b.examDate ? daysUntil(b.examDate) : 9999;
+    return da - db;
+  });
+}

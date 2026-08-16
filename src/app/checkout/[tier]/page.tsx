@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -7,13 +7,19 @@ import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
 import { tierPlan, type OrderTier } from "@/lib/order-types";
 import { BRAND } from "@/lib/subjects";
+import { DCD_INTAKE, intakeComplete, type IntakeAnswers } from "@/lib/dcd-intake";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import CourseResources from "@/components/CourseResources";
+import LineJoinButton from "@/components/LineJoinButton";
+import DriveFilesButton from "@/components/DriveFilesButton";
 
 // ─── /checkout/[tier] — จ่ายเงินในเว็บ (PromptPay + อัปสลิป → ตรวจอัตโนมัติ) ────
 
-type Phase = "loading" | "qr" | "verifying" | "success" | "error";
-const TIERS: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2"];
+type Phase = "loading" | "intake" | "qr" | "verifying" | "success" | "error";
+
+/** กันถามซ้ำเมื่อกลับเข้าหน้านี้อีกรอบ (เช่น สลิปไม่ผ่านแล้วรีโหลด) */
+const INTAKE_DONE_KEY = "dcd-intake-done";
+const TIERS: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2", "dcd"];
 
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -32,31 +38,94 @@ export default function CheckoutPage() {
   const fileRef  = useRef<HTMLInputElement>(null);
 
   const [phase,   setPhase]   = useState<Phase>("loading");
-  const [order,   setOrder]   = useState<{ orderId: string; amount: number; qr: string; courseName: string } | null>(null);
+  const [order,   setOrder]   = useState<{
+    orderId: string; amount: number; qr: string; courseName: string;
+    fullAmount?: number; discountAmount?: number; discountCode?: string;
+  } | null>(null);
   const [error,   setError]   = useState("");
   const [okName,  setOkName]  = useState("");
+
+  // โค้ดส่วนลด (ได้จากการทำแบบประเมินที่ /feedback)
+  const [codeInput, setCodeInput] = useState("");
+  const [codeBusy,  setCodeBusy]  = useState(false);
+  const [codeErr,   setCodeErr]   = useState("");
 
   const validTier = TIERS.includes(tier as OrderTier);
   const plan = validTier ? tierPlan(tier as OrderTier) : null;
 
-  // สร้างออเดอร์ + QR
+  // แบบสอบถามก่อนจ่าย (เฉพาะคอร์ส คร.)
+  const [intake, setIntake] = useState<IntakeAnswers>({});
+
+  const createOrderNow = useCallback(async (intakeAnswers?: IntakeAnswers) => {
+    if (!user) return;
+    setPhase("loading");
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tier, intake: intakeAnswers }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "สร้างคำสั่งซื้อไม่สำเร็จ"); setPhase("error"); return; }
+      setOrder(data);
+      setPhase("qr");
+    } catch { setError("สร้างคำสั่งซื้อไม่สำเร็จ กรุณาลองใหม่"); setPhase("error"); }
+  }, [user, tier]);
+
+  // dcd → ตอบแบบสอบถามสั้น ๆ ก่อน แล้วค่อยสร้างออเดอร์ + QR | tier อื่นสร้างทันที
   useEffect(() => {
     if (guard !== "allowed" || !user || !validTier) return;
-    (async () => {
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch("/api/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ tier }),
-        });
-        const data = await res.json();
-        if (!res.ok) { setError(data.error ?? "สร้างคำสั่งซื้อไม่สำเร็จ"); setPhase("error"); return; }
-        setOrder(data);
-        setPhase("qr");
-      } catch { setError("สร้างคำสั่งซื้อไม่สำเร็จ กรุณาลองใหม่"); setPhase("error"); }
-    })();
-  }, [guard, user, tier, validTier]);
+    if (tier === "dcd" && !localStorage.getItem(INTAKE_DONE_KEY)) {
+      setPhase("intake");
+      return;
+    }
+    createOrderNow();
+  }, [guard, user, tier, validTier, createOrderNow]);
+
+  function submitIntake() {
+    if (!intakeComplete(intake)) return;
+    try { localStorage.setItem(INTAKE_DONE_KEY, "1"); } catch {}
+    createOrderNow(intake);
+  }
+
+  /** ใส่โค้ด → ยอดใหม่ + QR ใหม่ (ยอดฝังใน QR ต้องตรงกับยอดที่ต้องโอน) */
+  async function applyCode() {
+    if (!user || !order || codeBusy || !codeInput.trim()) return;
+    setCodeBusy(true); setCodeErr("");
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/checkout/code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId: order.orderId, code: codeInput }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setCodeErr(d.error ?? "ใช้โค้ดไม่สำเร็จ"); return; }
+      setOrder({ ...order, amount: d.amount, qr: d.qr,
+        fullAmount: d.fullAmount, discountAmount: d.discountAmount, discountCode: d.code });
+      setCodeInput("");
+    } catch { setCodeErr("ใช้โค้ดไม่สำเร็จ ลองใหม่อีกครั้ง"); }
+    finally { setCodeBusy(false); }
+  }
+
+  async function removeCode() {
+    if (!user || !order || codeBusy) return;
+    setCodeBusy(true); setCodeErr("");
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/checkout/code", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId: order.orderId }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setCodeErr(d.error ?? "ยกเลิกโค้ดไม่สำเร็จ"); return; }
+      setOrder({ ...order, amount: d.amount, qr: d.qr,
+        fullAmount: undefined, discountAmount: undefined, discountCode: undefined });
+    } catch { setCodeErr("ยกเลิกโค้ดไม่สำเร็จ"); }
+    finally { setCodeBusy(false); }
+  }
 
   async function handleSlip(file: File) {
     if (!user || !order) return;
@@ -102,7 +171,19 @@ export default function CheckoutPage() {
         <p className="text-[14px] mb-1" style={{ color: "#A8A8A6" }}>ปลดล็อกเรียบร้อยแล้ว</p>
         <p className="text-[16px] font-bold mb-6" style={{ color: BRAND.primary }}>{okName}</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
-          {tier === "review" || tier === "up-review" ? (
+          {tier === "dcd" ? (
+            <>
+              {/* คร. — เข้ากลุ่ม LINE ก่อน (ประกาศทุกอย่างอยู่ที่นั่น) แล้วค่อยเริ่มทำข้อสอบ */}
+              <LineJoinButton field="dcd" label="เข้ากลุ่ม LINE คอร์ส คร. เลย" />
+              <DriveFilesButton field="dcd" />
+              <button onClick={() => router.push("/exams")}
+                className="btn-secondary w-full py-3 text-[14px]">เริ่มทำข้อสอบ</button>
+              <p className="text-[12.5px] leading-relaxed mt-1" style={{ color: "#A8A8A6" }}>
+                คลิปและข้อสอบเฉพาะสนามกรมควบคุมโรค พี่อ้อมจะทยอยเพิ่มให้
+                มีของใหม่เมื่อไหร่แจ้งในกลุ่ม LINE ทุกครั้งนะคะ
+              </p>
+            </>
+          ) : tier === "review" || tier === "up-review" ? (
             <>
               {/* แพ็กติวทบทวน: พาไปแผน 14 วัน + คลิปโค้งสุดท้าย (ไม่มีชีท/กลุ่ม LINE) */}
               <button onClick={() => router.push("/final-review")}
@@ -145,6 +226,75 @@ export default function CheckoutPage() {
           {plan!.courseName} · <span className="font-bold" style={{ color: BRAND.primary }}>฿{plan!.amount}</span>
         </p>
 
+        {phase === "intake" && (
+          <>
+            <div className="rounded-2xl px-4 py-3.5 mb-4"
+              style={{ backgroundColor: "#EBF5F3", border: "1.5px solid #C3E5DE" }}>
+              <p className="text-[13.5px] font-bold" style={{ color: "#0B4F48" }}>
+                ก่อนชำระเงิน ขอถาม 4 ข้อสั้น ๆ (30 วินาที)
+              </p>
+              <p className="text-[12.5px] mt-0.5" style={{ color: "#0B6E65" }}>
+                พี่อ้อมจะใช้จัดลำดับว่าติวเรื่องไหนก่อน ให้ตรงกับที่น้องกังวลที่สุด
+              </p>
+            </div>
+
+            {DCD_INTAKE.map((q) => {
+              const cur = intake[q.id];
+              return (
+                <div key={q.id} className="bg-white rounded-2xl px-4 py-4 mb-3"
+                  style={{ border: "1px solid #EBEBEA" }}>
+                  <p className="text-[14.5px] font-bold text-gray-900 leading-snug mb-0.5">
+                    {q.title}
+                  </p>
+                  {q.sub && (
+                    <p className="text-[12.5px] mb-2.5" style={{ color: "#A8A8A6" }}>{q.sub}</p>
+                  )}
+                  {!q.sub && <div className="mb-2.5" />}
+                  <div className="space-y-2">
+                    {q.choices.map((c) => {
+                      const sel = q.multi
+                        ? Array.isArray(cur) && cur.includes(c.value)
+                        : cur === c.value;
+                      return (
+                        <button key={c.value} type="button"
+                          onClick={() => setIntake((a) => {
+                            if (!q.multi) return { ...a, [q.id]: c.value };
+                            const arr = Array.isArray(a[q.id]) ? (a[q.id] as string[]) : [];
+                            if (arr.includes(c.value))
+                              return { ...a, [q.id]: arr.filter((x) => x !== c.value) };
+                            if (q.max && arr.length >= q.max) return a;
+                            return { ...a, [q.id]: [...arr, c.value] };
+                          })}
+                          className="w-full text-left rounded-xl px-4 py-3 transition-colors"
+                          style={{
+                            backgroundColor: sel ? "#EBF5F3" : "#FAFAF8",
+                            border: `2px solid ${sel ? BRAND.primary : "#EBEBEA"}`,
+                          }}>
+                          <span className="text-[14.5px] leading-snug"
+                            style={{ color: sel ? BRAND.primary : "#374151",
+                                     fontWeight: sel ? 600 : 400 }}>
+                            {c.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            <button onClick={submitIntake} disabled={!intakeComplete(intake)}
+              className="btn-primary w-full py-4 text-[15.5px] disabled:opacity-35">
+              ไปหน้าชำระเงิน →
+            </button>
+            {!intakeComplete(intake) && (
+              <p className="text-center text-[12.5px] mt-2" style={{ color: "#A8A8A6" }}>
+                ตอบครบทุกข้อแล้วปุ่มจะกดได้เลย
+              </p>
+            )}
+          </>
+        )}
+
         {(phase === "loading") && (
           <div className="flex flex-col items-center gap-3 py-16">
             <div className="w-8 h-8 rounded-full border-2 animate-spin"
@@ -170,12 +320,74 @@ export default function CheckoutPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={order.qr} alt="PromptPay QR" width={240} height={240}
                 className="mx-auto rounded-xl" style={{ border: "1px solid #F3F2F0" }} />
-              <p className="text-[26px] font-extrabold mt-3" style={{ color: BRAND.primary }}>
-                ฿{order.amount}
-              </p>
+              {order.discountCode ? (
+                <>
+                  <p className="text-[15px] mt-3 line-through" style={{ color: "#A8A8A6" }}>
+                    ฿{order.fullAmount}
+                  </p>
+                  <p className="text-[26px] font-extrabold leading-tight" style={{ color: BRAND.primary }}>
+                    ฿{order.amount}
+                  </p>
+                  <p className="text-[12.5px] font-semibold mt-0.5" style={{ color: "#15803D" }}>
+                    ใช้โค้ด {order.discountCode} ลดไป ฿{order.discountAmount}
+                  </p>
+                </>
+              ) : (
+                <p className="text-[26px] font-extrabold mt-3" style={{ color: BRAND.primary }}>
+                  ฿{order.amount}
+                </p>
+              )}
               <p className="text-[12px] mt-1" style={{ color: "#A8A8A6" }}>
                 ยอดเงินถูกฝังใน QR แล้ว — สแกนแล้วโอนได้เลย
               </p>
+            </div>
+
+            {/* ── โค้ดส่วนลด ─────────────────────────────────────────────── */}
+            <div className="bg-white rounded-2xl px-4 py-4 mb-4" style={{ border: "1px solid #EBEBEA" }}>
+              {order.discountCode ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-[20px]">🎁</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13.5px] font-bold" style={{ color: "#15803D" }}>
+                      ใช้โค้ด {order.discountCode} แล้ว
+                    </p>
+                    <p className="text-[12px]" style={{ color: "#A8A8A6" }}>
+                      ลด ฿{order.discountAmount} · QR ด้านบนเป็นยอดใหม่แล้ว
+                    </p>
+                  </div>
+                  <button onClick={removeCode} disabled={codeBusy}
+                    className="text-[12.5px] font-medium px-3 py-1.5 rounded-lg flex-shrink-0"
+                    style={{ backgroundColor: "#F5F5F3", color: "#A8A8A6" }}>
+                    ยกเลิก
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-[13.5px] font-bold text-gray-800 mb-2">
+                    มีโค้ดส่วนลดไหม
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      value={codeInput}
+                      onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                      placeholder="เช่น AJ100-XXXXX"
+                      autoCapitalize="characters" autoCorrect="off" spellCheck={false}
+                      className="flex-1 min-w-0 rounded-xl px-3.5 py-3 text-[16px] tracking-wider"
+                      style={{ border: "1.5px solid #EBEBEA", backgroundColor: "#FAFAF8" }} />
+                    <button onClick={applyCode} disabled={codeBusy || !codeInput.trim()}
+                      className="btn-primary px-5 text-[14.5px] disabled:opacity-40 flex-shrink-0">
+                      {codeBusy ? "…" : "ใช้โค้ด"}
+                    </button>
+                  </div>
+                  {codeErr && (
+                    <p className="text-[12.5px] mt-2" style={{ color: "#DC2626" }}>{codeErr}</p>
+                  )}
+                  <p className="text-[12px] mt-2" style={{ color: "#A8A8A6" }}>
+                    โค้ดจากการทำแบบประเมิน ดูได้ที่หน้า{" "}
+                    <Link href="/feedback" className="underline">แบบประเมิน</Link>
+                  </p>
+                </>
+              )}
             </div>
 
             {/* ขั้นตอน */}

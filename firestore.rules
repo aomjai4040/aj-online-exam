@@ -161,6 +161,26 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── แบบประเมินการสอน + โค้ดส่วนลดที่ได้จากการตอบ ────────────────────────
+    // เขียนผ่าน /api/feedback (Admin SDK) เท่านั้น — ถ้าให้ client เขียนเองได้
+    // จะปลอมโค้ดส่วนลดได้ | อ่าน: ของตัวเอง (ดูโค้ดตัวเอง) หรือ admin
+    match /feedback/{userId} {
+      allow read:  if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isAdmin();
+    }
+
+    match /discountCodes/{code} {
+      allow read:  if isAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    // แบบสอบถามก่อนจ่ายคอร์ส คร. — เขียนผ่าน /api/checkout (Admin SDK) เท่านั้น
+    match /dcdIntake/{userId} {
+      allow read:  if isAdmin();
+      allow write: if isAdmin();
+    }
+
     // ── MOPH Focus ──────────────────────────────────────────────────────────
     // หน้า user query ทั้ง collection แล้วกรอง client-side → ต้องอ่านได้เมื่อ login
     match /mophFocus/{docId} {

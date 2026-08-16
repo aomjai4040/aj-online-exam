@@ -13,6 +13,9 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
+/** สนามของคลิป — คลิปเก่าทั้งหมดไม่มี field = "moph" (สป.สธ.) อัตโนมัติ */
+export type VideoField = "moph" | "dcd";
+
 export interface CourseVideo {
   id:          string;
   title:       string;
@@ -22,6 +25,7 @@ export interface CourseVideo {
   duration:    string;   // "12:34" — กรอกเองเพื่อโชว์ในลิสต์ (ไม่บังคับ)
   isPublished: boolean;
   isSample:    boolean;  // คลิปตัวอย่างฟรี — คนยังไม่ซื้อดูได้ (ใน /videos, /packages)
+  field:       VideoField; // สนามของคลิป (Aj 2026-08-16: แต่ละสนามแยกขาด)
   createdAt:   Date;
 }
 
@@ -35,6 +39,7 @@ function toVideo(id: string, x: Record<string, unknown>): CourseVideo {
     duration:    String(x.duration ?? ""),
     isPublished: Boolean(x.isPublished ?? false),
     isSample:    Boolean(x.isSample ?? false),
+    field:       x.field === "dcd" ? "dcd" : "moph", // doc เก่าไม่มี field → moph
     createdAt:   x.createdAt instanceof Timestamp ? x.createdAt.toDate() : new Date(),
   };
 }
@@ -72,6 +77,7 @@ export interface VideoInput {
   duration:    string;
   isPublished: boolean;
   isSample:    boolean;
+  field:       VideoField;
 }
 
 /** Admin: สร้าง/แก้ไข */

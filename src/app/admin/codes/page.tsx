@@ -574,12 +574,16 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 // ─── Bulk single-use modal ──────────────────────────────────────────────────
-// โค้ดใช้ครั้งเดียวสำหรับ "คอร์สเต็ม" (courseId เดียวกับกลุ่มเดิม)
-const FULL_COURSE_ID   = "moph69";
-const FULL_COURSE_NAME = "คอร์สติว สป.สธ.2569 by AJ";
+// โค้ดใช้ครั้งเดียว — เลือกคอร์สได้ (สายขายผ่าน Admin AJ แจกทีละคน)
+// เพิ่มคอร์สใหม่ = เติม entry เดียว
+const BULK_COURSES = [
+  { id: "moph69",   name: "คอร์สติว สป.สธ.2569 by AJ",           label: "สป.สธ. คอร์สเต็ม" },
+  { id: "dcd-2026", name: "ติวเข้มกรมควบคุมโรค (สอบ 20 ก.ย. 69)", label: "กรมควบคุมโรค (คร.)" },
+] as const;
 
 function BulkModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [count,  setCount]  = useState("10");
+  const [course, setCourse] = useState<(typeof BULK_COURSES)[number]>(BULK_COURSES[0]);
   const [busy,   setBusy]   = useState(false);
   const [error,  setError]  = useState("");
   const [result, setResult] = useState<string[] | null>(null);
@@ -590,7 +594,7 @@ function BulkModal({ onClose, onCreated }: { onClose: () => void; onCreated: () 
     if (n < 1 || n > 100) { setError("จำนวนต้องอยู่ระหว่าง 1–100"); return; }
     setBusy(true); setError("");
     try {
-      const codes = await createSingleUseCodes(n, FULL_COURSE_ID, FULL_COURSE_NAME);
+      const codes = await createSingleUseCodes(n, course.id, course.name);
       setResult(codes);
       onCreated();
     } catch {
@@ -624,9 +628,25 @@ function BulkModal({ onClose, onCreated }: { onClose: () => void; onCreated: () 
           <div className="px-6 py-5 space-y-4">
             <p className="text-[12.5px] leading-relaxed rounded-xl px-4 py-3"
               style={{ backgroundColor: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1D4ED8" }}>
-              โค้ดชุดนี้เป็น <span className="font-bold">คอร์สเต็ม · ใช้ได้ครั้งเดียวต่อโค้ด</span> —
-              แจกให้สมาชิกกลุ่มที่จ่ายแล้วแต่ยังไม่ activate ทีละคน ใช้แล้วโค้ดตาย แชร์ต่อไม่ได้
+              โค้ด<span className="font-bold">ใช้ได้ครั้งเดียวต่อโค้ด</span> —
+              แจกให้คนที่จ่ายผ่าน Admin ทีละคน ใช้แล้วโค้ดตาย แชร์ต่อไม่ได้
             </p>
+            <div>
+              <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">คอร์ส</label>
+              <div className="flex gap-2">
+                {BULK_COURSES.map((c) => (
+                  <button key={c.id} type="button" onClick={() => setCourse(c)}
+                    className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
+                    style={{
+                      backgroundColor: course.id === c.id ? "#EBF5F3" : "#FAFAF8",
+                      border: `1.5px solid ${course.id === c.id ? "#0B6E65" : "#E0DFDC"}`,
+                      color: course.id === c.id ? "#0B6E65" : "#6B7280",
+                    }}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div>
               <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">จำนวนโค้ดที่ต้องการ</label>
               <input type="number" min={1} max={100}
