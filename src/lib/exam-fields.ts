@@ -48,10 +48,11 @@ export const EXAM_FIELDS: ExamField[] = [
     blurb: "นักวิชาการสาธารณสุขปฏิบัติการ",
     status: "open",
     accent: "#0B6E65",
-    examDate: "2026-09-20", examLabel: "สอบข้อเขียน 20 ก.ย.",
+    // Aj 2026-08-16: ยังไม่โชว์วันสอบ (กรมระบุว่าอาจปรับได้) — รอประกาศทางการ
+    examLabel: "วันสอบข้อเขียน รอประกาศ",
     applyClose: "2026-09-04",
     ownPrefixes: ["dcd-"],
-    hrefOwned: "/exams",
+    hrefOwned: "/exams?field=dcd",
     hrefBuy:   "/checkout/dcd",
   },
   {
@@ -76,22 +77,19 @@ export const EXAM_FIELDS: ExamField[] = [
     hrefOwned: "/exams",
   },
   {
-    id: "bma", code: "กทม.",
-    name:  "ข้าราชการกรุงเทพมหานคร",
-    blurb: "สายสาธารณสุขและสิ่งแวดล้อม",
+    id: "local", code: "อปท.",
+    name:  "องค์กรปกครองส่วนท้องถิ่น",
+    blurb: "สายงานสาธารณสุขและสิ่งแวดล้อม",
     status: "soon", accent: "#EF4444",
-    ownPrefixes: ["bma-"],
-    hrefOwned: "/exams",
-  },
-  {
-    id: "govemp", code: "พนักงานราชการ",
-    name:  "พนักงานราชการ สายสาธารณสุข",
-    blurb: "หลายหน่วยงาน เปิดรับตลอดปี",
-    status: "soon", accent: "#3B82F6",
-    ownPrefixes: ["govemp-"],
+    ownPrefixes: ["local-"],
     hrefOwned: "/exams",
   },
 ];
+
+/** สนามของชุดข้อสอบ — ตัดสินจาก packageId prefix (ไม่มี = คลัง สป.สธ. เดิม) */
+export function examSetField(exam: { packageId?: string }): "dcd" | "moph" {
+  return String(exam.packageId ?? "").toLowerCase().startsWith("dcd-") ? "dcd" : "moph";
+}
 
 // ─── Helpers (pure) ───────────────────────────────────────────────────────────
 

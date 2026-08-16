@@ -14,7 +14,7 @@ interface Insights {
   rejected: number;
   pendingList: {
     id: string; email: string; tier: string; amount: number; createdAt: string | null;
-    hasAccess: boolean; failReason: string | null; slipPath: string | null;
+    hasAccess: boolean; failReason: string | null; slipPath: string | null; manualReview?: boolean;
   }[];
   daily: { day: string; people: number; attempts: number; newGrants: number }[];
   generatedAt: string;
@@ -235,6 +235,9 @@ export default function AdminInsights() {
                     <div key={o.id} className="py-1.5" style={{ borderBottom: "1px solid #F3F2F0" }}>
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-gray-800 text-[13px] font-medium truncate flex-1">{o.email}</span>
+                        {o.manualReview && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>🙋 ยืนยันโอนแล้ว รอตรวจ</span>
+                        )}
                         {o.hasAccess ? (
                           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}>🟢 มีสิทธิ์แล้ว</span>
                         ) : (

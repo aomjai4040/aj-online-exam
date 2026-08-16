@@ -17,7 +17,9 @@ export function useLoginGuard(): GuardState {
     if (loading) return;
 
     if (!user) {
-      const to = `/login?from=${encodeURIComponent(pathname)}`;
+      // เก็บ query string ไปด้วย — ไม่งั้น ?field=dcd (คลังแยกสนาม) หายหลัง login
+      const search = typeof window !== "undefined" ? window.location.search : "";
+      const to = `/login?from=${encodeURIComponent(pathname + search)}`;
       console.log(`[LoginGuard] ${pathname} → ${to}`);
       setState("redirecting");
       router.replace(to);

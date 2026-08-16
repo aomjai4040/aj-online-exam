@@ -111,12 +111,20 @@ export async function POST(req: NextRequest) {
     }
 
     // เขียนพร้อมกัน — ไม่มีทางได้โค้ดโดยไม่มีคำตอบ หรือมีคำตอบแล้วไม่ได้โค้ด
+    //
+    // ⚠️ นิรนามโดยโครงสร้าง (Aj 2026-08-16: น้องกลัวไม่กล้าติเพราะเห็นบัญชี Google):
+    //   feedback/{uid}        = แค่ "คนนี้ตอบแล้ว" + โค้ดของเขา (กันตอบซ้ำ/ดูโค้ดตัวเอง)
+    //   feedbackAnswers/{สุ่ม} = คำตอบล้วน ๆ ไม่มี uid/email — โยงกลับหาคนตอบไม่ได้เลย
+    // เปิด Firestore console ดูก็พิสูจน์ได้ว่าคำตอบไม่ผูกกับใคร
     const batch = db.batch();
     batch.set(ref, {
       userId:    user.uid,
       userEmail: user.email,
-      answers,
       code,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    batch.set(db.collection("feedbackAnswers").doc(), {
+      answers,
       createdAt: FieldValue.serverTimestamp(),
     });
     batch.set(db.collection("discountCodes").doc(code), {

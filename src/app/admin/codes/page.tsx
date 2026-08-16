@@ -578,7 +578,7 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
 // เพิ่มคอร์สใหม่ = เติม entry เดียว
 const BULK_COURSES = [
   { id: "moph69",   name: "คอร์สติว สป.สธ.2569 by AJ",           label: "สป.สธ. คอร์สเต็ม" },
-  { id: "dcd-2026", name: "ติวเข้มกรมควบคุมโรค (สอบ 20 ก.ย. 69)", label: "กรมควบคุมโรค (คร.)" },
+  { id: "dcd-2026", name: "ติวเข้มกรมควบคุมโรค 2569", label: "กรมควบคุมโรค (คร.)" },
 ] as const;
 
 function BulkModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {

@@ -41,7 +41,7 @@ export function tierPlan(tier: OrderTier): { courseId: string; courseName: strin
       // ราคาตามช่วงเวลา — โปรเปิดตัว 499 ถึง 31 ส.ค. แล้วกลับ 699 เอง
       return {
         courseId:   "dcd-2026",
-        courseName: `${PRICING.dcd.name} (สอบ 20 ก.ย. 69)`,
+        courseName: `${PRICING.dcd.name} 2569`,
         amount:     dcdCurrentPrice().amount,
       };
     case "app":

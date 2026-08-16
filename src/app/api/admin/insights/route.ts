@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
     const pendingList: {
       id: string; email: string; tier: string; amount: number; createdAt: string | null;
       hasAccess: boolean; failReason: string | null; slipPath: string | null;
+      manualReview: boolean;
     }[] = [];
     ordersSnap.forEach((d) => {
       const o = d.data();
@@ -70,6 +71,7 @@ export async function GET(req: NextRequest) {
           hasAccess,
           failReason: o.lastFailReason ? String(o.lastFailReason) : null,
           slipPath:   o.lastSlipPath   ? String(o.lastSlipPath)   : null,
+          manualReview: o.manualReview === true, // ลูกค้ากดยืนยัน "โอนแล้วจริง" รอตรวจมือ
         });
       } else if (o.status === "rejected") rejected++;
     });

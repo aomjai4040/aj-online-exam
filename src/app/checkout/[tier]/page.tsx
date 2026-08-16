@@ -127,6 +127,11 @@ export default function CheckoutPage() {
     finally { setCodeBusy(false); }
   }
 
+  // นับครั้งที่สลิปไม่ผ่าน → เปิดทางส่งให้แอดมินตรวจเอง (กันคนคิดว่าจ่ายพลาดแล้วโอนซ้ำ)
+  const [failCount,  setFailCount]  = useState(0);
+  const [manualSent, setManualSent] = useState(false);
+  const [manualBusy, setManualBusy] = useState(false);
+
   async function handleSlip(file: File) {
     if (!user || !order) return;
     setPhase("verifying");
@@ -141,8 +146,28 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (data.ok) { setOkName(data.courseName); setPhase("success"); }
-      else { setError(data.reason ?? "ตรวจสลิปไม่ผ่าน"); setPhase("qr"); }
+      else {
+        setError(data.reason ?? "ตรวจสลิปไม่ผ่าน");
+        setFailCount((c) => c + 1);
+        setPhase("qr");
+      }
     } catch { setError("เกิดข้อผิดพลาด กรุณาลองใหม่"); setPhase("qr"); }
+  }
+
+  /** โอนแล้วจริงแต่ระบบตรวจไม่ผ่าน → ส่งเรื่องให้พี่อ้อมตรวจเอง (สลิปถึงมือแล้ว) */
+  async function requestManualReview() {
+    if (!user || !order || manualBusy) return;
+    setManualBusy(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/manual-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId: order.orderId }),
+      });
+      if (res.ok) { setManualSent(true); setError(""); }
+    } catch {}
+    finally { setManualBusy(false); }
   }
 
   if (guard !== "allowed") return <AccessGuardSpinner />;
@@ -397,10 +422,33 @@ export default function CheckoutPage() {
               ③ กดปุ่มด้านล่างเพื่ออัปสลิป — ระบบตรวจอัตโนมัติและปลดล็อกทันที
             </div>
 
-            {error && (
-              <div className="rounded-xl px-4 py-3 mb-4 text-[13px] font-medium"
-                style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
-                {error}
+            {manualSent ? (
+              <div className="rounded-xl px-4 py-3.5 mb-4"
+                style={{ backgroundColor: "#F0FDF4", border: "1.5px solid #BBF7D0" }}>
+                <p className="text-[13.5px] font-bold mb-1" style={{ color: "#15803D" }}>
+                  ✓ ส่งเรื่องถึงพี่อ้อมแล้ว — ไม่ต้องโอนซ้ำนะคะ
+                </p>
+                <p className="text-[12.5px] leading-relaxed" style={{ color: "#166534" }}>
+                  สลิปที่อัปโหลดไว้ถึงมือพี่อ้อมเรียบร้อย พี่อ้อมตรวจแล้วจะปลดล็อกคอร์สให้เลย
+                  (ปกติภายในไม่กี่ชั่วโมง) — เข้าแอปมาเช็คได้ ปลดล็อกแล้วเมนูจะเปิดเอง
+                </p>
+              </div>
+            ) : error && (
+              <div className="rounded-xl px-4 py-3.5 mb-4"
+                style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}>
+                <p className="text-[13px] font-bold mb-1.5" style={{ color: "#DC2626" }}>{error}</p>
+                <ul className="text-[12.5px] leading-relaxed space-y-1" style={{ color: "#B91C1C" }}>
+                  <li>• ใช้รูปสลิปเต็มใบที่บันทึกจากแอปธนาคาร (ไม่ใช่ภาพถ่ายหน้าจอที่ถูกครอป)</li>
+                  <li>• ยอดโอนต้องตรง ฿{order.amount} พอดี — ถ้าจะใส่โค้ดส่วนลด ต้องใส่ก่อนสแกนโอน</li>
+                  <li>• สลิป 1 ใบใช้ได้ครั้งเดียว ใช้ซ้ำจากออเดอร์อื่นไม่ได้</li>
+                </ul>
+                {failCount >= 1 && (
+                  <button onClick={requestManualReview} disabled={manualBusy}
+                    className="mt-3 w-full py-2.5 rounded-xl text-[13.5px] font-bold disabled:opacity-60"
+                    style={{ backgroundColor: "white", border: "1.5px solid #DC2626", color: "#DC2626" }}>
+                    {manualBusy ? "กำลังส่งเรื่อง…" : "โอนเงินแล้วแน่นอน → ส่งให้พี่อ้อมตรวจเอง"}
+                  </button>
+                )}
               </div>
             )}
 

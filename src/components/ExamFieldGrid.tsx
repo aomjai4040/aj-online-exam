@@ -67,10 +67,14 @@ function FieldCard({ field, access }: { field: ExamField; access: UserAccess }) 
           </p>
 
           <div className="flex items-end justify-between mt-3.5 gap-2">
-            {left !== null && left >= 0 && (
+            {left !== null && left >= 0 ? (
               <p className="text-[12.5px] font-semibold" style={{ color: "#9FE1CB" }}>
                 เหลือ <span className="text-[15px] font-extrabold" style={{ color: "#FBBF24" }}>{left}</span> วัน
                 · {field.examLabel}
+              </p>
+            ) : (
+              <p className="text-[12.5px] font-semibold" style={{ color: "#9FE1CB" }}>
+                {field.examLabel ?? "วันสอบรอประกาศ"}
               </p>
             )}
             {price && (
@@ -116,9 +120,11 @@ function FieldCard({ field, access }: { field: ExamField; access: UserAccess }) 
                 กำลังเตรียมคอร์ส
               </p>
             )}
-            {field.status === "open" && left !== null && left >= 0 && (
+            {field.status === "open" && (
               <p className="text-[12.5px] font-semibold" style={{ color: field.accent }}>
-                เหลือ {left} วัน · {field.examLabel}
+                {left !== null && left >= 0
+                  ? `เหลือ ${left} วัน · ${field.examLabel}`
+                  : (field.examLabel ?? "วันสอบรอประกาศ")}
               </p>
             )}
           </div>

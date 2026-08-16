@@ -5,6 +5,7 @@ import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
 import { getSubjectShort, normalizeSubject, isMockExam, SUBJECTS } from "@/lib/types";
 import { isFinalLapExam } from "@/lib/final-review";
+import { examSetField } from "@/lib/exam-fields";
 import type { Difficulty } from "@/lib/mock-data";
 import { getHistory, type ExamRecord } from "@/lib/exam-history";
 import { getUserHistory } from "@/lib/user-firestore";
@@ -309,11 +310,19 @@ export default function ExamsPage() {
     else      setAccess(EMPTY_ACCESS);
   }, [user]);
 
+  // สนามที่กำลังดู — ?field=dcd จากการ์ด "เข้าเรียน" ของสนาม คร.
+  // ไม่มีพารามิเตอร์ = คลัง สป.สธ. เดิม (แยกฐานกันเด็ดขาด — Aj 2026-08-16)
+  const [fieldParam, setFieldParam] = useState<"moph" | "dcd">("moph");
+
   useEffect(() => {
+    const f = new URLSearchParams(window.location.search).get("field");
+    const viewing: "moph" | "dcd" = f === "dcd" ? "dcd" : "moph";
+    setFieldParam(viewing);
     getPublishedExams()
       .then((data) => {
-        // Mock กับชุดติวโค้งสุดท้าย แยกไปเมนูของตัวเอง
-        setExams(data.filter((e) => !isMockExam(e) && !isFinalLapExam(e)));
+        // Mock กับชุดติวโค้งสุดท้าย แยกไปเมนูของตัวเอง + กรองตามสนามที่กำลังดู
+        setExams(data.filter((e) =>
+          !isMockExam(e) && !isFinalLapExam(e) && examSetField(e) === viewing));
         setLoadError(false);
       })
       .catch(() => setLoadError(true)) // แสดง error จริง ไม่ใช้ข้อมูลจำลอง
@@ -381,6 +390,12 @@ export default function ExamsPage() {
               </p>
               <h1 className="text-[22px] font-bold text-gray-900 leading-tight tracking-tight">
                 คลังข้อสอบ
+                {fieldParam === "dcd" && (
+                  <span className="ml-2 align-middle text-[12px] font-bold px-2.5 py-1 rounded-full"
+                    style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
+                    สนามกรมควบคุมโรค
+                  </span>
+                )}
               </h1>
             </div>
             {isFiltering && !loading && (
@@ -500,11 +515,15 @@ export default function ExamsPage() {
         {!loading && filtered.length === 0 && (
           <div className="py-20 text-center">
             <p className="text-[15px] font-semibold text-gray-800 mb-2">
-              {isFiltering ? "ไม่พบชุดข้อสอบ" : "ยังไม่มีชุดข้อสอบ"}
+              {isFiltering ? "ไม่พบชุดข้อสอบ"
+                : fieldParam === "dcd" ? "ข้อสอบสนามกรมควบคุมโรคกำลังทยอยมา"
+                : "ยังไม่มีชุดข้อสอบ"}
             </p>
             <p className="text-[13px] mb-6" style={{ color: "#A8A8A6" }}>
               {isFiltering
                 ? "ลองเปลี่ยนคำค้นหาหรือเลือกหมวดหมู่อื่น"
+                : fieldParam === "dcd"
+                ? "พี่อ้อมกำลังทำข้อสอบเจาะจงสนามนี้ให้ — มีชุดใหม่เมื่อไหร่แจ้งในกลุ่ม LINE ทุกครั้งค่ะ"
                 : "ชุดข้อสอบจะปรากฏที่นี่เมื่อมีการเพิ่มข้อมูล"}
             </p>
             {isFiltering && (

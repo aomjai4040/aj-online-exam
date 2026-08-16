@@ -117,11 +117,10 @@ export default function PackagesPage() {
             <div className="bg-white px-5 py-4">
               <div className="rounded-xl px-3.5 py-2.5 mb-3.5 text-[12.5px] leading-relaxed"
                 style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}>
-                <span className="font-bold">ไทม์ไลน์กรมควบคุมโรค:</span> รับสมัคร 17 ส.ค. – 4 ก.ย. ·
-                ประกาศรายชื่อ 11 ก.ย. · <span className="font-bold">สอบข้อเขียน 20 ก.ย.</span>
+                <span className="font-bold">รับสมัครสอบ:</span> 17 ส.ค. – 4 ก.ย. ที่ ddc.thaijobjob.com
                 {daysToDcdApplyClose() >= 0 && (
-                  <> · เหลือเวลาสมัครสอบอีก {daysToDcdApplyClose()} วัน</>
-                )}
+                  <> (เหลืออีก {daysToDcdApplyClose()} วัน)</>
+                )} · <span className="font-bold">วันสอบข้อเขียน รอประกาศ</span>
               </div>
 
               <div className="flex items-baseline gap-2 mb-1">
@@ -150,6 +149,7 @@ export default function PackagesPage() {
                   "Mock Exam จำลองสนามจริง จับเวลา + เกมทบทวน",
                   "Daily Quiz เจาะจุดอ่อนรายคน ชุดใหม่ทุกวัน",
                   "กลุ่ม LINE เฉพาะคอร์ส — สมัครแล้วกดเข้าจากในแอปได้เลย",
+                  "ตารางติวปรับให้ทันทีเมื่อกรมประกาศวันสอบ",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2 text-[13.5px] leading-relaxed text-gray-700">
                     <Check /> <span>{t}</span>

@@ -385,10 +385,15 @@ export default function FeedbackPage() {
           </p>
         )}
 
-        <p className="text-[12px] leading-relaxed text-center mt-6" style={{ color: "#A8A8A6" }}>
-          คำตอบใช้เพื่อปรับปรุงคอร์สเท่านั้น พี่อ้อมเห็นเป็นภาพรวม
-          และจะไม่เอาไปเปิดเผยเป็นรายบุคคลค่ะ
-        </p>
+        <div className="rounded-2xl px-4 py-3.5 mt-6"
+          style={{ backgroundColor: "#F5FAF9", border: "1px solid #C3E5DE" }}>
+          <p className="text-[12.5px] leading-relaxed" style={{ color: "#0B6E65" }}>
+            🔒 <span className="font-bold">คำตอบไม่ระบุตัวตนจริง ๆ นะคะ</span> —
+            ระบบแยกเก็บคำตอบไว้คนละที่กับบัญชี โดยไม่มีชื่อหรืออีเมลติดไปด้วยเลย
+            พี่อ้อมรู้แค่ว่า “ใครตอบแล้ว” (เพื่อออกโค้ดให้) แต่<span className="font-bold">ไม่มีทางรู้ว่าใครตอบอะไร</span>
+            ติได้เต็มที่เลยค่ะ คำติคือของขวัญที่พี่อยากได้ที่สุด
+          </p>
+        </div>
       </div>
       <BottomNav />
     </div>

@@ -169,6 +169,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // คำตอบแบบประเมิน — นิรนามโดยโครงสร้าง: doc ไม่มี uid/email โยงกลับไม่ได้
+    // เขียนผ่าน server เท่านั้น อ่านได้เฉพาะ admin (ผ่าน API ที่รวมเป็นภาพรวม)
+    match /feedbackAnswers/{docId} {
+      allow read, write: if isAdmin();
+    }
+
     match /discountCodes/{code} {
       allow read:  if isAdmin()
         || (isSignedIn() && resource.data.userId == request.auth.uid);

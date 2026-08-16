@@ -5,6 +5,7 @@
  * คืนเป็นตัวเลขรวม + ข้อความอิสระ (ไม่ผูกชื่อ) ตามที่บอกน้องไว้ในหน้าแบบประเมิน
  */
 import { NextRequest, NextResponse } from "next/server";
+import { FieldValue } from "firebase-admin/firestore";
 import { adminDb, verifyBearer } from "@/lib/firebase-admin";
 import { SURVEY, type SurveyAnswers } from "@/lib/feedback-types";
 
@@ -25,11 +26,29 @@ export async function GET(req: NextRequest) {
 
   try {
     const db = adminDb();
-    const [fbSnap, codeSnap, courseSnap] = await Promise.all([
+    const [fbSnap, ansSnap, codeSnap, courseSnap] = await Promise.all([
       db.collection("feedback").get(),
+      db.collection("feedbackAnswers").get(),
       db.collection("discountCodes").get(),
       db.collection("userCourses").get(),
     ]);
+
+    // migration ครั้งเดียว: ใบที่ส่งก่อนแยกเก็บนิรนาม (answers ติดอยู่ใน feedback/{uid})
+    // → ย้ายเข้า feedbackAnswers แล้วลบออกจาก doc ที่ผูกตัวตน
+    const legacy = fbSnap.docs.filter((d) => d.data().answers);
+    const legacyAnswers: FirebaseFirestore.DocumentData[] = [];
+    if (legacy.length > 0) {
+      const batch = db.batch();
+      for (const d of legacy) {
+        const a = d.data().answers;
+        legacyAnswers.push({ answers: a });
+        batch.set(db.collection("feedbackAnswers").doc(), {
+          answers: a, createdAt: d.data().createdAt ?? null,
+        });
+        batch.update(d.ref, { answers: FieldValue.delete() });
+      }
+      await batch.commit();
+    }
 
     // นับ "สมาชิกที่มีสิทธิ์ตอบ" จากจำนวนบัญชีที่มีคอร์ส (ไม่ใช่จำนวน userCourses)
     const members = new Set<string>();
@@ -45,8 +64,13 @@ export async function GET(req: NextRequest) {
       tally[q][v] = (tally[q][v] ?? 0) + 1;
     };
 
-    fbSnap.forEach((doc) => {
-      const a = (doc.data().answers ?? {}) as SurveyAnswers;
+    // รวมจากคอลเลกชันนิรนาม (+ ใบ legacy ที่เพิ่งย้าย)
+    const allAnswerDocs = [
+      ...ansSnap.docs.map((d) => d.data()),
+      ...legacyAnswers,
+    ];
+    allAnswerDocs.forEach((doc) => {
+      const a = (doc.answers ?? {}) as SurveyAnswers;
       for (const q of SURVEY) {
         const v = a[q.id];
         if (v === undefined || v === null) continue;

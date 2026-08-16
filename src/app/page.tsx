@@ -14,6 +14,7 @@ import { FEEDBACK_REWARD } from "@/lib/feedback-types";
 import { getUserAccess } from "@/lib/access";
 import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
 import ExamFieldGrid from "@/components/ExamFieldGrid";
+import { examSetField } from "@/lib/exam-fields";
 import { getRecentResults } from "@/lib/user-firestore";
 import { pickGreeting, type Greeting } from "@/lib/greeting";
 import TodayPlanCard from "@/components/TodayPlanCard";
@@ -197,7 +198,7 @@ function FeedbackCard() {
           ช่วยประเมินการสอน · รับโค้ดลด ฿{FEEDBACK_REWARD.amount}
         </p>
         <p className="text-[12px] mt-0.5" style={{ color: "#B45309" }}>
-          ใช้เวลา 2 นาที · ใช้กับคอร์สไหนก็ได้ที่พี่อ้อมเปิดต่อจากนี้
+          2 นาที · ตอบแบบไม่ระบุตัวตน · ใช้กับคอร์สไหนก็ได้ที่เปิดต่อจากนี้
         </p>
       </div>
       <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
@@ -260,7 +261,7 @@ export default function HomePage() {
     getPublishedExams()
       .then((all) => {
         // Mock Exam มีเมนูของตัวเอง — ไม่ปนในแถบ "เพิ่มล่าสุด" แต่ "นับรวม" ในสถิติ hero
-        setExams(all.filter((e) => !isMockExam(e) && !isFinalLapExam(e)));
+        setExams(all.filter((e) => !isMockExam(e) && !isFinalLapExam(e) && examSetField(e) !== "dcd"));
         setHeroStats({
           questions: all.reduce((s, e) => s + (e.questionCount || 0), 0),
           sets:      all.length,
