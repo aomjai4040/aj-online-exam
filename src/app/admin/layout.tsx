@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { isAdmin } from "@/lib/admin-config";
+import AdminNav from "@/components/AdminNav";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
@@ -43,5 +44,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  return <>{children}</>;
+  // แถบเมนูอยู่ใน layout → ติดบนสุดทุกหน้า admin ไม่ต้องเลื่อนลงไปหา
+  // (หน้า login ไม่ต้องมี — ยังไม่ผ่านการยืนยันตัวตน)
+  return (
+    <>
+      {pathname !== "/admin/login" && <AdminNav />}
+      {children}
+    </>
+  );
 }

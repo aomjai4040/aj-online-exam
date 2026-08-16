@@ -554,7 +554,7 @@ export default function AdminDashboard() {
 
       {/* ── Sticky header ─────────────────────────────────────────────── */}
       <div
-        className="sticky top-14 z-30 bg-white"
+        className="bg-white"
         style={{ borderBottom: "1px solid #EBEBEA", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}
       >
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between gap-3">
@@ -729,56 +729,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* ═══ Quick actions ════════════════════════════════════════ */}
-            <div
-              className="bg-white rounded-2xl p-5"
-              style={{ border: "1px solid #EBEBEA" }}
-            >
-              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-                การดำเนินการ
-              </p>
-              <div className="flex flex-wrap gap-2.5">
-                <Link href="/admin/insights" className="btn-primary text-sm">
-                  📈 ภาพรวมธุรกิจ
-                </Link>
-                <Link href="/admin/recall" className="btn-primary text-sm">
-                  🧠 ความจำข้อสอบ 69
-                </Link>
-                <Link href="/admin/feedback" className="btn-primary text-sm">
-                  📝 ผลประเมินการสอน
-                </Link>
-                <Link href="/admin/dcd-intake" className="btn-primary text-sm">
-                  🦠 แบบสอบถามคอร์ส คร.
-                </Link>
-                <Link href="/admin/exams/new" className="btn-secondary text-sm">
-                  + สร้างข้อสอบใหม่
-                </Link>
-                <Link href="/admin/exams" className="btn-secondary text-sm">
-                  จัดการข้อสอบ
-                </Link>
-                <Link href="/admin/codes" className="btn-secondary text-sm">
-                  🔑 Activation Codes
-                </Link>
-                <Link href="/admin/seed" className="btn-secondary text-sm">
-                  📥 Seed ข้อสอบ
-                </Link>
-                <Link href="/admin/users" className="btn-secondary text-sm">
-                  👥 สมาชิก
-                </Link>
-                <Link href="/admin/videos" className="btn-secondary text-sm">
-                  🎬 คอร์สวิดีโอ
-                </Link>
-                <Link href="/admin/flashcards" className="btn-secondary text-sm">
-                  🃏 จัดการ Flash Card
-                </Link>
-                <Link href="/admin/moph-focus" className="btn-secondary text-sm">
-                  🏥 จัดการ MOPH Focus
-                </Link>
-                <Link href="/exams" className="btn-secondary text-sm">
-                  ดูหน้านักเรียน ↗
-                </Link>
-              </div>
-            </div>
+
 
           </div>
         )}
