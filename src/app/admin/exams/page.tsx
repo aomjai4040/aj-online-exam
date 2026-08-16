@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAllExams, deleteExam, togglePublish } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
+import TagCoverageCard from "@/components/TagCoverageCard";
 
 export default function AdminExamsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -43,6 +44,8 @@ export default function AdminExamsPage() {
           </Link>
         </div>
       </div>
+
+      <TagCoverageCard />
 
       {loading ? (
         <div className="flex justify-center py-20">

@@ -1,3 +1,5 @@
+import type { QuestionTags } from "./question-tags";
+
 // ─── Subject categories ──────────────────────────────────────────────────────
 
 export const SUBJECTS = [
@@ -82,6 +84,9 @@ export interface Question {
   options: [string, string, string, string];
   correctAnswer: number; // 0–3
   explanation: string;
+  /** แท็ก (หัวข้อ/ประเภท/ความยาก/ที่มา/บริบทหน่วยงาน) — ดู lib/question-tags.ts
+   *  optional เพราะข้อเก่า 2,000+ ข้อยังไม่มี ไม่ต้อง migrate */
+  tags?: QuestionTags;
 }
 
 export interface ExamResult {
@@ -104,6 +109,7 @@ export interface QuestionForm {
   options: [string, string, string, string];
   correctAnswer: number;
   explanation: string;
+  tags?: QuestionTags;
 }
 
 export interface ExamForm {

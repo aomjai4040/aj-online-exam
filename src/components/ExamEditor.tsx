@@ -2,6 +2,11 @@
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { ExamForm, QuestionForm } from "@/lib/types";
+import {
+  DCD_TOPICS, QUESTION_KINDS, DIFFICULTIES, AGENCY_CONTEXTS, isFullyTagged,
+  type QuestionTags, type TopicCode, type QuestionKind,
+  type DifficultyCode, type AgencyContext,
+} from "@/lib/question-tags";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -269,7 +274,80 @@ function QuestionCard({
           />
         </div>
 
+        {/* ── แท็กข้อสอบ (Aj ข้อ 5) — ต้องครบก่อนนำเข้าคลัง ─────────────────── */}
+        <QuestionTagRow tags={q.tags} onChange={(t) => onUpdate("tags", t)} />
+
       </div>
+    </div>
+  );
+}
+
+/** แถวเลือกแท็ก 4 ช่อง + ที่มา/ปี — คุมสัดส่วนความจำ:ประยุกต์ และกันข้ามสนาม */
+function QuestionTagRow({
+  tags, onChange,
+}: { tags?: QuestionTags; onChange: (t: QuestionTags) => void }) {
+  const t = tags ?? {};
+  const set = <K extends keyof QuestionTags>(k: K, v: QuestionTags[K]) =>
+    onChange({ ...t, [k]: v });
+
+  const complete = isFullyTagged(t);
+  const localWarn = t.agency === "local";
+
+  const SELECT = "w-full rounded-lg px-2.5 py-2 text-[13px] bg-white";
+  const SELECT_STYLE = { border: "1px solid #E0DFDC" } as const;
+
+  return (
+    <div className="rounded-xl px-3.5 py-3"
+      style={{
+        backgroundColor: complete ? "#F5FAF9" : "#FFFBEB",
+        border: `1px solid ${complete ? "#C3E5DE" : "#FDE68A"}`,
+      }}>
+      <p className="text-[12px] font-bold mb-2"
+        style={{ color: complete ? "#0B6E65" : "#B45309" }}>
+        {complete ? "✓ แท็กครบแล้ว" : "แท็กข้อนี้ (ต้องครบก่อนนำเข้าคลัง)"}
+      </p>
+
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        <select className={SELECT} style={SELECT_STYLE}
+          value={t.topic ?? ""} onChange={(e) => set("topic", e.target.value as TopicCode)}>
+          <option value="">— หัวข้อ —</option>
+          {DCD_TOPICS.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
+        </select>
+
+        <select className={SELECT} style={SELECT_STYLE}
+          value={t.kind ?? ""} onChange={(e) => set("kind", e.target.value as QuestionKind)}>
+          <option value="">— ประเภท —</option>
+          {QUESTION_KINDS.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
+        </select>
+
+        <select className={SELECT} style={SELECT_STYLE}
+          value={t.level ?? ""} onChange={(e) => set("level", e.target.value as DifficultyCode)}>
+          <option value="">— ความยาก —</option>
+          {DIFFICULTIES.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
+        </select>
+
+        <select className={SELECT} style={SELECT_STYLE}
+          value={t.agency ?? ""} onChange={(e) => set("agency", e.target.value as AgencyContext)}>
+          <option value="">— บริบทหน่วยงาน —</option>
+          {AGENCY_CONTEXTS.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <input className={SELECT} style={SELECT_STYLE} placeholder="ที่มา เช่น ข้อสอบเก่า สป.สธ."
+          value={t.source ?? ""} onChange={(e) => set("source", e.target.value)} />
+        <input className={SELECT} style={SELECT_STYLE} type="number" placeholder="ปี พ.ศ. เช่น 2569"
+          value={t.year ?? ""}
+          onChange={(e) => set("year", e.target.value ? Number(e.target.value) : undefined)} />
+      </div>
+
+      {localWarn && (
+        <p className="text-[12px] leading-relaxed mt-2 rounded-lg px-2.5 py-1.5"
+          style={{ backgroundColor: "#FEF2F2", color: "#B91C1C" }}>
+          ⚠️ ข้อนี้อ้างบริบท อปท./ท้องถิ่น — ระบบจะกันไม่ให้ปล่อยเข้าสนามกรมควบคุมโรค
+          เพราะเจ้าพนักงานท้องถิ่นคนละบริบท คำตอบอาจเปลี่ยน
+        </p>
+      )}
     </div>
   );
 }

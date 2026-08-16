@@ -16,7 +16,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import type { Exam, Question, ExamResult, ExamForm } from "./types";
+import type { Exam, Question, ExamResult, ExamForm, QuestionForm } from "./types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -71,6 +71,22 @@ export async function getQuestions(examId: string): Promise<Question[]> {
 
 // ─── Create / Update Exam with Questions ─────────────────────────────────────
 
+/** เตรียมข้อสอบ 1 ข้อก่อนเขียน — ตัดคีย์ที่เป็น undefined ออก
+ *  (Firestore client SDK โยน error ถ้าเจอ undefined และเราไม่ได้เปิด
+ *  ignoreUndefinedProperties) · tags ของข้อเก่าเป็น undefined ปกติ */
+function questionDoc(q: QuestionForm, order: number): Record<string, unknown> {
+  const out: Record<string, unknown> = {
+    text: q.text, options: q.options,
+    correctAnswer: q.correctAnswer, explanation: q.explanation, order,
+  };
+  if (q.tags && Object.values(q.tags).some((v) => v !== undefined && v !== "")) {
+    out.tags = Object.fromEntries(
+      Object.entries(q.tags).filter(([, v]) => v !== undefined && v !== "")
+    );
+  }
+  return out;
+}
+
 export async function createExam(form: ExamForm): Promise<string> {
   const examRef = await addDoc(collection(db, "exams"), {
     title: form.title,
@@ -89,7 +105,7 @@ export async function createExam(form: ExamForm): Promise<string> {
   const batch = writeBatch(db);
   form.questions.forEach((q, i) => {
     const qRef = doc(collection(db, "exams", examRef.id, "questions"));
-    batch.set(qRef, { ...q, order: i });
+    batch.set(qRef, questionDoc(q, i));
   });
   await batch.commit();
 
@@ -120,7 +136,7 @@ export async function updateExam(examId: string, form: ExamForm): Promise<void> 
   form.questions.forEach((q, i) => {
     const qRef = existing.docs[i]?.ref
       ?? doc(collection(db, "exams", examId, "questions"));
-    batch.set(qRef, { ...q, order: i });
+    batch.set(qRef, questionDoc(q, i));
   });
   existing.docs.slice(form.questions.length).forEach((d) => batch.delete(d.ref));
   await batch.commit();
