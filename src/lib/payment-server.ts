@@ -47,6 +47,47 @@ async function serverAccess(uid: string): Promise<{
 
 export class CheckoutError extends Error {}
 
+/** ออเดอร์ที่ค้างอยู่ของ tier นี้ (ยังไม่จ่าย) — ใช้ "ต่อของเดิม" ไม่สร้างใหม่
+ *
+ *  สำคัญมาก: ถ้าสร้างออเดอร์ใหม่ทุกครั้งที่เปิดหน้า คนที่ใส่โค้ดแล้วโอน 399
+ *  พอกลับเข้ามาจะเจอ QR ยอด 499 → สลิป 399 ไม่ตรงยอด → ระบบตีตก
+ *  ทั้งที่เงินเข้าบัญชีแล้ว (Aj แจ้งเคสนี้ 17 ส.ค. 69) */
+export async function pendingOrder(uid: string, tier: OrderTier): Promise<{
+  orderId: string; amount: number; qr: string; courseName: string;
+  fullAmount?: number; discountAmount?: number; discountCode?: string;
+} | null> {
+  const snap = await adminDb().collection("orders")
+    .where("userId", "==", uid)
+    .where("tier", "==", tier)
+    .where("status", "==", "pending")
+    .get();
+  if (snap.empty) return null;
+
+  // เอาอันล่าสุด — เรียงใน memory กันต้องสร้าง composite index
+  const docs = snap.docs.sort((a, b) =>
+    (b.data().createdAt?.toMillis?.() ?? 0) - (a.data().createdAt?.toMillis?.() ?? 0));
+  const d = docs[0].data();
+  const amount = Number(d.amount);
+
+  return {
+    orderId: docs[0].id, amount, courseName: String(d.courseName ?? ""),
+    qr: await makePromptPayQR(amount),
+    ...(d.fullAmount     ? { fullAmount:     Number(d.fullAmount) }   : {}),
+    ...(d.discountAmount ? { discountAmount: Number(d.discountAmount) } : {}),
+    ...(d.discountCode   ? { discountCode:   String(d.discountCode) }  : {}),
+  };
+}
+
+/** ผู้ใช้ถือสิทธิ์ของ tier นี้อยู่แล้วหรือยัง — ใช้ก่อนแสดงหน้าจ่ายเงิน */
+export async function alreadyOwns(uid: string, tier: OrderTier): Promise<boolean> {
+  const acc = await serverAccess(uid);
+  if (tier === "dcd") return acc.hasDcd;
+  if (tier === "app") return acc.hasAny;
+  if (tier === "review") return acc.hasReview || acc.hasFull;
+  if (tier === "full" || tier === "upgrade" || tier === "up-full2") return acc.hasFull;
+  return false;
+}
+
 /** สร้างออเดอร์ pending — คืน orderId + QR */
 export async function createOrder(
   uid: string, email: string, tier: OrderTier
@@ -57,6 +98,8 @@ export async function createOrder(
   // สนามกรมควบคุมโรค — คนละสนามกับ สป.สธ. ตรวจแยก และไม่ติดเงื่อนไขของสนามเดิม
   if (tier === "dcd") {
     if (acc.hasDcd) throw new CheckoutError("บัญชีนี้มีคอร์สกรมควบคุมโรคอยู่แล้ว");
+    const openDcd = await pendingOrder(uid, tier);
+    if (openDcd) return openDcd;
     const plan = tierPlan(tier);
     const ref  = adminDb().collection("orders").doc();
     await ref.set({
@@ -90,6 +133,10 @@ export async function createOrder(
   }
   if (tier === "up-full2" && !acc.hasReview)
     throw new CheckoutError("เมนูนี้สำหรับผู้ที่มีแพ็กติวเข้ม 14 วันอยู่แล้วเท่านั้น");
+
+  // ผ่านด่านสิทธิ์แล้ว — ถ้ามีออเดอร์ค้าง ใช้ของเดิม (คงยอด+ส่วนลดเดิม)
+  const open = await pendingOrder(uid, tier);
+  if (open) return open;
 
   const plan = tierPlan(tier);
   const ref  = adminDb().collection("orders").doc();

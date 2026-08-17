@@ -202,5 +202,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── ปฏิทินคอร์ส ─────────────────────────────────────────────────────────
+    // อ่าน/เขียนจริงผ่าน /api/course-plan (Admin SDK) — กฎนี้กันเผื่อ client
+    match /coursePlans/{fieldId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
   }
 }

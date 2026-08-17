@@ -19,6 +19,7 @@ import { getActiveField } from "@/lib/active-field";
 import { getRecentResults } from "@/lib/user-firestore";
 import { pickGreeting, type Greeting } from "@/lib/greeting";
 import TodayPlanCard from "@/components/TodayPlanCard";
+import TodayTasksCard from "@/components/TodayTasksCard";
 import LineJoinButton from "@/components/LineJoinButton";
 import DriveFilesButton from "@/components/DriveFilesButton";
 
@@ -507,6 +508,9 @@ export default function HomePage() {
 
       {/* ── Feature menu ──────────────────────────────────────────────────── */}
       <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-5">
+
+        {/* วันนี้ทำอะไร — บนสุด (Aj ข้อ 2) */}
+        <TodayTasksCard />
 
         {/* ช่วยกันเก็บข้อสอบ — ช่วงหลังสอบ 14 วัน (ความจำยังสด) */}
         <RecallCard />

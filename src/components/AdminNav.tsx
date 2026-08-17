@@ -21,6 +21,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { href: "/admin",            label: "Dashboard" },
       { href: "/admin/insights",   label: "ภาพรวมธุรกิจ" },
+      { href: "/admin/revenue",    label: "รายงานยอดขาย" },
       { href: "/admin/users",      label: "สมาชิก" },
       { href: "/admin/feedback",   label: "ผลประเมิน" },
       { href: "/admin/dcd-intake", label: "แบบสอบถาม" },
@@ -34,6 +35,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/admin/flashcards", label: "Flash Card" },
       { href: "/admin/recall",     label: "คลังความจำผู้สอบ" },
       { href: "/admin/moph-focus", label: "เนื้อหารายสนาม" },
+      { href: "/admin/plan",       label: "ปฏิทินคอร์ส" },
     ],
   },
   {

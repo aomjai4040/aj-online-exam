@@ -15,10 +15,8 @@ import DriveFilesButton from "@/components/DriveFilesButton";
 
 // ─── /checkout/[tier] — จ่ายเงินในเว็บ (PromptPay + อัปสลิป → ตรวจอัตโนมัติ) ────
 
-type Phase = "loading" | "intake" | "qr" | "verifying" | "success" | "error";
+type Phase = "loading" | "intake" | "qr" | "verifying" | "success" | "owned" | "error";
 
-/** กันถามซ้ำเมื่อกลับเข้าหน้านี้อีกรอบ (เช่น สลิปไม่ผ่านแล้วรีโหลด) */
-const INTAKE_DONE_KEY = "dcd-intake-done";
 const TIERS: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2", "dcd"];
 
 async function fileToBase64(file: File): Promise<string> {
@@ -73,19 +71,36 @@ export default function CheckoutPage() {
     } catch { setError("สร้างคำสั่งซื้อไม่สำเร็จ กรุณาลองใหม่"); setPhase("error"); }
   }, [user, tier]);
 
-  // dcd → ตอบแบบสอบถามสั้น ๆ ก่อน แล้วค่อยสร้างออเดอร์ + QR | tier อื่นสร้างทันที
+  // ถาม server ก่อนเสมอว่า "มีคอร์สแล้วหรือยัง / มีออเดอร์ค้างไหม"
+  //
+  // เดิมเช็คแค่ localStorage → คนที่จ่ายเงินไปแล้วเปิดหน้านี้อีกครั้ง
+  // (หรือเปลี่ยนเครื่อง/ล้างแคช) โดนถามแบบสอบถามซ้ำ แล้วค่อยขึ้น error
+  // ตอนกดต่อ — Aj แจ้งเคสนี้ 17 ส.ค. 69
   useEffect(() => {
     if (guard !== "allowed" || !user || !validTier) return;
-    if (tier === "dcd" && !localStorage.getItem(INTAKE_DONE_KEY)) {
-      setPhase("intake");
-      return;
-    }
-    createOrderNow();
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch(`/api/checkout?tier=${tier}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (cancelled) return;
+        const d = await res.json();
+
+        if (res.ok && d.owned)   { setPhase("owned"); return; }
+        if (res.ok && d.pending) { setOrder(d.pending); setPhase("qr"); return; }
+        if (res.ok && tier === "dcd" && !d.intakeDone) { setPhase("intake"); return; }
+      } catch { /* ถามไม่ได้ก็ไปทางเดิม ไม่บล็อกการขาย */ }
+      if (!cancelled) createOrderNow();
+    })();
+
+    return () => { cancelled = true; };
   }, [guard, user, tier, validTier, createOrderNow]);
 
   function submitIntake() {
     if (!intakeComplete(intake)) return;
-    try { localStorage.setItem(INTAKE_DONE_KEY, "1"); } catch {}
     createOrderNow(intake);
   }
 
@@ -177,6 +192,42 @@ export default function CheckoutPage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-5 text-center">
         <p className="text-[15px] font-semibold text-gray-800">ไม่พบแพ็กเกจนี้</p>
         <Link href="/packages" className="btn-primary text-sm px-6 py-2.5">← ดูแพ็กเกจ</Link>
+      </div>
+    );
+  }
+
+  // ── มีคอร์สนี้อยู่แล้ว ────────────────────────────────────────────────────
+  // จ่ายไปแล้วแต่เผลอกดเข้ามาอีก — พาเข้าคอร์สเลย ไม่ต้องถามแบบสอบถามซ้ำ
+  // และห้ามให้จ่ายซ้ำเด็ดขาด
+  if (phase === "owned") {
+    return (
+      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center px-5 text-center">
+        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
+          style={{ backgroundColor: "#EBF5F3" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
+            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <h1 className="text-[22px] font-bold text-gray-900 mb-2">น้องมีคอร์สนี้แล้ว</h1>
+        <p className="text-[14px] mb-1" style={{ color: "#A8A8A6" }}>
+          ชำระเงินเรียบร้อยแล้ว ไม่ต้องจ่ายซ้ำนะคะ
+        </p>
+        <p className="text-[16px] font-bold mb-6" style={{ color: BRAND.primary }}>
+          {plan?.courseName ?? ""}
+        </p>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          {tier === "dcd" && (
+            <>
+              <LineJoinButton field="dcd" label="เข้ากลุ่ม LINE คอร์ส คร." />
+              <DriveFilesButton field="dcd" />
+            </>
+          )}
+          <button onClick={() => router.push("/")}
+            className="btn-primary w-full py-3 text-[14px]">เข้าหน้าเรียน</button>
+          <button onClick={() => router.push("/exams")}
+            className="btn-secondary w-full py-3 text-[14px]">ทำข้อสอบ</button>
+        </div>
       </div>
     );
   }
