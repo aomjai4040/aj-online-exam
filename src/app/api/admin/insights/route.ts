@@ -38,10 +38,19 @@ export async function GET(req: NextRequest) {
     let codeGrants = 0, paidGrants = 0;
     const ownerEmails = new Set<string>();  // อีเมลที่มีสิทธิ์คอร์สแล้ว (ไว้จับคู่ออเดอร์ค้าง)
     const newGrantByDay: Record<string, number> = {};
+    // แยกเจ้าของตามสนาม — ป้าย "มีสิทธิ์แล้ว" ต้องดูสนามเดียวกับออเดอร์เท่านั้น
+    // (เดิมเช็ครวมทุกสนาม → คนมีคอร์ส สป.สธ. ที่จ่ายคอร์ส คร. ถูกซ่อนปุ่มอนุมัติ)
+    const dcdOwners = new Set<string>(), dcdOwnerEmails = new Set<string>();
     coursesSnap.forEach((d) => {
       const c = d.data();
-      if (c.userId) owners.add(c.userId);
-      if (c.email) ownerEmails.add(String(c.email).toLowerCase());
+      const isDcd = String(c.courseId ?? "").toLowerCase().startsWith("dcd-");
+      if (isDcd) {
+        if (c.userId) dcdOwners.add(c.userId);
+        if (c.email) dcdOwnerEmails.add(String(c.email).toLowerCase());
+      } else {
+        if (c.userId) owners.add(c.userId);
+        if (c.email) ownerEmails.add(String(c.email).toLowerCase());
+      }
       if (c.source === "payment") paidGrants++; else codeGrants++;
       const ts = c.activatedAt?.toDate?.();
       if (ts && ts.getTime() >= now - DAYS * 86_400_000) {
@@ -63,8 +72,11 @@ export async function GET(req: NextRequest) {
       if (o.status === "paid") { paid[o.tier] = (paid[o.tier] || 0) + 1; revenue += o.amount || 0; }
       else if (o.status === "pending") {
         pending++;
-        // ลูกค้าได้สิทธิ์ทางอื่นแล้วหรือยัง (โค้ด/จ่ายออเดอร์อื่น) → ปิดออเดอร์ค้างนี้ได้
-        const hasAccess = owners.has(o.userId) || ownerEmails.has(String(o.email || "").toLowerCase());
+        // ลูกค้าได้สิทธิ์ "สนามเดียวกับออเดอร์นี้" แล้วหรือยัง → ปิดออเดอร์ค้างได้
+        const em = String(o.email || "").toLowerCase();
+        const hasAccess = o.tier === "dcd"
+          ? dcdOwners.has(o.userId) || dcdOwnerEmails.has(em)
+          : owners.has(o.userId)    || ownerEmails.has(em);
         pendingList.push({
           id: d.id, email: o.email || "", tier: o.tier, amount: o.amount || 0,
           createdAt: o.createdAt?.toDate?.()?.toISOString() ?? null,

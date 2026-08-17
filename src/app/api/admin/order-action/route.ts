@@ -46,8 +46,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, action });
     }
 
-    // approve — ให้สิทธิ์ + ปิดออเดอร์ใน transaction เดียว
+    // approve — ให้สิทธิ์ + ปิดออเดอร์ + ตัดโค้ดส่วนลด ใน transaction เดียว
+    // (กติกาโค้ดเหมือน submitSlip — อนุมัติมือแล้วโค้ดต้องขึ้น "ใช้แล้ว" เหมือนกัน)
     await db.runTransaction(async (tx) => {
+      const codeRef = order.discountCode
+        ? db.collection("discountCodes").doc(String(order.discountCode))
+        : null;
+      const codeSnap = codeRef ? await tx.get(codeRef) : null;
+      const useRef   = codeRef ? codeRef.collection("uses").doc(String(order.userId)) : null;
+      const useSnap  = useRef ? await tx.get(useRef) : null;
+
       const courseRef = db.collection("userCourses").doc();
       tx.update(orderRef, {
         status:     "paid",
@@ -55,6 +63,24 @@ export async function POST(req: NextRequest) {
         paidAt:     FieldValue.serverTimestamp(),
         approvedBy: caller.email,   // ร่องรอยว่าใครอนุมัติมือ
       });
+      if (codeRef && codeSnap?.exists) {
+        const cd = codeSnap.data()!;
+        if (cd.userId) {
+          if (cd.status === "unused") {
+            tx.update(codeRef, {
+              status: "used",
+              usedAt: FieldValue.serverTimestamp(),
+              usedOrderId: orderId,
+            });
+          }
+        } else if (useRef && !useSnap?.exists) {
+          tx.update(codeRef, { usedCount: FieldValue.increment(1) });
+          tx.set(useRef, {
+            uid: order.userId, orderId, email: order.email ?? "",
+            at: FieldValue.serverTimestamp(),
+          });
+        }
+      }
       tx.set(courseRef, {
         userId:         order.userId,
         email:          order.email,
