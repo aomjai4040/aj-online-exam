@@ -163,22 +163,82 @@ function DcdLineCard() {
   );
 }
 
-/** การ์ด "ประเมินการสอน รับโค้ดลด ฿100" — สมาชิกเท่านั้น
- *  ซ่อนเองเมื่อตอบไปแล้ว (ถาม /api/feedback ครั้งเดียวตอนเปิดหน้า) */
+/** การ์ดแบบประเมิน / โค้ดส่วนลด — สมาชิกเท่านั้น มี 3 สถานะ
+ *
+ *  ยังไม่ตอบ        → ชวนทำแบบประเมิน
+ *  ตอบแล้ว โค้ดยังไม่ใช้ → โชว์โค้ดคาไว้บนหน้าแรกพร้อมปุ่มคัดลอก
+ *                        (น้องที่ไม่ได้จดจะได้ไม่ต้องตามหา — เดิมการ์ดหายเลย)
+ *  ใช้โค้ดแล้ว       → ซ่อน ไม่รกหน้าจอ
+ */
 function FeedbackCard() {
   const { user } = useAuth();
-  const [show, setShow] = useState(false);
+  const [state, setState] = useState<
+    { s: "hide" } | { s: "invite" } | { s: "code"; code: string }
+  >({ s: "hide" });
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
-    if (!user) { setShow(false); return; }
+    if (!user) { setState({ s: "hide" }); return; }
     let cancelled = false;
     user.getIdToken()
       .then((t) => fetch("/api/feedback", { headers: { Authorization: `Bearer ${t}` } }))
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (!cancelled) setShow(!!d && d.done === false); })
-      .catch(() => { if (!cancelled) setShow(false); });
+      .then((d) => {
+        if (cancelled || !d) return;
+        if (d.done === false)               setState({ s: "invite" });
+        else if (d.code && !d.used)         setState({ s: "code", code: d.code });
+        else                                setState({ s: "hide" });
+      })
+      .catch(() => { if (!cancelled) setState({ s: "hide" }); });
     return () => { cancelled = true; };
   }, [user]);
-  if (!show) return null;
+
+  if (state.s === "hide") return null;
+
+  // ตอบแล้ว — โชว์โค้ดเลย ไม่ต้องกดเข้าไปหา
+  if (state.s === "code") {
+    return (
+      <div className="card-elev px-4 py-3.5 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="white"
+              strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <polyline points="20 12 20 22 4 22 4 12" />
+              <rect x="2" y="7" width="20" height="5" />
+              <line x1="12" y1="22" x2="12" y2="7" />
+              <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z" />
+              <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-semibold" style={{ color: "#B45309" }}>
+              โค้ดส่วนลด ฿{FEEDBACK_REWARD.amount} ของคุณ (ยังไม่ได้ใช้)
+            </p>
+            <p className="text-[19px] font-extrabold tracking-widest leading-tight"
+              style={{ color: "#7C2D12" }}>
+              {state.code}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(state.code)
+                .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); })
+                .catch(() => {});
+            }}
+            className="text-[12.5px] font-bold px-3 py-2 rounded-lg flex-shrink-0"
+            style={{ backgroundColor: copied ? "#15803D" : "#FDF6E9",
+                     color: copied ? "white" : "#B45309" }}>
+            {copied ? "คัดลอกแล้ว ✓" : "คัดลอก"}
+          </button>
+        </div>
+        <p className="text-[11.5px] mt-2" style={{ color: "#A8A8A6" }}>
+          กรอกตอนสมัครคอร์ส · ใช้ได้ถึง {FEEDBACK_REWARD.expiresLabel} · ไม่ต้องจด โค้ดอยู่ตรงนี้ตลอด
+        </p>
+      </div>
+    );
+  }
+
   return (
     <Link href="/feedback"
       className="card-elev card-elev-hover flex items-center gap-3 px-4 py-3.5 mb-4

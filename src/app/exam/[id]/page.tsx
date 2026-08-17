@@ -9,7 +9,7 @@ import { saveUserRecord } from "@/lib/user-firestore";
 import { recordExamMistakes } from "@/lib/smart-review";
 import { PRICING, CONTACT_URL, COURSE_RESOURCES } from "@/lib/pricing";
 import { daysToExam } from "@/lib/exam-config";
-import { chapterForSubject } from "@/lib/curriculum";
+import { chapterForSubject, nextChapterAfter } from "@/lib/curriculum";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, decideExamAccess } from "@/lib/access";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
@@ -587,6 +587,7 @@ export default function ExamPage() {
             const subj    = exam?.subject ?? "";
             const isMockR = subj === "MOCK" || exam?.isMock === true;
             const ch      = chapterForSubject(subj);
+            const nextCh  = nextChapterAfter(subj);
             const subjTh  = SUBJECT_DISPLAY[subj] ?? subj;
             const missed  = wrong + skipped;
             const tone = pct >= 80
@@ -633,6 +634,13 @@ export default function ExamPage() {
                           style={{ border: "1px solid #EBEBEA" }}>
                           📖 อ่านชีทสรุปหมวดนี้เพิ่ม
                         </a>
+                      )}
+                      {pct >= 80 && nextCh && hasFull && (
+                        <Link href={`/videos?chapter=${encodeURIComponent(nextCh.prefix)}`}
+                          className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 bg-white text-[13px] font-semibold text-gray-800"
+                          style={{ border: "1px solid #EBEBEA" }}>
+                          ▶️ ไปต่อ {nextCh.label}
+                        </Link>
                       )}
                       {pct < 60 && (
                         <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"

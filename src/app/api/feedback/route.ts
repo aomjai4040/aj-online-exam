@@ -48,10 +48,19 @@ export async function GET(req: NextRequest) {
     if (!member) return NextResponse.json({ error: "no-access" }, { status: 403 });
 
     if (doneSnap.exists) {
-      const d = doneSnap.data()!;
+      const d    = doneSnap.data()!;
+      const code = String(d.code ?? "");
+      // ใช้โค้ดไปหรือยัง — หน้าแรกใช้ตัดสินว่าจะโชว์โค้ดค้างไว้ให้อีกไหม
+      // (น้องที่ไม่ได้จดโค้ดจะได้ไม่ต้องตามหา)
+      let used = false;
+      if (code) {
+        const c = await adminDb().collection("discountCodes").doc(code).get();
+        used = c.exists && c.data()!.status === "used";
+      }
       return NextResponse.json({
         done: true,
-        code: d.code ?? "",
+        code,
+        used,
         amount: FEEDBACK_REWARD.amount,
         expiresLabel: FEEDBACK_REWARD.expiresLabel,
       });

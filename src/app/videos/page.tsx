@@ -13,6 +13,7 @@ import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
 import CourseVideoPlayer from "@/components/CourseVideoPlayer";
 import CourseResources from "@/components/CourseResources";
+import NextStepPanel from "@/components/NextStepPanel";
 import SampleVideoTeaser from "@/components/SampleVideoTeaser";
 
 // ─── /videos — คอร์สวิดีโอ (เฉพาะคอร์สเต็ม) ───────────────────────────────────
@@ -204,6 +205,19 @@ export default function VideosPage() {
           <h1 className="text-[16px] font-bold text-gray-900 leading-snug">
             {current.order}. {current.title}
           </h1>
+        </div>
+      )}
+
+      {/* ทำต่อ: ชีท → ข้อสอบท้ายบท → คลิปถัดไป (ปิดลูปการเรียน) */}
+      {current && (
+        <div className="max-w-2xl mx-auto lg:max-w-none px-5 lg:px-0 pt-4">
+          <NextStepPanel
+            chapter={current.chapter}
+            nextTitle={nextVideo?.title}
+            onNext={nextVideo ? () => setCurrent(nextVideo) : undefined}
+            watched={!!progress.get(current.id)?.completed}
+            showSheet={access.hasFull}
+          />
         </div>
       )}
 
