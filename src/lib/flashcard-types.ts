@@ -69,6 +69,10 @@ export interface FlashCard {
   tags:        string[];        // ["จุดตาย", "ตัวเลข"]
   deckIds:     string[];        // ["ch01", "pre-exam-2025"]
   deckOrder:   Record<string, number>; // { "ch01": 1, "pre-exam-2025": 5 }
+  /** วันที่ปล่อยการ์ด (YYYY-MM-DD เวลาไทย) — ว่าง = ปล่อยทันที
+   *  ใช้ทำ drip รายวัน: ผลิตครั้งเดียว ตั้งวันไว้ล่วงหน้า ระบบปล่อยเอง
+   *  การ์ดที่ปล่อยแล้วอยู่ในคลังถาวร — คนเข้าวันที่ 10 ย้อนดู 9 ใบแรกได้ */
+  releaseAt:   string;
   isPublished: boolean;
   createdAt:   Date;
   updatedAt:   Date;

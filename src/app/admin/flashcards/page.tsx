@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAllDecks, setDeckFlags } from "@/lib/flashcard-firestore";
+import DripScheduler from "@/components/DripScheduler";
 import type { FCDeck } from "@/lib/flashcard-types";
 
 // ─── /admin/flashcards — จัดการ deck: เผยแพร่ / ทดลองฟรี ─────────────────────
@@ -133,6 +134,7 @@ export default function AdminFlashcardsPage() {
                     <p className="text-[12.5px] mt-0.5" style={{ color: "#A8A8A6" }}>
                       {TYPE_LABEL[deck.type]} · {deck.totalCards} ใบ · slug: {deck.slug}
                     </p>
+                    <DripScheduler deck={deck} />
                   </div>
 
                   {/* Toggles */}

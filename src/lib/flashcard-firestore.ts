@@ -64,6 +64,7 @@ function toCard(d: QueryDocumentSnapshot | DocumentSnapshot): FlashCard {
     tags:        Array.isArray(x.tags)    ? (x.tags    as string[]) : [],
     deckIds:     Array.isArray(x.deckIds) ? (x.deckIds as string[]) : [],
     deckOrder:   (x.deckOrder as Record<string, number>) ?? {},
+    releaseAt:   String(x.releaseAt ?? ""),
     isPublished: Boolean(x.isPublished ?? false),
     createdAt:   toDate(x.createdAt),
     updatedAt:   toDate(x.updatedAt),
@@ -113,9 +114,20 @@ export async function getDeckBySlug(slug: string): Promise<FCDeck | null> {
  * เรียงตาม deckOrder[deckSlug] — client-side sort หลัง fetch
  * (Firestore ไม่รองรับ dynamic field sort โดยตรง)
  */
+/** วันนี้ตามเวลาไทย (YYYY-MM-DD) — ใช้ตัดสินว่าการ์ดปล่อยแล้วหรือยัง */
+export function bkkToday(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
+}
+
+/** การ์ดใบนี้ถึงวันปล่อยแล้วหรือยัง (ไม่ตั้งวัน = ปล่อยทันที) */
+export function isReleased(card: Pick<FlashCard, "releaseAt">, today = bkkToday()): boolean {
+  return !card.releaseAt || card.releaseAt <= today;
+}
+
 export async function getCardsByDeck(
   deckId:   string,
   deckSlug: string,
+  opts?: { includeUnreleased?: boolean },   // admin เห็นทั้งหมด
 ): Promise<FlashCard[]> {
   const q    = query(
     collection(db, "flashcards"),
@@ -123,7 +135,13 @@ export async function getCardsByDeck(
     where("deckIds", "array-contains", deckSlug),
   );
   const snap = await getDocs(q);
-  const cards = snap.docs.map(toCard);
+  let cards = snap.docs.map(toCard);
+
+  // drip: ซ่อนการ์ดที่ยังไม่ถึงวันปล่อย (ฝั่งผู้เรียนเท่านั้น)
+  if (!opts?.includeUnreleased) {
+    const today = bkkToday();
+    cards = cards.filter((c) => isReleased(c, today));
+  }
 
   // Sort by deckOrder[slug] → fallback to 0
   return cards.sort((a, b) => {
@@ -131,6 +149,58 @@ export async function getCardsByDeck(
     const bo = b.deckOrder[deckSlug] ?? 0;
     return ao - bo;
   });
+}
+
+/** นับการ์ดที่ยังไม่ปล่อย + วันปล่อยถัดไป — ใช้บอกผู้เรียนว่าพรุ่งนี้มีใบใหม่ */
+export async function getDripStatus(deckSlug: string): Promise<{
+  upcoming: number; nextDate: string | null;
+}> {
+  const snap = await getDocs(query(
+    collection(db, "flashcards"),
+    where("isPublished", "==", true),
+    where("deckIds", "array-contains", deckSlug),
+  ));
+  const today = bkkToday();
+  const future = snap.docs.map(toCard)
+    .filter((c) => c.releaseAt && c.releaseAt > today)
+    .map((c) => c.releaseAt)
+    .sort();
+  return { upcoming: future.length, nextDate: future[0] ?? null };
+}
+
+/** ตั้งตารางปล่อยการ์ดรายวัน — เรียงตาม deckOrder แล้วไล่ทีละวัน
+ *  (Aj ผลิตการ์ดครั้งเดียว แล้วให้ระบบปล่อยเอง 1 ใบ/วัน) */
+export async function scheduleDrip(
+  deckSlug: string, startDate: string, perDay = 1,
+): Promise<number> {
+  const snap = await getDocs(query(
+    collection(db, "flashcards"),
+    where("deckIds", "array-contains", deckSlug),
+  ));
+  const cards = snap.docs.map(toCard)
+    .sort((a, b) => (a.deckOrder[deckSlug] ?? 0) - (b.deckOrder[deckSlug] ?? 0));
+
+  const batch = writeBatch(db);
+  cards.forEach((c, i) => {
+    const day = new Date(`${startDate}T00:00:00+07:00`);
+    day.setDate(day.getDate() + Math.floor(i / Math.max(1, perDay)));
+    const iso = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(day);
+    batch.update(doc(db, "flashcards", c.id), { releaseAt: iso });
+  });
+  await batch.commit();
+  return cards.length;
+}
+
+/** ยกเลิกตารางปล่อย — ปล่อยการ์ดทั้ง deck ทันที */
+export async function clearDrip(deckSlug: string): Promise<number> {
+  const snap = await getDocs(query(
+    collection(db, "flashcards"),
+    where("deckIds", "array-contains", deckSlug),
+  ));
+  const batch = writeBatch(db);
+  snap.docs.forEach((d) => batch.update(d.ref, { releaseAt: "" }));
+  await batch.commit();
+  return snap.size;
 }
 
 // ─── User Progress ────────────────────────────────────────────────────────────

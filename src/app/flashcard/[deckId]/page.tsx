@@ -10,6 +10,7 @@ import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import {
   getDeckById,
   getCardsByDeck,
+  getDripStatus,
   getFCProgress,
   setFCProgress,
   shuffleCards,
@@ -273,6 +274,7 @@ export default function FlashCardDeckPage() {
   // ── Data ──────────────────────────────────────────────────────────────────
   const [deck,     setDeck]     = useState<FCDeck | null>(null);
   const [cards,    setCards]    = useState<FlashCard[]>([]);
+  const [drip,     setDrip]     = useState<{ upcoming: number; nextDate: string | null } | null>(null);
   const [progress, setProgress] = useState<Map<string, FCProgress>>(new Map());
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
@@ -309,6 +311,8 @@ export default function FlashCardDeckPage() {
 
         const fetched = await getCardsByDeck(deckId, d.slug);
         setCards(fetched);
+        // การ์ดที่ยังไม่ถึงวันปล่อย — บอกผู้เรียนว่าพรุ่งนี้มีใบใหม่
+        getDripStatus(d.slug).then(setDrip).catch(() => {});
 
         if (user && fetched.length) {
           const prog = await getFCProgress(user.uid, fetched.map((c) => c.id));
@@ -460,8 +464,18 @@ export default function FlashCardDeckPage() {
           style={{ border: "1px solid #E5E7EB" }}>
           <div className="text-4xl mb-3">{error ? "⚠️" : "🃏"}</div>
           <p className="text-[17px] font-bold text-gray-800 mb-1">
-            {error || "ยังไม่มีการ์ดในคลังนี้"}
+            {error
+              ? error
+              : drip && drip.upcoming > 0
+              ? "การ์ดใบแรกยังไม่ถึงวันปล่อย"
+              : "ยังไม่มีการ์ดในคลังนี้"}
           </p>
+          {!error && drip && drip.upcoming > 0 && (
+            <p className="text-[13.5px] leading-relaxed mt-1" style={{ color: MUTED }}>
+              คลังนี้ปล่อยการ์ดวันละใบ · ใบแรกมา {drip.nextDate}
+              <br />รอทั้งหมด {drip.upcoming} ใบ
+            </p>
+          )}
           <button onClick={() => router.push("/flashcard")}
             className="mt-5 text-[15px] font-semibold px-6 py-2.5 rounded-xl text-white"
             style={{ backgroundColor: ACCENT }}>
