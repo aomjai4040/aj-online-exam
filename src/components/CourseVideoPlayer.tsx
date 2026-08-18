@@ -138,6 +138,63 @@ export default function CourseVideoPlayer({
     };
   }, [fakeFull]);
 
+  // หมุนเครื่องเป็นแนวนอนตอนคลิปกำลังเล่น = เข้าเต็มจอเอง (เหมือนแอป YouTube)
+  // หมุนกลับแนวตั้ง = ออกจากเต็มจอที่เข้าเพราะการหมุน — น้อง Android ขอมา:
+  // requestFullscreen ต้องมี gesture ซึ่งการหมุนไม่นับ → พลาดเมื่อไหร่ใช้เต็มจอจำลองแทน
+  const autoFullRef      = useRef(false);
+  const lastLandscapeRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    // ฟังทั้ง resize + orientationchange (มือถือบางรุ่น/บาง browser ไม่ยิง
+    // matchMedia change) แล้วเทียบแนวจอเองว่า "เพิ่งเปลี่ยน" จริงไหม
+    const isLandscape = () => window.matchMedia("(orientation: landscape)").matches;
+    if (lastLandscapeRef.current === null) lastLandscapeRef.current = isLandscape();
+
+    const check = () => {
+      const land = isLandscape();
+      if (lastLandscapeRef.current === land) return;
+      lastLandscapeRef.current = land;
+
+      // เฉพาะจอสัมผัส/จอเล็ก — เดสก์ท็อปย่อหน้าต่างไม่ควรเด้งเต็มจอ
+      const touchy = window.matchMedia("(pointer: coarse)").matches
+        || Math.max(window.innerWidth, window.innerHeight) < 1024;
+      if (!touchy) return;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const doc = document as any;
+      const inNativeFs = !!(document.fullscreenElement ?? doc.webkitFullscreenElement);
+
+      if (land) {
+        if (!playing || inNativeFs || fakeFull) return;
+        autoFullRef.current = true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const el = wrapRef.current as any;
+        if (el?.requestFullscreen) {
+          el.requestFullscreen()
+            .then(() => { try { (screen.orientation as any)?.lock?.("landscape")?.catch?.(() => {}); } catch { /* */ } })
+            .catch(() => setFakeFull(true));
+        } else if (el?.webkitRequestFullscreen) {
+          try { el.webkitRequestFullscreen(); } catch { setFakeFull(true); }
+        } else {
+          setFakeFull(true);
+        }
+      } else if (autoFullRef.current) {
+        autoFullRef.current = false;
+        try { screen.orientation?.unlock?.(); } catch { /* ignore */ }
+        if (inNativeFs) {
+          (document.exitFullscreen?.bind(document) ?? doc.webkitExitFullscreen?.bind(doc))?.()?.catch?.(() => {});
+        }
+        setFakeFull(false);
+      }
+    };
+
+    window.addEventListener("resize", check);
+    window.addEventListener("orientationchange", check);
+    return () => {
+      window.removeEventListener("resize", check);
+      window.removeEventListener("orientationchange", check);
+    };
+  }, [playing, fakeFull]);
+
   const report = useCallback((isEnded: boolean, forYtId?: string) => {
     if (timeRef.current > 3 && durRef.current > 0) {
       onProgressRef.current?.(forYtId ?? activeYtIdRef.current, timeRef.current, durRef.current, isEnded);
@@ -273,6 +330,17 @@ export default function CourseVideoPlayer({
     setSpeed(next);
   }
 
+  /** Android: ล็อกจอแนวนอนตอนเข้าเต็มจอ (ต้องอยู่ในเต็มจอจริงก่อน lock ถึงทำงาน) */
+  function lockLandscape() {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (screen.orientation as any)?.lock?.("landscape")?.catch?.(() => {});
+    } catch { /* iOS ไม่มี lock — ข้าม */ }
+  }
+  function unlockOrientation() {
+    try { screen.orientation?.unlock?.(); } catch { /* ignore */ }
+  }
+
   function toggleFullscreen() {
     const el = wrapRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null;
     if (!el) return;
@@ -281,6 +349,7 @@ export default function CourseVideoPlayer({
       webkitExitFullscreen?:    () => void;
     };
     if (doc.fullscreenElement ?? doc.webkitFullscreenElement) {
+      unlockOrientation();
       if (doc.exitFullscreen) doc.exitFullscreen().catch(() => {});
       else doc.webkitExitFullscreen?.();
       return;
@@ -288,7 +357,11 @@ export default function CourseVideoPlayer({
     if (fakeFull) { setFakeFull(false); return; }
     // ลองเต็มจอจริงก่อน (desktop/Android/iPad ใหม่) — พลาดเมื่อไหร่ค่อยจำลองด้วย CSS
     try {
-      if (el.requestFullscreen) { el.requestFullscreen().catch(() => setFakeFull(true)); return; }
+      if (el.requestFullscreen) {
+        // Android: เต็มจอแล้วหมุนจอเป็นแนวนอนให้เลย (เหมือนแอป YouTube)
+        el.requestFullscreen().then(lockLandscape).catch(() => setFakeFull(true));
+        return;
+      }
       if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); return; }
     } catch { /* ตกลงไป fallback */ }
     setFakeFull(true); // iPhone / เบราว์เซอร์ใน LINE: ไม่มี Fullscreen API
