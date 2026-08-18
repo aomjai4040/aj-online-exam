@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       const batch = db.batch();
       for (const d of legacy) {
         const a = d.data().answers;
-        legacyAnswers.push({ answers: a });
+        legacyAnswers.push({ answers: a, createdAt: d.data().createdAt ?? null });
         batch.set(db.collection("feedbackAnswers").doc(), {
           answers: a, createdAt: d.data().createdAt ?? null,
         });
@@ -65,10 +65,16 @@ export async function GET(req: NextRequest) {
     };
 
     // รวมจากคอลเลกชันนิรนาม (+ ใบ legacy ที่เพิ่งย้าย)
+    // เรียงตาม createdAt เก่า→ใหม่ (ไม่มีเวลา = เก่าสุด) — จะได้ "ใหม่สุดอยู่บน" จริง
+    // (get() เฉย ๆ คืนตามลำดับ doc id ที่สุ่ม ไม่ใช่ลำดับเวลา — บั๊กที่ Aj เจอ)
     const allAnswerDocs = [
       ...ansSnap.docs.map((d) => d.data()),
       ...legacyAnswers,
-    ];
+    ].sort((a, b) => {
+      const ta = a.createdAt?.toMillis?.() ?? 0;
+      const tb = b.createdAt?.toMillis?.() ?? 0;
+      return ta - tb;
+    });
     allAnswerDocs.forEach((doc) => {
       const a = (doc.answers ?? {}) as SurveyAnswers;
       for (const q of SURVEY) {
