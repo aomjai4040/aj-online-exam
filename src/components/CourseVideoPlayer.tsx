@@ -169,9 +169,9 @@ export default function CourseVideoPlayer({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const el = wrapRef.current as any;
         if (el?.requestFullscreen) {
-          el.requestFullscreen()
-            .then(() => { try { (screen.orientation as any)?.lock?.("landscape")?.catch?.(() => {}); } catch { /* */ } })
-            .catch(() => setFakeFull(true));
+          // ⚠️ ห้าม lock แนวจอในเคสนี้ — ผู้ใช้หมุนเครื่องเองอยู่แล้ว และการ lock
+          // จะบล็อกการหมุนกลับ (event ไม่ยิง) จนจอค้างแนวนอนอย่างที่น้องเจอ
+          el.requestFullscreen().catch(() => setFakeFull(true));
         } else if (el?.webkitRequestFullscreen) {
           try { el.webkitRequestFullscreen(); } catch { setFakeFull(true); }
         } else {
@@ -194,6 +194,26 @@ export default function CourseVideoPlayer({
       window.removeEventListener("orientationchange", check);
     };
   }, [playing, fakeFull]);
+
+  // ออกจากเต็มจอ "ด้วยวิธีไหนก็ตาม" (ปุ่มย้อนกลับ Android / Esc / ปุ่มเรา)
+  // → ปลดล็อกแนวจอเสมอ — กันจอค้างแนวนอนทั้งที่ถือเครื่องแนวตั้ง
+  useEffect(() => {
+    const onFsChange = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const doc = document as any;
+      const inFs = !!(document.fullscreenElement ?? doc.webkitFullscreenElement);
+      if (!inFs) {
+        autoFullRef.current = false;
+        try { screen.orientation?.unlock?.(); } catch { /* ignore */ }
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
+    };
+  }, []);
 
   const report = useCallback((isEnded: boolean, forYtId?: string) => {
     if (timeRef.current > 3 && durRef.current > 0) {
