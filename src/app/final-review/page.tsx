@@ -430,48 +430,41 @@ export default function FinalReviewPage() {
     );
   }
 
-  // ═══ สมาชิก — 15 ส.ค. เป็นต้นไป: วันสอบ ═══════════════════════════════════════
+  // ═══ สมาชิก — หลังวันสอบ: หน้าปิดแคมป์ ═══════════════════════════════════════
   if (phase === "exam-eve-passed") {
     return (
       <div className="min-h-screen pb-28" style={{ backgroundColor: "#FAFAF9" }}>
         <div className="max-w-lg mx-auto px-5 pt-10 space-y-4">
           <div className="bg-white rounded-[28px] p-7 text-center"
             style={{ border: `1px solid ${LINE}`, boxShadow: CARD_SHADOW }}>
-            <div className="text-[40px] mb-3">🍀</div>
-            <h1 className="text-[21px] font-extrabold text-gray-900 mb-2">ถึงวันสอบแล้ว — โชคดีนะคะ!</h1>
+            <div className="text-[40px] mb-3">🎉</div>
+            <h1 className="text-[21px] font-extrabold text-gray-900 mb-2">สอบเสร็จแล้ว — เก่งมากทุกคน!</h1>
             <p className="text-[14px] leading-relaxed max-w-xs mx-auto" style={{ color: "#57534E" }}>
-              คุณเตรียมตัวมาดีแล้ว เชื่อมั่นในตัวเอง อ่านโจทย์ให้ครบ
-              ข้อไหนไม่แน่ใจให้ข้ามไว้ก่อนแล้วค่อยวนกลับมา — ครูอ้อมเป็นกำลังใจให้ค่ะ
+              ขอบคุณที่สู้มาด้วยกันตลอด 14 วันนะคะ ไม่ว่าผลจะเป็นยังไง
+              ความรู้ที่เก็บมาอยู่กับเราตลอดไป — ประกาศผลเมื่อไหร่มาแชร์ข่าวดีกันค่ะ 💚
             </p>
           </div>
-          {COURSE_RESOURCES.preExamSheet !== "" && (
-            <a href={COURSE_RESOURCES.preExamSheet} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-3.5 rounded-2xl px-4 py-4
-                         active:scale-[0.98] transition-transform"
-              style={{ backgroundColor: "#FDF6E9", border: "2px solid #FCD34D" }}>
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: "#F59E0B" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="white"
-                  strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-bold" style={{ color: "#7C2D12" }}>ชีททวนก่อนสอบ ✨</p>
-                <p className="text-[12.5px]" style={{ color: "#B45309" }}>
-                  ทวนรอบสุดท้ายเช้าวันสอบ — 21 หัวข้อ 34 หน้า
-                </p>
-              </div>
-              <svg viewBox="0 0 24 24" fill="none" stroke="#B45309"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </a>
-          )}
-          <ExamDayChecklist />
+
+          <div className="space-y-2.5">
+            <Link href="/feedback"
+              className="block w-full py-3.5 rounded-2xl font-bold text-[15px] text-white text-center
+                         transition-transform active:scale-[0.98]"
+              style={{ backgroundColor: ACCENT }}>
+              เขียนข้อความถึงพี่อ้อม + รับโค้ดส่วนลด →
+            </Link>
+            {member.hasLap && (
+              <Link href="/videos"
+                className="block w-full py-3 rounded-2xl font-semibold text-[14px] bg-white text-center"
+                style={{ border: `1px solid ${LINE}`, color: "#44403C" }}>
+                ▶ ดูคลิปติวย้อนหลังได้ตามปกติ
+              </Link>
+            )}
+            <Link href="/"
+              className="block w-full py-3 rounded-2xl font-semibold text-[14px] text-center"
+              style={{ color: MUTED }}>
+              กลับหน้าหลัก
+            </Link>
+          </div>
         </div>
         <BottomNav />
       </div>

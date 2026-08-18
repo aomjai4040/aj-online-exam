@@ -612,9 +612,8 @@ export default function HomePage() {
           {[
             {
               title: "ติวโค้งสุดท้าย",
-              desc: "ทบทวนรอบ 2 · 1–14 ส.ค.",
+              desc: "จบแคมป์แล้ว · ดูคลิป/ชีทย้อนหลัง",
               href: "/final-review",
-              badge: "เร็ว ๆ นี้",
               icon: (
                 <svg viewBox="0 0 24 24" fill="none" stroke={BRAND.primary}
                   strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
