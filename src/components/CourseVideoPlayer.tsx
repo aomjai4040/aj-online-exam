@@ -102,6 +102,21 @@ export default function CourseVideoPlayer({
 
   const [playing,  setPlaying]  = useState(false);
   const [ended,    setEnded]    = useState(false);
+
+  // ── แถบควบคุมซ่อนเองแบบ YouTube: โชว์เมื่อแตะ/ขยับเมาส์ · หายเองหลัง 3 วิ ขณะเล่น ──
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideTimerRef = useRef<number | null>(null);
+  const playingRef   = useRef(false);
+  const bumpControls = useCallback(() => {
+    setControlsVisible(true);
+    if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = window.setTimeout(() => {
+      if (playingRef.current) setControlsVisible(false); // ซ่อนเฉพาะตอนกำลังเล่น
+    }, 3000);
+  }, []);
+  useEffect(() => () => {
+    if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
+  }, []);
   const [time,     setTime]     = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed,    setSpeed]    = useState(1);
@@ -301,6 +316,11 @@ export default function CourseVideoPlayer({
 
       const isPlaying = state === 1 || state === 3; // playing / buffering
       setPlaying(isPlaying);
+      if (playingRef.current !== isPlaying) {
+        playingRef.current = isPlaying;
+        if (isPlaying) bumpControls();          // เริ่มเล่น → นับถอยหลังซ่อนแถบ
+        else setControlsVisible(true);          // หยุด/จบ → แถบโชว์ค้าง
+      }
 
 
       if (state === 0 && durRef.current > 0) {       // ended
@@ -319,7 +339,7 @@ export default function CourseVideoPlayer({
       }
     }, 500);
     return () => clearInterval(iv);
-  }, [report]);
+  }, [report, bumpControls]);
 
   // ── controls (ถามสถานะจริงจาก player — ไม่พึ่ง state ที่อาจค้าง) ─────────────
   const toggle = useCallback(() => {
@@ -400,8 +420,15 @@ export default function CourseVideoPlayer({
         <div ref={mountRef} className="w-full h-full" />
       </div>
 
-      {/* โล่ใสเต็มจอ — ทุกการแตะเป็นของเรา (เล่น/หยุด) ไม่มีทางแตะโดนลิงก์ YouTube */}
-      <div className="absolute inset-0 z-10 cursor-pointer" onClick={toggle} />
+      {/* โล่ใสเต็มจอ — ทุกการแตะเป็นของเรา ไม่มีทางแตะโดนลิงก์ YouTube
+          แตะตอนแถบซ่อน = โชว์แถบก่อน (แบบ YouTube) · แตะตอนแถบโชว์ = เล่น/หยุด */}
+      <div className="absolute inset-0 z-10 cursor-pointer"
+        onClick={() => {
+          if (!controlsVisible && playingRef.current) { bumpControls(); return; }
+          toggle();
+          bumpControls();
+        }}
+        onMouseMove={bumpControls} />
 
       <CornerWatermark label={userLabel} />
 
@@ -438,9 +465,13 @@ export default function CourseVideoPlayer({
         </div>
       )}
 
-      {/* แถบควบคุมของเรา */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-2 pt-6"
-        style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.75))" }}>
+      {/* แถบควบคุมของเรา — จางหายเองตอนเล่น (โผล่เมื่อแตะจอ/ขยับเมาส์) */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 z-20 px-3 pb-2 pt-6
+                    transition-opacity duration-300
+                    ${controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.75))" }}
+        onClick={bumpControls} onMouseMove={bumpControls} onTouchStart={bumpControls}>
         {/* seek */}
         <input
           type="range" min={0} max={Math.max(duration, 1)} step={1}
