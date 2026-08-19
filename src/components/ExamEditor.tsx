@@ -23,6 +23,7 @@ const EMPTY_Q: QuestionForm = {
   options:       ["", "", "", ""],
   correctAnswer: 0,
   explanation:   "",
+  tags:          { level: "medium" },   // ความยากเริ่มที่ "ปานกลาง" — เปลี่ยนเฉพาะข้อที่ต่าง
 };
 
 // ─── Input focus helpers (inline styles because globals.css .input uses @apply) ─
@@ -304,7 +305,7 @@ function QuestionTagRow({
       }}>
       <p className="text-[12px] font-bold mb-2"
         style={{ color: complete ? "#0B6E65" : "#B45309" }}>
-        {complete ? "✓ แท็กครบแล้ว" : "แท็กข้อนี้ (ต้องครบก่อนนำเข้าคลัง)"}
+        {complete ? "✓ แท็กครบแล้ว" : "แท็กข้อนี้ (บังคับแค่ ประเภท + บริบทหน่วยงาน — ที่เหลือใส่ได้ถ้าสะดวก)"}
       </p>
 
       <div className="grid grid-cols-2 gap-2 mb-2">

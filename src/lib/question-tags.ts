@@ -64,9 +64,12 @@ export interface QuestionTags {
   agency?:   AgencyContext;
 }
 
-export const TAG_FIELDS: (keyof QuestionTags)[] = ["topic", "kind", "level", "agency"];
+/** ฟิลด์บังคับ (Aj ผ่อนเหลือ 2 ช่อง 2026-08-19): ประเภท + บริบทหน่วยงาน
+ *  — สองตัวที่กระทบคุณภาพจริง (สัดส่วน 60:40 + กันข้อผิดสนาม)
+ *  หัวข้อ/ความยาก/ที่มา/ปี เป็นทางเลือก (ความยากมีค่าเริ่มต้น "ปานกลาง" ตอนสร้างข้อใหม่) */
+export const TAG_FIELDS: (keyof QuestionTags)[] = ["kind", "agency"];
 
-/** แท็กครบหรือยัง (นับเฉพาะ 4 ฟิลด์บังคับ — source/year ไม่บังคับ) */
+/** แท็กครบหรือยัง (นับเฉพาะฟิลด์บังคับใน TAG_FIELDS) */
 export function isFullyTagged(t: QuestionTags | undefined): boolean {
   if (!t) return false;
   return TAG_FIELDS.every((f) => !!t[f]);
