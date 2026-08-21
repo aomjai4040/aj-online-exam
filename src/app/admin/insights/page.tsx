@@ -106,9 +106,10 @@ export default function AdminInsights() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  // silent = รีเฟรชเบื้องหลัง ไม่ต้องขึ้น skeleton (ใช้กับ auto-refresh)
+  const load = useCallback(async (silent = false) => {
     if (!user) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const token = await user.getIdToken();
@@ -116,13 +117,21 @@ export default function AdminInsights() {
       if (!res.ok) throw new Error(res.status === 401 ? "ไม่มีสิทธิ์เข้าถึง" : "โหลดข้อมูลไม่สำเร็จ");
       setData(await res.json());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
+      if (!silent) setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  // อัปเดตเองทุก 1 นาที + ทันทีที่สลับกลับมาที่แท็บนี้ (Aj เปิดค้างไว้ทั้งวัน)
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === "visible") load(true); };
+    const t = setInterval(refresh, 60_000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", refresh); };
+  }, [load]);
 
   // ── จัดการออเดอร์ค้าง: อนุมัติมือ / ปิดออเดอร์ / เปิดดูสลิปที่ไม่ผ่าน ──
   const [busy, setBusy] = useState<string | null>(null);
@@ -143,7 +152,7 @@ export default function AdminInsights() {
         body: JSON.stringify({ orderId: o.id, action }),
       });
       if (!res.ok) throw new Error("ทำรายการไม่สำเร็จ");
-      await load();
+      await load(true); // อัปเดตรายการโดยไม่กะพริบทั้งหน้า
     } catch (e) {
       alert(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
     } finally {
@@ -175,7 +184,7 @@ export default function AdminInsights() {
             <Link href="/admin" className="text-[13px] font-medium" style={{ color: "#A8A8A6" }}>← Dashboard</Link>
             <h1 className="text-[15px] font-bold text-gray-900">ภาพรวมธุรกิจ</h1>
           </div>
-          <button onClick={load} disabled={loading}
+          <button onClick={() => load()} disabled={loading}
             className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
             style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
             {loading ? <span className="w-3.5 h-3.5 border-2 border-teal-200 border-t-[#0B6E65] rounded-full animate-spin" /> : "รีเฟรช"}
@@ -188,7 +197,7 @@ export default function AdminInsights() {
           <div className="bg-white rounded-2xl p-10 text-center" style={{ border: "1px solid #EBEBEA" }}>
             <div className="text-4xl mb-3">⚠️</div>
             <p className="text-[15px] font-semibold text-gray-800 mb-4">{error}</p>
-            <button onClick={load} className="btn-primary text-sm">ลองใหม่</button>
+            <button onClick={() => load()} className="btn-primary text-sm">ลองใหม่</button>
           </div>
         ) : data ? (
           <div className="space-y-5">
@@ -213,6 +222,19 @@ export default function AdminInsights() {
                 <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid.upgrade ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>อัป→เต็ม 400฿</div></div>
                 <div><div className="text-[22px] font-extrabold" style={{ color: "#B45309" }}>{data.paid["up-review"] ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>อัป→ติวเข้ม 200฿</div></div>
                 <div><div className="text-[22px] font-extrabold" style={{ color: "#0B6E65" }}>{data.paid["up-full2"] ?? 0}</div><div className="text-[12px]" style={{ color: "#A8A8A6" }}>ติวเข้ม→เต็ม 200฿</div></div>
+              </div>
+
+              {/* สนามกรมควบคุมโรค — แถวแยกให้เห็นชัด (ตัวขายหลักตอนนี้) */}
+              <div className="mt-4 pt-4 flex items-center justify-between gap-3"
+                style={{ borderTop: "1px solid #F3F2F0" }}>
+                <div>
+                  <div className="text-[13px] font-bold text-gray-800">🎯 คอร์สกรมควบคุมโรค (dcd)</div>
+                  <div className="text-[12px]" style={{ color: "#A8A8A6" }}>โปรเปิดตัว 499฿ ถึง 31 ส.ค. · หลังนั้น 699฿</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[26px] font-extrabold leading-none" style={{ color: "#0B6E65" }}>{data.paid.dcd ?? 0}</div>
+                  <div className="text-[11px]" style={{ color: "#A8A8A6" }}>ออเดอร์จ่ายแล้ว</div>
+                </div>
               </div>
             </div>
 
@@ -288,7 +310,7 @@ export default function AdminInsights() {
             })()}
 
             <p className="text-[11px] text-center" style={{ color: "#C4C4C0" }}>
-              อัปเดต {fmtTime(data.generatedAt)} · เวลาไทย
+              อัปเดต {fmtTime(data.generatedAt)} · เวลาไทย · รีเฟรชเองทุก 1 นาที
             </p>
           </div>
         ) : null}
