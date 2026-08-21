@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { getMemberStats, deleteUserDevices, type MemberStats } from "@/lib/admin-users";
+import { useAuth } from "@/lib/auth-context";
 
 // ─── /admin/users — สรุปสมาชิก + ตรวจการใช้ code ──────────────────────────────
 
@@ -19,6 +20,74 @@ function KPI({ value, label, sub, color = "#0B6E65" }: {
       <p className="text-[26px] font-extrabold leading-none" style={{ color }}>{value}</p>
       <p className="text-[12.5px] font-semibold text-gray-600 mt-1.5">{label}</p>
       {sub && <p className="text-[11.5px] mt-0.5" style={{ color: "#A8A8A6" }}>{sub}</p>}
+    </div>
+  );
+}
+
+/** ย้ายสิทธิ์+ข้อมูลเรียนไปบัญชีใหม่ — เคสน้องเปลี่ยนอีเมล (Google account ใหม่) */
+function MigrateCard() {
+  const { user } = useAuth();
+  const [fromEmail, setFrom] = useState("");
+  const [toEmail,   setTo]   = useState("");
+  const [busy,      setBusy] = useState(false);
+  const [msg,       setMsg]  = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function migrate() {
+    if (!user || busy) return;
+    const f = fromEmail.trim().toLowerCase(), t = toEmail.trim().toLowerCase();
+    if (!f || !t || f === t) { setMsg({ ok: false, text: "กรอกอีเมลเดิมและอีเมลใหม่ให้ครบ (ต้องไม่ซ้ำกัน)" }); return; }
+    if (!confirm(`ย้ายสิทธิ์และข้อมูลเรียนทั้งหมด\n\nจาก: ${f}\nไป:   ${t}\n\nบัญชีเดิมจะไม่เหลือสิทธิ์ — ยืนยัน?`)) return;
+    setBusy(true); setMsg(null);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/migrate-user", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ fromEmail: f, toEmail: t }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setMsg({ ok: false, text: d.error ?? "ย้ายไม่สำเร็จ" }); return; }
+      const details = Object.entries(d.movedBySubcol as Record<string, number>)
+        .filter(([, n]) => n > 0).map(([k, n]) => `${k} ${n}`).join(" · ");
+      setMsg({ ok: true, text: `✓ ย้ายสำเร็จ — สิทธิ์คอร์ส ${d.coursesMoved} รายการ${details ? ` · ${details}` : ""}` });
+      setFrom(""); setTo("");
+    } catch {
+      setMsg({ ok: false, text: "ย้ายไม่สำเร็จ กรุณาลองใหม่" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const INPUT = "flex-1 min-w-0 rounded-xl px-3 py-2.5 text-[13px] bg-white focus:outline-none";
+  return (
+    <div className="bg-white rounded-2xl p-5 mb-3" style={{ border: "1px solid #EBEBEA" }}>
+      <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+        ย้ายสิทธิ์ไปบัญชีใหม่ (น้องเปลี่ยนอีเมล)
+      </p>
+      <p className="text-[12px] mb-3" style={{ color: "#A8A8A6" }}>
+        เงื่อนไข: น้องต้องล็อกอินด้วยอีเมลใหม่ 1 ครั้งก่อน · ย้ายสิทธิ์คอร์ส + ประวัติ + คลังข้อผิด +
+        ความคืบหน้าวิดีโอ + streak ครบชุด แล้วบัญชีเดิมจะไม่เหลือสิทธิ์
+      </p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input className={INPUT} style={{ border: "1px solid #E0DFDC" }}
+          placeholder="อีเมลเดิม" value={fromEmail} onChange={(e) => setFrom(e.target.value)} />
+        <span className="hidden sm:flex items-center text-[13px]" style={{ color: "#A8A8A6" }}>→</span>
+        <input className={INPUT} style={{ border: "1px solid #E0DFDC" }}
+          placeholder="อีเมลใหม่" value={toEmail} onChange={(e) => setTo(e.target.value)} />
+        <button onClick={migrate} disabled={busy}
+          className="text-[13px] font-bold px-4 py-2.5 rounded-xl text-white disabled:opacity-50 flex-shrink-0"
+          style={{ backgroundColor: "#0B6E65" }}>
+          {busy ? "กำลังย้าย…" : "ย้ายสิทธิ์"}
+        </button>
+      </div>
+      {msg && (
+        <p className="text-[12.5px] mt-2.5 rounded-lg px-3 py-2"
+          style={msg.ok
+            ? { backgroundColor: "#F0FDF4", color: "#15803D" }
+            : { backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+          {msg.text}
+        </p>
+      )}
     </div>
   );
 }
@@ -92,6 +161,9 @@ export default function AdminUsersPage() {
                 color={stats.activatedUsers > PAID_MEMBERS ? "#DC2626" : "#B45309"}
               />
             </div>
+
+            {/* ═══ เครื่องมือ: ย้ายสิทธิ์ข้ามบัญชี ═══ */}
+            <MigrateCard />
 
             {/* คำเตือนถ้าบัญชี activate เกินสมาชิกจ่ายเงิน */}
             {stats.activatedUsers > PAID_MEMBERS && (
