@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 import { createExam, findExamByTitle, appendQuestionsToExam } from "@/lib/firestore";
 import { SUBJECTS, getSubjectLabel } from "@/lib/types";
 import type { QuestionForm } from "@/lib/types";
+import { FIELD_SHORT, FIELD_PACKAGE, type ExamFieldKey } from "@/lib/exam-fields";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -136,6 +137,7 @@ export default function ImportPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [step,     setStep]     = useState<Step>("upload");
+  const [field,    setField]    = useState<ExamFieldKey>("moph");
   const [fileName, setFileName] = useState("");
   const [rows,     setRows]     = useState<ParsedRow[]>([]);
   const [groups,   setGroups]   = useState<ExamGroup[]>([]);
@@ -224,6 +226,7 @@ export default function ImportPage() {
         }));
 
         if (g.existing) {
+          // เพิ่มเข้าชุดเดิม — สนามคงตามชุดเดิม (เปลี่ยนสนามได้ที่หน้าแก้ไขชุด)
           await appendQuestionsToExam(g.existing.id, questions, g.existing.questionCount);
         } else {
           await createExam({
@@ -233,6 +236,8 @@ export default function ImportPage() {
             timeLimit:   g.subject === "MOCK" ? 120 : 0, // mock default 120 นาที (แก้ได้ในหน้าแก้ไข)
             isPublished: false,
             isMock:      g.subject === "MOCK",           // เข้าเมนู Mock Exam อัตโนมัติ
+            // สนาม คร. = ผูก packageId คอร์ส คร. — คนซื้อ dcd-2026 เท่านั้นที่ทำได้
+            ...(FIELD_PACKAGE[field] ? { packageId: FIELD_PACKAGE[field] } : {}),
             questions,
           });
         }
@@ -255,6 +260,39 @@ export default function ImportPage() {
   const validRows  = rows.filter(r => r.valid).length;
   const errorRows  = totalRows - validRows;
   const hasErrors  = errorRows > 0;
+
+  // ── Field picker (ใช้ทั้ง step upload และ preview) ─────────────────────────
+
+  const fieldPicker = (
+    <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
+      <p className="text-[17px] font-bold text-gray-700 mb-1">🎯 สนามสอบของชุดที่ import</p>
+      <p className="text-[14px] mb-3" style={{ color: "#4A5568" }}>
+        ชุดใหม่ทั้งหมดในไฟล์จะถูกผูกกับสนามนี้ — คนซื้อคอร์สของสนามนั้นถึงจะเห็น/ทำได้
+      </p>
+      <div className="grid grid-cols-2 gap-2 max-w-md">
+        {(["moph", "dcd"] as ExamFieldKey[]).map((f) => {
+          const active = field === f;
+          return (
+            <button key={f} type="button" onClick={() => setField(f)}
+              className="py-3 rounded-xl text-[15px] font-bold border transition-all"
+              style={{
+                backgroundColor: active ? (f === "dcd" ? "#0B6E65" : "#7C3AED") : "white",
+                borderColor:     active ? "transparent" : "#E0DFDC",
+                color:           active ? "white" : "#6B7280",
+              }}>
+              {FIELD_SHORT[f]}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[13px] mt-2" style={{ color: "#A8A8A6" }}>
+        {field === "dcd"
+          ? `✅ ผูกกับคอร์สกรมควบคุมโรค (${FIELD_PACKAGE.dcd}) — จะไปแสดงในแท็บสนาม คร.`
+          : "คลังข้อสอบ สป.สธ. เดิม — สมาชิกคอร์ส สป.สธ. ทุกแพ็กเข้าได้"}
+        {" · ถ้าเพิ่มเข้าชุดเดิมที่มีอยู่แล้ว สนามจะคงตามชุดเดิม"}
+      </p>
+    </div>
+  );
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -318,6 +356,8 @@ export default function ImportPage() {
         {/* ── STEP: PREVIEW ───────────────────────────────────────────────── */}
         {step === "preview" && (
           <>
+            {fieldPicker}
+
             {/* Summary cards */}
             <div className="grid grid-cols-3 gap-3">
               {[
@@ -427,7 +467,7 @@ export default function ImportPage() {
                 </span>
               ) : hasErrors
                 ? `แก้ไข ${errorRows} แถวที่มีปัญหาก่อน`
-                : `Import ${validRows} ข้อ (${groups.length} ชุด)`}
+                : `Import ${validRows} ข้อ (${groups.length} ชุด) → สนาม${FIELD_SHORT[field]}`}
             </button>
           </>
         )}
@@ -435,6 +475,8 @@ export default function ImportPage() {
         {/* ── STEP: UPLOAD ────────────────────────────────────────────────── */}
         {step === "upload" && (
           <>
+            {fieldPicker}
+
             {/* Format guide */}
             <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
               <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">

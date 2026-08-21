@@ -99,6 +99,13 @@ export function examSetField(exam: { packageId?: string }): ExamFieldKey {
   return String(exam.packageId ?? "").toLowerCase().startsWith("dcd-") ? "dcd" : "moph";
 }
 
+/** courseId ที่ชุดข้อสอบของแต่ละสนามต้องผูก ("" = ไม่ผูก = คลัง สป.สธ. เดิม ใช้ legacy access)
+ *  ใช้ตอน admin สร้าง/import ชุดข้อสอบ — ต้องตรงกับ tierPlan ใน order-types.ts */
+export const FIELD_PACKAGE: Record<ExamFieldKey, string> = {
+  moph: "",
+  dcd:  "dcd-2026",
+};
+
 // ─── Helpers (pure) ───────────────────────────────────────────────────────────
 
 export function ownsField(field: ExamField, access: UserAccess): boolean {

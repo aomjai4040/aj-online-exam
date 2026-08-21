@@ -13,6 +13,7 @@ import {
   limit,
   writeBatch,
   serverTimestamp,
+  deleteField,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -121,7 +122,8 @@ export async function updateExam(examId: string, form: ExamForm): Promise<void> 
     isPublished: form.isPublished,
     isFree: form.isFree ?? false,
     isMock: form.isMock ?? false,
-    ...(form.packageId ? { packageId: form.packageId } : {}),
+    // ไม่ผูกแพ็กเกจ = ลบฟิลด์ทิ้ง (สลับสนามกลับเป็น สป.สธ. แล้วต้องไม่ค้างค่า dcd-)
+    packageId: form.packageId ? form.packageId : deleteField(),
     questionCount: form.questions.length,
     updatedAt: serverTimestamp(),
   });

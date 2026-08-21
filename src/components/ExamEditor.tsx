@@ -7,6 +7,7 @@ import {
   type QuestionTags, type TopicCode, type QuestionKind,
   type DifficultyCode, type AgencyContext,
 } from "@/lib/question-tags";
+import { FIELD_SHORT, FIELD_PACKAGE, examSetField, type ExamFieldKey } from "@/lib/exam-fields";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -376,7 +377,18 @@ export default function ExamEditor({
     isPublished: initial?.isPublished ?? false,
     isFree:      initial?.isFree      ?? false,
     isMock:      initial?.isMock      ?? false,
+    packageId:   initial?.packageId   ?? "",
   });
+
+  // สนามของชุดนี้ ตัดสินจาก packageId — สลับกลับ moph แล้วคืนค่า packageId เดิม
+  // ถ้าชุดเคยผูกแพ็กเกจ สป.สธ. เฉพาะไว้ (เช่น app-2026) จะได้ไม่หลุดหาย
+  const origPackageId = initial?.packageId ?? "";
+  const examField: ExamFieldKey = examSetField({ packageId: meta.packageId });
+  function setExamField(f: ExamFieldKey) {
+    setMetaField("packageId",
+      f === "dcd" ? FIELD_PACKAGE.dcd
+      : (origPackageId.toLowerCase().startsWith("dcd-") ? "" : origPackageId));
+  }
 
   const [questions, setQuestions] = useState<QuestionForm[]>(
     initial?.questions?.length
@@ -581,6 +593,37 @@ export default function ExamEditor({
               maxLength={500}
             />
           </div>
+        </div>
+
+        {/* ═══ Section 1.5: สนามสอบ ════════════════════════════════════ */}
+        <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+            🎯 สนามสอบ
+          </p>
+          <p className="text-[12px] leading-relaxed mb-3" style={{ color: "#A8A8A6" }}>
+            ชุดนี้อยู่สนามไหน — กำหนดว่าใครเห็น/ทำได้ (คนซื้อคอร์สของสนามนั้น)
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {(["moph", "dcd"] as ExamFieldKey[]).map((f) => {
+              const active = examField === f;
+              return (
+                <button key={f} type="button" onClick={() => setExamField(f)} disabled={saving}
+                  className="py-2.5 rounded-xl text-[13px] font-bold border transition-all"
+                  style={{
+                    backgroundColor: active ? (f === "dcd" ? "#0B6E65" : "#7C3AED") : "white",
+                    borderColor:     active ? "transparent" : "#E0DFDC",
+                    color:           active ? "white" : "#6B7280",
+                  }}>
+                  {FIELD_SHORT[f]}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[12px] mt-2" style={{ color: "#A8A8A6" }}>
+            {examField === "dcd"
+              ? `✅ ผูกกับคอร์ส คร. (${FIELD_PACKAGE.dcd}) — เฉพาะคนซื้อคอร์สกรมควบคุมโรค`
+              : "คลังข้อสอบ สป.สธ. — สมาชิกคอร์ส สป.สธ. ทุกแพ็กเข้าได้"}
+          </p>
         </div>
 
         {/* ═══ Section 2: หมวดวิชาและเวลา ══════════════════════════════ */}
