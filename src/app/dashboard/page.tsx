@@ -459,7 +459,11 @@ export default function DashboardPage() {
             </div>
           </Link>
         )}
-        {!dataLoading && courses.length > 0 && !courses.some((c) => isFullCourse(c.courseId)) && (
+        {/* การ์ดอัปเกรดเป็นคอร์สเต็ม = ของ สป.สธ. เท่านั้น — โชว์เฉพาะคนที่มีคอร์ส สป.สธ.
+            แต่ยังไม่เต็ม และกำลังดูสนาม สป.สธ. (คน คร. อย่างเดียวเคยเห็นแล้วกดไปเจอ error) */}
+        {!dataLoading && field === "moph"
+          && courses.some((c) => !isDcdCourse(c.courseId))
+          && !courses.some((c) => isFullCourse(c.courseId)) && (
           <Link href={courses.some((c) => isReviewCourse(c.courseId)) ? "/checkout/up-full2" : "/checkout/upgrade"}
             className="card-elev block p-4 active:scale-[0.99] transition-transform">
             <div className="flex items-center gap-3.5">
