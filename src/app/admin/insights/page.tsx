@@ -176,6 +176,21 @@ export default function AdminInsights() {
 
   const totalPaidCount = data ? Object.values(data.paid).reduce((s, n) => s + n, 0) : 0;
 
+  // ── สถานะของออเดอร์ค้าง — ตอบคำถาม "ค้างเพราะอะไร" ให้ชัดในแถวเดียว ──
+  type PendingKind = "confirmed" | "failed" | "noslip" | "hasAccess";
+  const kindOf = (o: PendingOrder): PendingKind =>
+    o.hasAccess ? "hasAccess"
+    : o.manualReview ? "confirmed"
+    : o.failReason || o.slipPath ? "failed"
+    : "noslip";
+  const KIND_META: Record<PendingKind, { label: string; hint: string; color: string; bg: string }> = {
+    confirmed: { label: "🙋 ยืนยันโอนแล้ว รอตรวจ", hint: "น้องกดปุ่ม \"โอนแล้วจริง\" — เช็คเงินเข้าแล้วอนุมัติ", color: "#B45309", bg: "#FEF3C7" },
+    failed:    { label: "🧾 ส่งสลิปแล้ว ตรวจไม่ผ่าน", hint: "เปิดดูสลิปเทียบยอดเงินเข้า แล้วอนุมัติ/ปิด", color: "#DC2626", bg: "#FEE2E2" },
+    noslip:    { label: "⏳ ยังไม่ส่งสลิป", hint: "เปิดหน้าจ่ายเงินแล้วหายไป — ส่วนใหญ่คือยังไม่โอน ถ้าน้องทักว่าโอนแล้วค่อยเช็คเงินเข้าแล้วอนุมัติ", color: "#6B7280", bg: "#F3F4F6" },
+    hasAccess: { label: "🟢 มีสิทธิ์แล้ว", hint: "ได้สิทธิ์ทางอื่นแล้ว (ออเดอร์ซ้ำ) — ปิดออเดอร์ได้เลย", color: "#15803D", bg: "#DCFCE7" },
+  };
+  const [kindFilter, setKindFilter] = useState<PendingKind | "all">("all");
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5FAF9" }}>
       <div className="sticky top-14 z-30 bg-white" style={{ borderBottom: "1px solid #EBEBEA", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
@@ -240,41 +255,64 @@ export default function AdminInsights() {
 
             {/* ── สลิปค้าง ── */}
             {data.pendingList.length > 0 && (() => {
-              const needHelp = data.pendingList.filter((o) => !o.hasAccess).length;
+              const counts = { all: data.pendingList.length } as Record<PendingKind | "all", number>;
+              (Object.keys(KIND_META) as PendingKind[]).forEach((k) => { counts[k] = 0; });
+              data.pendingList.forEach((o) => { counts[kindOf(o)]++; });
+              const shown = kindFilter === "all" ? data.pendingList : data.pendingList.filter((o) => kindOf(o) === kindFilter);
+              const urgent = counts.confirmed + counts.failed;
               return (
               <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid #EBEBEA" }}>
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">ออเดอร์ค้าง (รอตรวจสลิป)</p>
+                  <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">ออเดอร์ค้าง</p>
                   <span className="text-[12px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>{data.pending} รายการ</span>
                 </div>
-                <p className="text-[12px] mb-3" style={{ color: needHelp > 0 ? "#DC2626" : "#15803D" }}>
-                  {needHelp > 0
-                    ? `🔴 ${needHelp} รายการยังไม่มีสิทธิ์ — อาจจ่ายจริงแต่สลิปไม่ผ่าน ควรเช็ค`
-                    : "🟢 ทุกรายการได้สิทธิ์ทางอื่นแล้ว — ปิดออเดอร์ได้"}
+                <p className="text-[12px] mb-3" style={{ color: urgent > 0 ? "#DC2626" : "#15803D" }}>
+                  {urgent > 0
+                    ? `🔴 ต้องตัดสินใจ ${urgent} รายการ (ยืนยันโอนแล้ว ${counts.confirmed} · สลิปไม่ผ่าน ${counts.failed}) — ที่เหลือ ${counts.noslip} รายการยังไม่ส่งสลิป ส่วนใหญ่คือยังไม่โอน`
+                    : `🟢 ไม่มีรายการที่ต้องตรวจ — ${counts.noslip} รายการยังไม่ส่งสลิป (น่าจะยังไม่โอน)`}
                 </p>
+
+                {/* ตัวกรองตามสาเหตุที่ค้าง */}
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {([["all", "ทั้งหมด"], ["confirmed", "🙋 ยืนยันโอนแล้ว"], ["failed", "🧾 สลิปไม่ผ่าน"], ["noslip", "⏳ ยังไม่ส่งสลิป"], ["hasAccess", "🟢 มีสิทธิ์แล้ว"]] as [PendingKind | "all", string][]).map(([k, label]) => {
+                    const active = kindFilter === k;
+                    return (
+                      <button key={k} onClick={() => setKindFilter(k)}
+                        className="text-[12px] font-semibold px-2.5 py-1 rounded-full border transition-colors"
+                        style={{
+                          backgroundColor: active ? "#0B6E65" : "white",
+                          borderColor: active ? "#0B6E65" : "#E0DFDC",
+                          color: active ? "white" : "#6B7280",
+                        }}>
+                        {label} <span style={{ opacity: 0.7 }}>{counts[k]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <div className="space-y-2.5">
-                  {data.pendingList.map((o) => (
+                  {shown.length === 0 && (
+                    <p className="text-[13px] py-6 text-center" style={{ color: "#A8A8A6" }}>ไม่มีรายการในกลุ่มนี้</p>
+                  )}
+                  {shown.map((o) => {
+                    const km = KIND_META[kindOf(o)];
+                    return (
                     <div key={o.id} className="py-1.5" style={{ borderBottom: "1px solid #F3F2F0" }}>
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-gray-800 text-[13px] font-medium truncate flex-1">{o.email}</span>
-                        {o.manualReview && (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>🙋 ยืนยันโอนแล้ว รอตรวจ</span>
-                        )}
-                        {o.hasAccess ? (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}>🟢 มีสิทธิ์แล้ว</span>
-                        ) : (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}>🔴 ยังไม่มีสิทธิ์</span>
-                        )}
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: km.bg, color: km.color }}>{km.label}</span>
                       </div>
                       <div className="flex items-center gap-2 text-[12px]" style={{ color: "#A8A8A6" }}>
                         <span className="font-semibold" style={{ color: "#0B6E65" }}>{o.tier} {o.amount}฿</span>
                         <span>·</span>
                         <span>{fmtTime(o.createdAt)}</span>
                       </div>
-                      {o.failReason && (
+                      {o.failReason ? (
                         <p className="text-[12px] mt-1" style={{ color: "#DC2626" }}>
                           สลิปไม่ผ่านล่าสุด: {o.failReason}
                         </p>
+                      ) : (
+                        <p className="text-[12px] mt-1" style={{ color: km.color }}>{km.hint}</p>
                       )}
                       <div className="flex flex-wrap gap-2 mt-2">
                         {o.slipPath && (
@@ -298,12 +336,14 @@ export default function AdminInsights() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <p className="text-[11.5px] mt-3 leading-relaxed" style={{ color: "#C4C4C0" }}>
-                  🟢 = ได้สิทธิ์แล้ว กด &quot;ปิดออเดอร์&quot; เคลียร์ได้เลย · 🔴 = เช็คเงินเข้าบัญชีพร้อมเพย์ก่อน
-                  ถ้าเข้าจริงกด &quot;อนุมัติให้สิทธิ์&quot; — ระบบจะเปิดสิทธิ์และปิดออเดอร์ให้ทันที ·
-                  สลิปที่ตรวจไม่ผ่านหลังจากนี้จะมีปุ่ม &quot;ดูสลิป&quot; ให้เปิดภาพดูเองได้ (เก็บ 30 วัน)
+                  ระบบเห็นเฉพาะ &quot;สลิปที่น้องอัพโหลด&quot; ไม่เห็นเงินเข้าธนาคารโดยตรง —
+                  ⏳ ยังไม่ส่งสลิป = เปิดหน้าจ่ายเงินไว้แต่ไม่ได้ส่งสลิป (ส่วนใหญ่ยังไม่โอน / QR หมดอายุแล้วโอนทีหลัง) ·
+                  ก่อนกด &quot;อนุมัติให้สิทธิ์&quot; ให้เช็คเงินเข้าพร้อมเพย์ก่อนเสมอ ระบบจะเปิดสิทธิ์และปิดออเดอร์ให้ทันที ·
+                  สลิปที่ตรวจไม่ผ่านมีปุ่ม &quot;ดูสลิป&quot; (เก็บ 30 วัน)
                 </p>
               </div>
               );
