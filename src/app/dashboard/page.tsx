@@ -136,11 +136,10 @@ export default function DashboardPage() {
   const load = useCallback(async (uid: string) => {
     setDataLoading(true);
     try {
-      const [s, r, c, w, all] = await Promise.all([
+      const [s, r, c, all] = await Promise.all([
         getUserSummaries(uid),
         getRecentResults(uid, 30),
         getUserCourses(uid),
-        countWrongQuestions(uid).catch(() => 0),
         getPublishedExams().catch(() => []),
       ]);
       // ── แยกตามสนาม (Aj 2026-08-21): บันทึกโชว์เฉพาะสนามที่กำลังเรียน ──
@@ -155,13 +154,16 @@ export default function DashboardPage() {
       const fieldById = new Map(all.map((e) => [e.id, examSetField(e)] as const));
       const inField = (examId: string) => (fieldById.get(examId) ?? "moph") === f;
 
-      const realSets = all.filter((e) => !isMockExam(e) && examSetField(e) === f);
-      setTotalSets(realSets.length);
+      const fieldSets = all.filter((e) => examSetField(e) === f);
+      const realSets  = fieldSets.filter((e) => !isMockExam(e));
+      // สนามที่ยังมีแต่ Mock (คร. ช่วงแรก) → ใช้จำนวนชุดทั้งหมดของสนามเป็นตัวหาร ไม่โชว์ "?"
+      setTotalSets(realSets.length || fieldSets.length);
       setFreeSets(realSets.filter((e) => e.isFree).length);
       setSummaries(s.filter((x) => inField(x.examId)));
       setResults(r.filter((x) => inField(x.examId)));
       setCourses(c);
-      setWrongCount(w);
+      // คลังข้อผิดก็นับเฉพาะสนามนี้
+      setWrongCount(await countWrongQuestions(uid, inField).catch(() => 0));
     } finally {
       setDataLoading(false);
     }

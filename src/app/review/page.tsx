@@ -6,8 +6,9 @@ import { useLoginGuard } from "@/lib/use-login-guard";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
 import {
-  getWrongQuestions, resolveWrongQuestion, type WrongQuestion,
+  getWrongQuestions, resolveWrongQuestion, wrongKeeperForField, type WrongQuestion,
 } from "@/lib/smart-review";
+import { getActiveField } from "@/lib/active-field";
 import { getSubjectShort } from "@/lib/types";
 import { BRAND } from "@/lib/subjects";
 
@@ -30,15 +31,21 @@ export default function ReviewPage() {
   const [failed,   setFailed]   = useState(0);
   const [error,    setError]    = useState("");
 
+  // ทบทวนเฉพาะข้อผิดของ "สนามที่กำลังเรียน" (Aj 2026-08-21)
+  const [keep, setKeep] = useState<((examId: string) => boolean) | null>(null);
   useEffect(() => {
-    if (guard !== "allowed" || !user) return;
-    getWrongQuestions(user.uid, 20)
+    wrongKeeperForField(getActiveField()).then((k) => setKeep(() => k)).catch(() => setKeep(() => () => true));
+  }, []);
+
+  useEffect(() => {
+    if (guard !== "allowed" || !user || !keep) return;
+    getWrongQuestions(user.uid, 20, keep)
       .then((list) => {
         setItems(list);
         setPhase(list.length > 0 ? "review" : "empty");
       })
       .catch(() => { setError("โหลดข้อทบทวนไม่สำเร็จ กรุณาลองใหม่"); setPhase("empty"); });
-  }, [guard, user]);
+  }, [guard, user, keep]);
 
   if (guard !== "allowed") return <AccessGuardSpinner />;
 
@@ -139,7 +146,7 @@ export default function ReviewPage() {
                 onClick={() => {
                   setPhase("loading"); setIndex(0); setChosen(null);
                   setMastered(0); setFailed(0);
-                  getWrongQuestions(user!.uid, 20)
+                  getWrongQuestions(user!.uid, 20, keep ?? undefined)
                     .then((list) => { setItems(list); setPhase(list.length > 0 ? "review" : "empty"); })
                     .catch(() => setPhase("empty"));
                 }}

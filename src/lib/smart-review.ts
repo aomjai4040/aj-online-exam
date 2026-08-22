@@ -12,6 +12,8 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Exam, Question } from "./types";
+import { getPublishedExams } from "./firestore";
+import { examSetField, type ExamFieldKey } from "./exam-fields";
 
 export interface WrongQuestion {
   id:            string;   // questionId เดิม
@@ -68,15 +70,29 @@ export async function recordExamMistakes(
   await Promise.all(jobs);
 }
 
-/** ดึงข้อที่เคยผิด เรียงผิดล่าสุดก่อน */
-export async function getWrongQuestions(uid: string, max = 20): Promise<WrongQuestion[]> {
-  const snap = await getDocs(query(colRef(uid), orderBy("lastWrongAt", "desc"), qLimit(max)));
+/** ตัวกรอง "ข้อนี้มาจากชุดของสนาม field ไหม" — ใช้แยกคลังข้อผิดตามสนาม
+ *  (Aj 2026-08-21: คนมี 2 คอร์สต้องไม่เห็นข้อผิด สป.สธ. ปนในคอร์ส คร.)
+ *  ชุดที่หาไม่เจอแล้ว (ถูกลบ/ยังไม่เผยแพร่) นับเป็นคลัง สป.สธ. เดิม */
+export async function wrongKeeperForField(field: ExamFieldKey): Promise<(examId: string) => boolean> {
+  const all = await getPublishedExams();
+  const m = new Map(all.map((e) => [e.id, examSetField(e)] as const));
+  return (examId) => (m.get(examId) ?? "moph") === field;
+}
+
+/** ดึงข้อที่เคยผิด เรียงผิดล่าสุดก่อน · keep = กรองตามสนาม (ไม่ส่ง = ทุกสนาม) */
+export async function getWrongQuestions(
+  uid: string, max = 20, keep?: (examId: string) => boolean,
+): Promise<WrongQuestion[]> {
+  // มีตัวกรอง → ดึงเผื่อไว้ก่อนแล้วค่อยตัดเหลือ max (ข้อของอีกสนามจะถูกคัดออก)
+  const snap = await getDocs(query(colRef(uid), orderBy("lastWrongAt", "desc"), qLimit(keep ? 300 : max)));
   return snap.docs.filter((d) => {
     // กันข้อมูลเก่าที่เฉลยเสีย (correctAnswer นอกช่วงตัวเลือก) หลุดมาแสดง
     const ca = d.data().correctAnswer;
     const opts = d.data().options;
     return Number.isInteger(ca) && ca >= 0 && Array.isArray(opts) && ca < opts.length;
-  }).map((d) => {
+  }).filter((d) => !keep || keep(String(d.data().examId ?? "")))
+    .slice(0, max)
+    .map((d) => {
     const x = d.data();
     return {
       id:            d.id,
@@ -93,10 +109,16 @@ export async function getWrongQuestions(uid: string, max = 20): Promise<WrongQue
   });
 }
 
-/** จำนวนข้อค้างในคลัง (โชว์บน dashboard) */
-export async function countWrongQuestions(uid: string): Promise<number> {
-  const snap = await getCountFromServer(colRef(uid));
-  return snap.data().count;
+/** จำนวนข้อค้างในคลัง (โชว์บน dashboard) · keep = นับเฉพาะสนาม (ไม่ส่ง = ทั้งหมด) */
+export async function countWrongQuestions(
+  uid: string, keep?: (examId: string) => boolean,
+): Promise<number> {
+  if (!keep) {
+    const snap = await getCountFromServer(colRef(uid));
+    return snap.data().count;
+  }
+  const snap = await getDocs(colRef(uid));
+  return snap.docs.filter((d) => keep(String(d.data().examId ?? ""))).length;
 }
 
 /** ตอบถูกในโหมดทบทวน → เอาออกจากคลัง */
