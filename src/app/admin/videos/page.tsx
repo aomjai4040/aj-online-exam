@@ -4,7 +4,7 @@ import {
   getAllVideos, saveVideo, deleteVideo, parseYouTubeId,
   type CourseVideo, type VideoInput, type VideoField,
 } from "@/lib/video-firestore";
-import { DCD_TOPICS } from "@/lib/question-tags";
+import { DCD_CHAPTERS } from "@/lib/question-tags";
 
 // ─── /admin/videos — จัดการคอร์สวิดีโอ (YouTube unlisted) ─────────────────────
 
@@ -190,13 +190,10 @@ export default function AdminVideosPage() {
     return Array.from(map.entries());
   }, [listVideos]);
 
-  // บทแนะนำในฟอร์ม = บทที่มีอยู่ "ของสนามที่เลือก" + (คร.) 8 หัวข้อหลักสูตรเป็นตัวตั้งต้น
+  // บทแนะนำในฟอร์ม = (คร.) 8 เรื่องตามลำดับประกาศรับสมัครก่อน แล้วตามด้วยบทที่มีอยู่ของสนามนั้น
   const chapterOptions = useMemo(() => {
-    const own = new Set<string>();
+    const own = new Set<string>(form.field === "dcd" ? DCD_CHAPTERS : []);
     videos.filter((v) => fieldOf(v) === form.field).forEach((v) => own.add(v.chapter));
-    if (form.field === "dcd") {
-      DCD_TOPICS.forEach((t, i) => own.add(`${i + 1}. ${t.label}`));
-    }
     return Array.from(own);
   }, [videos, form.field]);
 
@@ -370,15 +367,39 @@ export default function AdminVideosPage() {
                 </label>
                 <input className="w-full border rounded-xl px-3 py-2.5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20"
                   style={{ borderColor: "#E0DFDC" }}
-                  placeholder={form.field === "dcd" ? "เช่น 1. ระบาดวิทยา + เฝ้าระวังโรค" : "เช่น 1. ความรู้พื้นฐานสาธารณสุข"}
+                  placeholder={form.field === "dcd" ? "เช่น 1. พ.ร.บ.การสาธารณสุข พ.ศ. 2535" : "เช่น 1. ความรู้พื้นฐานสาธารณสุข"}
                   value={form.chapter} onChange={(e) => setForm({ ...form, chapter: e.target.value })}
                   list="chapter-list" />
                 <datalist id="chapter-list">
                   {chapterOptions.map((c) => <option key={c} value={c} />)}
                 </datalist>
-                <p className="text-[11.5px] mt-1" style={{ color: "#A8A8A6" }}>
-                  รายการแนะนำเป็นบทของสนาม{form.field === "dcd" ? "กรมควบคุมโรค" : " สป.สธ."} เท่านั้น · พิมพ์ชื่อบทใหม่ได้เลย
-                </p>
+                {form.field === "dcd" ? (
+                  <div className="mt-2">
+                    <p className="text-[11.5px] mb-1.5" style={{ color: "#A8A8A6" }}>
+                      หลักสูตร คร. 8 เรื่อง ตามลำดับประกาศรับสมัคร (ข้อ 5.1–5.8) — แตะเพื่อใช้เป็นชื่อบท
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {DCD_CHAPTERS.map((c) => {
+                        const active = form.chapter === c;
+                        return (
+                          <button key={c} type="button" onClick={() => setForm({ ...form, chapter: c })}
+                            className="text-[12px] font-medium px-2.5 py-1 rounded-full border transition-colors text-left"
+                            style={{
+                              backgroundColor: active ? "#0B6E65" : "white",
+                              borderColor: active ? "#0B6E65" : "#E0DFDC",
+                              color: active ? "white" : "#6B7280",
+                            }}>
+                            {c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11.5px] mt-1" style={{ color: "#A8A8A6" }}>
+                    รายการแนะนำเป็นบทของสนาม สป.สธ. เท่านั้น · พิมพ์ชื่อบทใหม่ได้เลย
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
