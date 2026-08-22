@@ -4,6 +4,7 @@ import {
   getAllVideos, saveVideo, deleteVideo, parseYouTubeId,
   type CourseVideo, type VideoInput, type VideoField,
 } from "@/lib/video-firestore";
+import { DCD_TOPICS } from "@/lib/question-tags";
 
 // ─── /admin/videos — จัดการคอร์สวิดีโอ (YouTube unlisted) ─────────────────────
 
@@ -72,7 +73,9 @@ export default function AdminVideosPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ ...EMPTY_FORM, order: String((videos.at(-1)?.order ?? 0) + 1) });
+    // สนามตามแท็บที่กำลังดู + ลำดับต่อจากคลิปสุดท้าย "ของสนามนั้น"
+    const same = videos.filter((v) => (v.field === "dcd" ? "dcd" : "moph") === listField);
+    setForm({ ...EMPTY_FORM, field: listField, order: String((same.at(-1)?.order ?? 0) + 1) });
     setShowForm(true);
   }
 
@@ -172,16 +175,32 @@ export default function AdminVideosPage() {
     setVideos((prev) => prev.filter((x) => x.id !== v.id));
   }
 
+  // รายการด้านล่างแยกตามสนาม — ไม่ให้คลิป คร. ปนกับ สป.สธ. 100+ คลิป
+  const [listField, setListField] = useState<VideoField>("dcd");
+  const fieldOf = (v: CourseVideo): VideoField => (v.field === "dcd" ? "dcd" : "moph");
+  const listVideos = useMemo(() => videos.filter((v) => fieldOf(v) === listField), [videos, listField]);
+
   // จัดกลุ่มตามบท (เรียงตาม order ของวิดีโอแรกในบท)
   const chapters = useMemo(() => {
     const map = new Map<string, CourseVideo[]>();
-    for (const v of videos) {
+    for (const v of listVideos) {
       if (!map.has(v.chapter)) map.set(v.chapter, []);
       map.get(v.chapter)!.push(v);
     }
     return Array.from(map.entries());
-  }, [videos]);
+  }, [listVideos]);
 
+  // บทแนะนำในฟอร์ม = บทที่มีอยู่ "ของสนามที่เลือก" + (คร.) 8 หัวข้อหลักสูตรเป็นตัวตั้งต้น
+  const chapterOptions = useMemo(() => {
+    const own = new Set<string>();
+    videos.filter((v) => fieldOf(v) === form.field).forEach((v) => own.add(v.chapter));
+    if (form.field === "dcd") {
+      DCD_TOPICS.forEach((t, i) => own.add(`${i + 1}. ${t.label}`));
+    }
+    return Array.from(own);
+  }, [videos, form.field]);
+
+  const countOf = (f: VideoField) => videos.filter((v) => fieldOf(v) === f).length;
   const publishedCount = videos.filter((v) => v.isPublished).length;
 
   return (
@@ -302,6 +321,30 @@ export default function AdminVideosPage() {
             <p className="text-[14px] font-bold text-gray-900">
               {editing ? "แก้ไขวิดีโอ" : "เพิ่มวิดีโอใหม่"}
             </p>
+            {/* สนามของคลิป — เลือกก่อน เพราะรายการบทแนะนำด้านล่างเปลี่ยนตามสนาม
+                (สป.สธ. = คอร์สเต็มเดิม / คร. = คนซื้อคอร์ส คร.) */}
+            <div>
+              <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
+                สนามของคลิป
+              </label>
+              <div className="flex gap-2">
+                {([
+                  { v: "dcd",  label: "กรมควบคุมโรค (คร.)" },
+                  { v: "moph", label: "สป.สธ. (คอร์สเดิม)" },
+                ] as const).map((f) => (
+                  <button key={f.v} type="button"
+                    onClick={() => setForm({ ...form, field: f.v })}
+                    className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
+                    style={{
+                      backgroundColor: form.field === f.v ? "#EBF5F3" : "#FAFAF8",
+                      border: `1.5px solid ${form.field === f.v ? "#0B6E65" : "#EBEBEA"}`,
+                      color: form.field === f.v ? "#0B6E65" : "#6B7280",
+                    }}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div>
               <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
                 ชื่อวิดีโอ <span className="text-red-500">*</span>
@@ -327,12 +370,15 @@ export default function AdminVideosPage() {
                 </label>
                 <input className="w-full border rounded-xl px-3 py-2.5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20"
                   style={{ borderColor: "#E0DFDC" }}
-                  placeholder="เช่น 1. ความรู้พื้นฐานสาธารณสุข"
+                  placeholder={form.field === "dcd" ? "เช่น 1. ระบาดวิทยา + เฝ้าระวังโรค" : "เช่น 1. ความรู้พื้นฐานสาธารณสุข"}
                   value={form.chapter} onChange={(e) => setForm({ ...form, chapter: e.target.value })}
                   list="chapter-list" />
                 <datalist id="chapter-list">
-                  {chapters.map(([c]) => <option key={c} value={c} />)}
+                  {chapterOptions.map((c) => <option key={c} value={c} />)}
                 </datalist>
+                <p className="text-[11.5px] mt-1" style={{ color: "#A8A8A6" }}>
+                  รายการแนะนำเป็นบทของสนาม{form.field === "dcd" ? "กรมควบคุมโรค" : " สป.สธ."} เท่านั้น · พิมพ์ชื่อบทใหม่ได้เลย
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -349,30 +395,6 @@ export default function AdminVideosPage() {
                 </div>
               </div>
             </div>
-            {/* สนามของคลิป — ตัดสินว่าใครเห็น (สป.สธ. = คอร์สเต็มเดิม / คร. = คนซื้อคอร์ส คร.) */}
-            <div>
-              <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
-                สนามของคลิป
-              </label>
-              <div className="flex gap-2">
-                {([
-                  { v: "dcd",  label: "กรมควบคุมโรค (คร.)" },
-                  { v: "moph", label: "สป.สธ. (คอร์สเดิม)" },
-                ] as const).map((f) => (
-                  <button key={f.v} type="button"
-                    onClick={() => setForm({ ...form, field: f.v })}
-                    className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold transition-colors"
-                    style={{
-                      backgroundColor: form.field === f.v ? "#EBF5F3" : "#FAFAF8",
-                      border: `1.5px solid ${form.field === f.v ? "#0B6E65" : "#EBEBEA"}`,
-                      color: form.field === f.v ? "#0B6E65" : "#6B7280",
-                    }}>
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* คลิปตัวอย่างฟรี */}
             <label className="flex items-start gap-2.5 cursor-pointer rounded-xl px-3.5 py-3"
               style={{ backgroundColor: form.isSample ? "#FEF9EC" : "#FAFAF8", border: `1px solid ${form.isSample ? "#FCD34D" : "#EBEBEA"}` }}>
@@ -411,21 +433,46 @@ export default function AdminVideosPage() {
               </div>
             ))}
           </div>
-        ) : videos.length === 0 && !showForm ? (
-          <div className="bg-white rounded-2xl p-14 text-center" style={{ border: "1px solid #EBEBEA" }}>
-            <div className="text-4xl mb-3">🎬</div>
-            <p className="text-[15px] font-semibold text-gray-800 mb-1">ยังไม่มีวิดีโอ</p>
-            <p className="text-[13px] mb-5" style={{ color: "#A8A8A6" }}>
-              เพิ่มวิดีโอแรกจากลิงก์ YouTube (unlisted)
-            </p>
-            <button onClick={openCreate}
-              className="text-[13px] font-semibold px-5 py-2.5 rounded-xl text-white"
-              style={{ backgroundColor: "#0B6E65" }}>
-              + เพิ่มวิดีโอแรก
-            </button>
-          </div>
         ) : (
           <div className="space-y-6">
+            {/* แท็บสนาม — รายการคลิปแยกสนาม */}
+            <div className="flex gap-2">
+              {([
+                { v: "dcd",  label: "กรมควบคุมโรค (คร.)" },
+                { v: "moph", label: "สป.สธ. (คอร์สเดิม)" },
+              ] as const).map((f) => {
+                const active = listField === f.v;
+                return (
+                  <button key={f.v} type="button" onClick={() => setListField(f.v)}
+                    className="px-4 py-2 rounded-full text-[13px] font-semibold border transition-colors"
+                    style={{
+                      backgroundColor: active ? "#0B6E65" : "white",
+                      borderColor: active ? "#0B6E65" : "#E0DFDC",
+                      color: active ? "white" : "#6B7280",
+                    }}>
+                    {f.label} <span style={{ opacity: 0.75 }}>{countOf(f.v)}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {listVideos.length === 0 && !showForm && (
+              <div className="bg-white rounded-2xl p-14 text-center" style={{ border: "1px solid #EBEBEA" }}>
+                <div className="text-4xl mb-3">🎬</div>
+                <p className="text-[15px] font-semibold text-gray-800 mb-1">
+                  ยังไม่มีคลิปสนาม{listField === "dcd" ? "กรมควบคุมโรค" : " สป.สธ."}
+                </p>
+                <p className="text-[13px] mb-5" style={{ color: "#A8A8A6" }}>
+                  เพิ่มคลิปแรกจากลิงก์ YouTube (unlisted) — เลือกสนามให้ถูกในฟอร์ม
+                </p>
+                <button onClick={openCreate}
+                  className="text-[13px] font-semibold px-5 py-2.5 rounded-xl text-white"
+                  style={{ backgroundColor: "#0B6E65" }}>
+                  + เพิ่มคลิปแรก
+                </button>
+              </div>
+            )}
+
             {chapters.map(([chapter, list]) => (
               <div key={chapter}>
                 <p className="text-[12.5px] font-bold uppercase tracking-wider mb-2.5"
