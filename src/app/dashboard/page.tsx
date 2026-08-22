@@ -9,7 +9,9 @@ import {
   type UserExamSummary, type UserResult,
 } from "@/lib/user-firestore";
 import { getUserCourses, type UserCourse } from "@/lib/activation";
-import { isFullCourse, isReviewCourse } from "@/lib/access";
+import { isFullCourse, isReviewCourse, isDcdCourse } from "@/lib/access";
+import { examSetField, FIELD_SHORT, type ExamFieldKey } from "@/lib/exam-fields";
+import { getActiveField } from "@/lib/active-field";
 import { PRICING } from "@/lib/pricing";
 import { getPublishedExams } from "@/lib/firestore";
 import { normalizeSubject, isMockExam, getSubjectShort } from "@/lib/types";
@@ -128,6 +130,8 @@ export default function DashboardPage() {
   const [totalSets,   setTotalSets]   = useState(0); // จำนวนชุดข้อสอบทั้งหมด (ไม่รวม mock) — ตัวหารความครอบคลุม
   const [freeSets,    setFreeSets]    = useState(0); // ชุดทดลองฟรี — ใช้คำนวณจำนวนชุดที่ล็อกบนการ์ด upsell
   const [inProgress,  setInProgress]  = useState<ReturnType<typeof listInProgress>>([]);
+  const [field,       setField]       = useState<ExamFieldKey>("moph"); // สนามที่บันทึกนี้โชว์
+  const [twoFields,   setTwoFields]   = useState(false);                // มีทั้ง 2 คอร์ส → บอกว่ากรองอยู่
 
   const load = useCallback(async (uid: string) => {
     setDataLoading(true);
@@ -139,11 +143,23 @@ export default function DashboardPage() {
         countWrongQuestions(uid).catch(() => 0),
         getPublishedExams().catch(() => []),
       ]);
-      const realSets = all.filter((e) => !isMockExam(e));
+      // ── แยกตามสนาม (Aj 2026-08-21): บันทึกโชว์เฉพาะสนามที่กำลังเรียน ──
+      // สนามของผลสอบ = สนามของชุดข้อสอบนั้น (ชุดที่ถูกลบไปแล้วนับเป็น สป.สธ. เดิม)
+      const ownsDcd  = c.some((x) => isDcdCourse(x.courseId));
+      const ownsMoph = c.some((x) => !isDcdCourse(x.courseId));
+      const wanted = getActiveField();
+      const f: ExamFieldKey =
+        wanted === "dcd" ? (ownsDcd ? "dcd" : "moph") : (ownsMoph ? "moph" : ownsDcd ? "dcd" : "moph");
+      setField(f);
+      setTwoFields(ownsDcd && ownsMoph);
+      const fieldById = new Map(all.map((e) => [e.id, examSetField(e)] as const));
+      const inField = (examId: string) => (fieldById.get(examId) ?? "moph") === f;
+
+      const realSets = all.filter((e) => !isMockExam(e) && examSetField(e) === f);
       setTotalSets(realSets.length);
       setFreeSets(realSets.filter((e) => e.isFree).length);
-      setSummaries(s);
-      setResults(r);
+      setSummaries(s.filter((x) => inField(x.examId)));
+      setResults(r.filter((x) => inField(x.examId)));
       setCourses(c);
       setWrongCount(w);
     } finally {
@@ -305,7 +321,12 @@ export default function DashboardPage() {
             {/* Name */}
             <div className="flex-1 min-w-0">
               <p className="text-[12px] font-bold mb-0.5" style={{ color: "#A8A8A6" }}>
-                Dashboard ของฉัน
+                Dashboard ของฉัน · สนาม{FIELD_SHORT[field]}
+                {twoFields && (
+                  <Link href="/?pick=1" className="ml-1.5 font-semibold" style={{ color: "#0B6E65" }}>
+                    สลับคอร์ส ⇄
+                  </Link>
+                )}
               </p>
               <p className="text-[17px] font-bold text-gray-900 truncate">
                 {safeUser.displayName ?? "ผู้ใช้"}

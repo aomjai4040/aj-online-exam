@@ -15,6 +15,8 @@ import CourseVideoPlayer from "@/components/CourseVideoPlayer";
 import CourseResources from "@/components/CourseResources";
 import NextStepPanel from "@/components/NextStepPanel";
 import SampleVideoTeaser from "@/components/SampleVideoTeaser";
+import { effectiveField } from "@/lib/active-field";
+import type { ExamFieldKey } from "@/lib/exam-fields";
 
 // ─── /videos — คอร์สวิดีโอ (เฉพาะคอร์สเต็ม) ───────────────────────────────────
 // player ควบคุมเองทั้งหมด (ดู components/CourseVideoPlayer) — ปิดทุกทางที่
@@ -30,6 +32,7 @@ export default function VideosPage() {
   const [error,   setError]   = useState("");
   const [current, setCurrent] = useState<CourseVideo | null>(null);
   const [progress, setProgress] = useState<Map<string, VideoProgress>>(new Map());
+  const [field,   setField]   = useState<ExamFieldKey>("moph"); // สนามที่กำลังดู
 
   useEffect(() => {
     if (guard !== "allowed" || !user) return;
@@ -44,10 +47,16 @@ export default function VideosPage() {
           ]);
           // แยกตามสนาม (Aj 2026-08-16): คลิป คร. เห็นเฉพาะคนซื้อคอร์ส คร.
           // ฝั่ง สป.สธ.: คอร์สเต็มเห็นครบ · แพ็กติวทบทวน (499) เห็นเฉพาะบท "โค้งสุดท้าย"
-          const vs = vsAll.filter((v) =>
-            v.field === "dcd"
+          // + โชว์เฉพาะ "สนามที่กำลังเรียน" (Aj 2026-08-21: คนมี 2 คอร์สต้องไม่เห็นปนกัน)
+          const f = effectiveField(a);
+          setField(f);
+          const vs = vsAll.filter((v) => {
+            const vf = v.field === "dcd" ? "dcd" : "moph";
+            if (vf !== f) return false;
+            return vf === "dcd"
               ? a.hasDcd
-              : (a.hasFull || (a.hasReview && v.chapter.includes("โค้งสุดท้าย"))));
+              : (a.hasFull || (a.hasReview && v.chapter.includes("โค้งสุดท้าย")));
+          });
           setVideos(vs);
           setProgress(pg);
           // ?v=<id> เจาะไปคลิปตัวนั้นตรง ๆ (ปุ่มวันที่ในหน้าติวโค้งสุดท้ายใช้)
@@ -186,10 +195,10 @@ export default function VideosPage() {
           ) : (
             <div className="w-full flex items-center justify-center text-white/60 text-[13.5px] px-6 text-center"
               style={{ aspectRatio: "16/9" }}>
-              {access.hasFull
-                ? "ยังไม่มีวิดีโอในคอร์ส — Admin เพิ่มได้ที่ Admin › คอร์สวิดีโอ"
-                : access.hasDcd
+              {field === "dcd"
                 ? "คลิปติวสนามกรมควบคุมโรคกำลังทยอยมา — มีคลิปใหม่พี่อ้อมแจ้งในกลุ่ม LINE ทุกครั้ง"
+                : access.hasFull
+                ? "ยังไม่มีวิดีโอในคอร์ส — Admin เพิ่มได้ที่ Admin › คอร์สวิดีโอ"
                 : "คลิปสรุปโค้งสุดท้ายกำลังทยอยมา — กลับมาเช็คที่นี่ได้เลย"}
             </div>
           )}

@@ -8,7 +8,8 @@ const ACCENT = "#0B6E65";
 const MUTED  = "#9CA3AF";
 
 function active(pathname: string, href: string): boolean {
-  if (href === "/")            return pathname === "/" || pathname.startsWith("/exam");
+  // หน้าแรกของสมาชิก = หน้าคอร์ส (/course/…) — ติดไฟปุ่มเดียวกัน
+  if (href === "/")            return pathname === "/" || pathname.startsWith("/exam") || pathname.startsWith("/course");
   // ปุ่มเกมติดไฟทั้งตอนอยู่ใน hub และในตัวเกมแต่ละอัน
   if (href === "/games")
     return pathname.startsWith("/games") || pathname.startsWith("/flashcard")

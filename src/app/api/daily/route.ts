@@ -20,6 +20,15 @@ async function userCourseIds(uid: string): Promise<string[]> {
   return snap.docs.map((d) => String(d.data().courseId ?? "")).filter(Boolean);
 }
 
+/** จำกัดให้เหลือเฉพาะคอร์สของ "สนามที่กำลังเรียน" (Aj 2026-08-21: คนมี 2 คอร์ส
+ *  Daily Quiz ต้องไม่สุ่มข้ามสนาม) — ถ้าไม่มีคอร์สสนามนั้นเลย คืนทั้งหมดตามเดิม */
+function forField(courseIds: string[], field: string | null): string[] {
+  if (field !== "dcd" && field !== "moph") return courseIds;
+  const picked = courseIds.filter((id) =>
+    field === "dcd" ? id.toLowerCase().startsWith("dcd-") : !id.toLowerCase().startsWith("dcd-"));
+  return picked.length > 0 ? picked : courseIds;
+}
+
 export async function GET(req: NextRequest) {
   const user = await verifyBearer(req.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -44,7 +53,8 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const pick = await pickDaily(db, today, user.uid, courseIds);
+    const field = req.nextUrl.searchParams.get("field");
+    const pick = await pickDaily(db, today, user.uid, forField(courseIds, field));
     if (!pick) return NextResponse.json({ error: "no-quiz" }, { status: 404 });
 
     return NextResponse.json({
@@ -72,7 +82,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null) as
-    { examId?: string; answers?: { qid: string; answer: number }[] } | null;
+    { examId?: string; answers?: { qid: string; answer: number }[]; field?: string } | null;
   if (!body?.examId || !Array.isArray(body.answers)
       || body.answers.length === 0 || body.answers.length > QUIZ_SIZE + 5) {
     return NextResponse.json({ error: "bad-request" }, { status: 400 });
@@ -83,8 +93,8 @@ export async function POST(req: NextRequest) {
     const today = bkkToday();
     const ref   = db.collection("users").doc(user.uid).collection("dailyQuiz").doc(today);
 
-    // ตรวจว่าชุดที่ส่งมาเป็นชุดของวันนี้จริง (กันยิง exam อื่น)
-    const pick = await pickDaily(db, today, user.uid, courseIds);
+    // ตรวจว่าชุดที่ส่งมาเป็นชุดของวันนี้จริง (กันยิง exam อื่น) — สนามเดียวกับตอน GET
+    const pick = await pickDaily(db, today, user.uid, forField(courseIds, body.field ?? null));
     if (!pick || pick.examId !== body.examId) {
       return NextResponse.json({ error: "wrong-quiz" }, { status: 409 });
     }

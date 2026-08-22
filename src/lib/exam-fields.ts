@@ -52,7 +52,7 @@ export const EXAM_FIELDS: ExamField[] = [
     examLabel: "วันสอบข้อเขียน รอประกาศ",
     applyClose: "2026-09-04",
     ownPrefixes: ["dcd-"],
-    hrefOwned: "/exams?field=dcd",
+    hrefOwned: "/course/dcd",
     hrefBuy:   "/checkout/dcd",
   },
   {
@@ -63,7 +63,7 @@ export const EXAM_FIELDS: ExamField[] = [
     accent: "#7C3AED",
     examDate: "2026-08-15", examLabel: "สอบไปแล้ว 15 ส.ค.",
     ownPrefixes: ["app-", "review-", "full-", "moph"],
-    hrefOwned: "/exams",
+    hrefOwned: "/course/moph",
     hrefBuy:   "/packages",
   },
   // ── สนามที่ประกาศไว้ ยังไม่เปิดขาย (Aj แจ้งแผน 2026-08-16) ────────────────

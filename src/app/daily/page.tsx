@@ -12,6 +12,7 @@ import { BRAND } from "@/lib/subjects";
 import { SUBJECT_DISPLAY } from "@/lib/types";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
+import { getActiveField } from "@/lib/active-field";
 
 interface Q { qid: string; text: string; options: string[] }
 interface DetailRow {
@@ -43,7 +44,8 @@ export default function DailyQuizPage() {
     setView({ s: "loading" });
     try {
       const token = await user.getIdToken();
-      const res = await fetch("/api/daily", { headers: { Authorization: `Bearer ${token}` } });
+      // ส่งสนามที่กำลังเรียนไปด้วย — ชุดของวันนี้จะมาจากสนามนั้นเท่านั้น
+      const res = await fetch(`/api/daily?field=${getActiveField()}`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 403) { setView({ s: "no-access" }); return; }
       if (!res.ok) { setView({ s: "error" }); return; }
       const d = await res.json();
@@ -73,6 +75,7 @@ export default function DailyQuizPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           examId:  view.examId,
+          field:   getActiveField(),
           answers: view.questions.map((q) => ({ qid: q.qid, answer: answers[q.qid] ?? -1 })),
         }),
       });
