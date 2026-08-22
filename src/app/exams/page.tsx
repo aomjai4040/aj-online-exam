@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
-import { getSubjectShort, normalizeSubject, isMockExam, SUBJECTS } from "@/lib/types";
+import { getSubjectShort, normalizeSubject, isMockExam, subjectsForField } from "@/lib/types";
 import { isFinalLapExam } from "@/lib/final-review";
 import { examSetField, type ExamFieldKey } from "@/lib/exam-fields";
 import { getActiveField, setActiveField } from "@/lib/active-field";
@@ -359,7 +359,8 @@ export default function ExamsPage() {
 
   // จัดกลุ่มตามหมวด (โหมด "ทั้งหมด" + ไม่ได้ค้นหา) — เรียงตามลำดับหมวดสนามสอบจริง
   const grouped = useMemo(() => {
-    const order = SUBJECTS.map((s) => s.code as string);
+    // ลำดับหมวดตามสนามที่กำลังดู (คร. = ตามบท 1–9 ของคอร์ส)
+    const order = subjectsForField(fieldParam).map((s) => s.code as string);
     const map = new Map<string, ExamCard[]>();
     for (const e of exams) {
       const key = normalizeSubject(e.subject);
@@ -371,7 +372,7 @@ export default function ExamsPage() {
         (order.indexOf(a[0]) === -1 ? 99 : order.indexOf(a[0])) -
         (order.indexOf(b[0]) === -1 ? 99 : order.indexOf(b[0]))
     );
-  }, [exams]);
+  }, [exams, fieldParam]);
 
   function clearFilters() {
     setSearch("");

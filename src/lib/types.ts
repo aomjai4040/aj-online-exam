@@ -15,8 +15,33 @@ export const SUBJECTS = [
 
 export type SubjectCode = typeof SUBJECTS[number]["code"];
 
+/** หมวดวิชาสนามกรมควบคุมโรค — ตามบท 1–9 ของคอร์ส คร. (DCD_SYLLABUS) + MOCK ใช้ร่วม
+ *  (Aj 2026-08-21: import ข้อสอบ คร. ต้องมีหมวดของตัวเอง ไม่ใช้ชุด สป.สธ.) */
+export const DCD_SUBJECTS = [
+  { code: "DDC",     label: "ความรู้เกี่ยวกับกรมควบคุมโรค (วิสัยทัศน์ พันธกิจ โครงสร้าง ภารกิจ)" },
+  { code: "LAWPH",   label: "พ.ร.บ.การสาธารณสุข พ.ศ. 2535 และที่แก้ไขเพิ่มเติม" },
+  { code: "LAWALC",  label: "พ.ร.บ.ควบคุมเครื่องดื่มแอลกอฮอล์ พ.ศ. 2551 และ (ฉบับที่ 2) พ.ศ. 2568" },
+  { code: "LAWCD",   label: "พ.ร.บ.โรคติดต่อ พ.ศ. 2558" },
+  { code: "LAWTOB",  label: "พ.ร.บ.ควบคุมผลิตภัณฑ์ยาสูบ พ.ศ. 2560" },
+  { code: "LAWOCC",  label: "พ.ร.บ.ควบคุมโรคจากการประกอบอาชีพและโรคจากสิ่งแวดล้อม พ.ศ. 2562" },
+  { code: "EPI",     label: "หลักระบาดวิทยา หลักสถิติเบื้องต้น การรวบรวม วิเคราะห์ และนำเสนอข้อมูล" },
+  { code: "DISEASE", label: "โรคติดต่อ โรคไม่ติดต่อ โรคจากอาชีพ/สิ่งแวดล้อม และการเฝ้าระวัง ป้องกัน สอบสวน ควบคุมโรค" },
+  { code: "RISKCOM", label: "การสื่อสารความเสี่ยงด้านสุขภาพ" },
+  { code: "MOCK",    label: "Mock Exam — ข้อสอบเสมือนจริง คละทุกหมวด (เข้าเมนู Mock อัตโนมัติ)" },
+] as const;
+
+/** หมวดทั้งหมดที่ระบบรู้จัก (ใช้ validate ตอน import) */
+export const ALL_SUBJECTS: ReadonlyArray<{ code: string; label: string }> = [
+  ...SUBJECTS, ...DCD_SUBJECTS.filter((s) => s.code !== "MOCK"),
+];
+
+/** หมวดของสนามนั้น — ไว้โชว์ตารางอ้างอิง/ชิปเลือกหมวด */
+export function subjectsForField(field: "moph" | "dcd"): ReadonlyArray<{ code: string; label: string }> {
+  return field === "dcd" ? DCD_SUBJECTS : SUBJECTS;
+}
+
 export function getSubjectLabel(code: string): string {
-  const found = SUBJECTS.find(s => s.code === code);
+  const found = ALL_SUBJECTS.find(s => s.code === code);
   return found ? found.label : code; // fallback for legacy data
 }
 
@@ -30,6 +55,16 @@ export const SUBJECT_DISPLAY: Record<string, string> = {
   LAWIT:   "กฎหมาย/IT",
   MOPH:    "กระทรวง",
   MOCK:    "เสมือนจริง",
+  // สนาม คร.
+  DDC:     "กรม คร.",
+  LAWPH:   "พ.ร.บ.สาธารณสุข",
+  LAWALC:  "แอลกอฮอล์",
+  LAWCD:   "โรคติดต่อ",
+  LAWTOB:  "ยาสูบ",
+  LAWOCC:  "โรคจากอาชีพ",
+  EPI:     "ระบาด/สถิติ",
+  DISEASE: "ควบคุมโรค",
+  RISKCOM: "สื่อสารความเสี่ยง",
 };
 
 // Legacy Thai subject names → new subject codes (backward compat)

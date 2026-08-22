@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import type { ExamForm, QuestionForm } from "@/lib/types";
+import { DCD_SUBJECTS, SUBJECT_DISPLAY, type ExamForm, type QuestionForm } from "@/lib/types";
 import {
   DCD_TOPICS, QUESTION_KINDS, DIFFICULTIES, AGENCY_CONTEXTS, isFullyTagged,
   type QuestionTags, type TopicCode, type QuestionKind,
@@ -390,6 +390,13 @@ export default function ExamEditor({
       : (origPackageId.toLowerCase().startsWith("dcd-") ? "" : origPackageId));
   }
 
+  // ชิปหมวดวิชาตามสนาม — สป.สธ. = ชื่อไทยเดิม (แปลงเป็นรหัสตอนแสดงผลอยู่แล้ว)
+  // คร. = รหัสหมวด DCD_SUBJECTS พร้อมชื่อย่อ
+  const subjectChips: { value: string; label: string; title?: string }[] =
+    examField === "dcd"
+      ? DCD_SUBJECTS.map((s) => ({ value: s.code, label: `${SUBJECT_DISPLAY[s.code] ?? s.code} · ${s.code}`, title: s.label }))
+      : PRESET_SUBJECTS.map((s) => ({ value: s, label: s }));
+
   const [questions, setQuestions] = useState<QuestionForm[]>(
     initial?.questions?.length
       ? initial.questions
@@ -645,19 +652,25 @@ export default function ExamEditor({
               onChange={(e) => setMetaField("subject", e.target.value)}
             />
             <datalist id="subject-list">
-              {PRESET_SUBJECTS.map((s) => <option key={s} value={s} />)}
+              {subjectChips.map((s) => <option key={s.value} value={s.value} />)}
             </datalist>
           </div>
 
-          {/* Quick-pick chips */}
+          {/* Quick-pick chips — ตามสนามที่เลือก (คร. = รหัสหมวดตามบท 1–9) */}
+          {examField === "dcd" && (
+            <p className="text-[12px] mb-1.5" style={{ color: "#A8A8A6" }}>
+              หมวดวิชาสนามกรมควบคุมโรค (ตามบทของคอร์ส)
+            </p>
+          )}
           <div className="flex flex-wrap gap-1.5 mb-5">
-            {PRESET_SUBJECTS.map((s) => {
-              const active = meta.subject === s;
+            {subjectChips.map((s) => {
+              const active = meta.subject === s.value;
               return (
                 <button
-                  key={s}
+                  key={s.value}
                   type="button"
-                  onClick={() => setMetaField("subject", active ? "" : s)}
+                  title={s.title}
+                  onClick={() => setMetaField("subject", active ? "" : s.value)}
                   className="text-[12px] font-medium px-2.5 py-1 rounded-full border
                              transition-all duration-150"
                   style={{
@@ -666,7 +679,7 @@ export default function ExamEditor({
                     color:           active ? "white"   : "#6B7280",
                   }}
                 >
-                  {s}
+                  {s.label}
                 </button>
               );
             })}

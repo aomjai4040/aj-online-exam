@@ -3,18 +3,21 @@ import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { createExam, findExamByTitle, appendQuestionsToExam } from "@/lib/firestore";
-import { SUBJECTS, getSubjectLabel } from "@/lib/types";
+import { ALL_SUBJECTS, subjectsForField, getSubjectLabel } from "@/lib/types";
 import type { QuestionForm } from "@/lib/types";
 import { FIELD_SHORT, FIELD_PACKAGE, type ExamFieldKey } from "@/lib/exam-fields";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const VALID_CODES = new Set<string>(SUBJECTS.map(s => s.code));
+// รับรหัสหมวดของทุกสนาม (สป.สธ. + คร.) — ตารางอ้างอิงในหน้าโชว์เฉพาะสนามที่เลือก
+const VALID_CODES = new Set<string>(ALL_SUBJECTS.map(s => s.code));
 
-const TEMPLATE_CSV = [
-  "subject,set_name,question,option_a,option_b,option_c,option_d,correct_answer,explanation",
-  "APPLIED,ระบาดวิทยา ชุดที่ 1,ข้อใดเป็นตัวอย่างของการเฝ้าระวังโรค,การรักษาผู้ป่วย,การเก็บข้อมูลโรคอย่างต่อเนื่อง,การจ่ายยา,การผ่าตัด,B,การเฝ้าระวังโรคคือการเก็บรวบรวม วิเคราะห์ และแปลผลข้อมูลสุขภาพอย่างต่อเนื่อง",
-].join("\n");
+const TEMPLATE_HEADER = ["subject", "set_name", "question", "option_a", "option_b", "option_c", "option_d", "correct_answer", "explanation"];
+/** แถวตัวอย่างในเทมเพลต — รหัสหมวดตามสนามที่เลือก */
+const TEMPLATE_ROW: Record<ExamFieldKey, string[]> = {
+  moph: ["APPLIED", "ระบาดวิทยา ชุดที่ 1", "ข้อใดเป็นตัวอย่างของการเฝ้าระวังโรค", "การรักษาผู้ป่วย", "การเก็บข้อมูลโรคอย่างต่อเนื่อง", "การจ่ายยา", "การผ่าตัด", "B", "การเฝ้าระวังโรคคือการเก็บรวบรวม วิเคราะห์ และแปลผลข้อมูลสุขภาพอย่างต่อเนื่อง"],
+  dcd:  ["LAWCD", "พ.ร.บ.โรคติดต่อ ชุดที่ 1", "โรคติดต่ออันตรายตาม พ.ร.บ.โรคติดต่อ พ.ศ. 2558 ประกาศโดยผู้ใด", "ปลัดกระทรวงสาธารณสุข", "รัฐมนตรีว่าการกระทรวงสาธารณสุข", "อธิบดีกรมควบคุมโรค", "คณะกรรมการโรคติดต่อจังหวัด", "B", "รัฐมนตรีโดยคำแนะนำของคณะกรรมการโรคติดต่อแห่งชาติ มีอำนาจประกาศชื่อโรคติดต่ออันตราย"],
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -150,7 +153,8 @@ export default function ImportPage() {
 
   function downloadTemplateCsv() {
     // ﻿ = UTF-8 BOM — ทำให้ Excel บน Windows อ่านภาษาไทยได้ถูกต้อง
-    const blob = new Blob(["﻿" + TEMPLATE_CSV], { type: "text/csv; charset=utf-8" });
+    const csv = [TEMPLATE_HEADER.join(","), TEMPLATE_ROW[field].join(",")].join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv; charset=utf-8" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href     = url;
@@ -160,10 +164,7 @@ export default function ImportPage() {
   }
 
   function downloadTemplateXlsx() {
-    const ws = XLSX.utils.aoa_to_sheet([
-      ["subject", "set_name", "question", "option_a", "option_b", "option_c", "option_d", "correct_answer", "explanation"],
-      ["APPLIED", "ระบาดวิทยา ชุดที่ 1", "ข้อใดเป็นตัวอย่างของการเฝ้าระวังโรค", "การรักษาผู้ป่วย", "การเก็บข้อมูลโรคอย่างต่อเนื่อง", "การจ่ายยา", "การผ่าตัด", "B", "การเฝ้าระวังโรคคือการเก็บรวบรวม วิเคราะห์ และแปลผลข้อมูลสุขภาพอย่างต่อเนื่อง"],
-    ]);
+    const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADER, TEMPLATE_ROW[field]]);
     // กำหนดความกว้างคอลัมน์
     ws["!cols"] = [
       { wch: 10 }, { wch: 25 }, { wch: 50 }, { wch: 25 }, { wch: 25 },
@@ -404,6 +405,12 @@ export default function ImportPage() {
                             style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
                             {g.subject}
                           </span>
+                          {!subjectsForField(field).some((s) => s.code === g.subject) && (
+                            <span className="text-[13px] px-2 py-0.5 rounded-lg font-medium"
+                              style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+                              ⚠ รหัสหมวดนี้ไม่ใช่ของสนาม{FIELD_SHORT[field]}
+                            </span>
+                          )}
                           {g.existing ? (
                             <span className="text-[13px] px-2 py-0.5 rounded-lg font-medium"
                               style={{ backgroundColor: "#FFF7ED", color: "#C2410C" }}>
@@ -516,7 +523,7 @@ export default function ImportPage() {
 
               <div className="space-y-2">
                 <p className="text-[15px]" style={{ color: "#4A5568" }}>
-                  <strong>subject</strong> — รหัสหมวดวิชา (เลือกจาก 8 ค่าด้านล่าง — MOCK = ข้อสอบเสมือนจริง)
+                  <strong>subject</strong> — รหัสหมวดวิชาของสนาม{FIELD_SHORT[field]} (ตารางด้านล่าง — MOCK = ข้อสอบเสมือนจริง)
                 </p>
                 <p className="text-[15px]" style={{ color: "#4A5568" }}>
                   <strong>correct_answer</strong> — A B C D หรือ ก ข ค ง
@@ -526,9 +533,12 @@ export default function ImportPage() {
                 </p>
               </div>
 
-              {/* Subject reference table */}
-              <div className="mt-4 rounded-xl overflow-hidden" style={{ border: "1px solid #E0DFDC" }}>
-                {SUBJECTS.map((s, i) => (
+              {/* Subject reference table — ตามสนามที่เลือกด้านบน */}
+              <p className="mt-4 mb-1.5 text-[13px] font-bold" style={{ color: "#0B6E65" }}>
+                รหัสหมวดวิชาสนาม{FIELD_SHORT[field]}{field === "dcd" ? " (เรียงตามบท 1–9 ของคอร์ส)" : ""}
+              </p>
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #E0DFDC" }}>
+                {subjectsForField(field).map((s, i) => (
                   <div key={s.code}
                     className="flex items-start gap-3 px-3.5 py-2.5 text-[14px]"
                     style={{ backgroundColor: i % 2 === 0 ? "#FAFAF9" : "white", borderTop: i > 0 ? "1px solid #F3F2F0" : "none" }}>

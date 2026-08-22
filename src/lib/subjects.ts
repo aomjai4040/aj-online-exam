@@ -29,6 +29,16 @@ export const SUBJECT_COLOR: Record<string, string> = {
   LAWIT:   "#F97316",
   MOPH:    "#0D9488",
   MOCK:    "#7C3AED",
+  // สนามกรมควบคุมโรค (types.ts DCD_SUBJECTS)
+  DDC:     "#0D9488",
+  LAWPH:   "#F97316",
+  LAWALC:  "#EF4444",
+  LAWCD:   "#DC2626",
+  LAWTOB:  "#B45309",
+  LAWOCC:  "#F59E0B",
+  EPI:     "#3B82F6",
+  DISEASE: "#10B981",
+  RISKCOM: "#EC4899",
   // วิชาทั่วไป (legacy)
   คณิตศาสตร์:          "#3B82F6",
   ภาษาไทย:            "#EC4899",
