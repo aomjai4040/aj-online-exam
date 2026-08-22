@@ -367,7 +367,7 @@ export default function AdminVideosPage() {
                 </label>
                 <input className="w-full border rounded-xl px-3 py-2.5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-[#0B6E65]/20"
                   style={{ borderColor: "#E0DFDC" }}
-                  placeholder={form.field === "dcd" ? "เช่น 1. พ.ร.บ.การสาธารณสุข พ.ศ. 2535" : "เช่น 1. ความรู้พื้นฐานสาธารณสุข"}
+                  placeholder={form.field === "dcd" ? "เช่น 1. ความรู้เกี่ยวกับกรมควบคุมโรค" : "เช่น 1. ความรู้พื้นฐานสาธารณสุข"}
                   value={form.chapter} onChange={(e) => setForm({ ...form, chapter: e.target.value })}
                   list="chapter-list" />
                 <datalist id="chapter-list">
@@ -376,7 +376,7 @@ export default function AdminVideosPage() {
                 {form.field === "dcd" ? (
                   <div className="mt-2">
                     <p className="text-[11.5px] mb-1.5" style={{ color: "#A8A8A6" }}>
-                      หลักสูตร คร. 8 เรื่อง ตามลำดับประกาศรับสมัคร (ข้อ 5.1–5.8) — แตะเพื่อใช้เป็นชื่อบท
+                      บทของคอร์ส คร. 9 บท (บท 1 ความรู้เกี่ยวกับกรม · บท 2–9 ตามประกาศข้อ 5.1–5.8) — แตะเพื่อใช้เป็นชื่อบท
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {DCD_CHAPTERS.map((c) => {
