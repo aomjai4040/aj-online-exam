@@ -141,14 +141,19 @@ export default function CourseVideoPlayer({
   }, []);
 
   // ระหว่างเต็มจอแบบจำลอง: ล็อกสกอลล์หน้าเว็บ + กด Esc ออกได้
+  // + ติด class ที่ body ให้ globals.css ซ่อนแถบหัว/แถบล่างของแอป — ตัวเล่นอยู่ใน
+  //   กล่อง sticky z-30 (stacking context) ทำให้ z-9999 ของเราแพ้ header z-40 /
+  //   BottomNav z-50 (iPhone: น้องเห็นเมนูแอปบังคลิปตอนหมุนจอ 2026-08-21)
   useEffect(() => {
     if (!fakeFull) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    document.body.classList.add("video-fake-full");
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFakeFull(false); };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prevOverflow;
+      document.body.classList.remove("video-fake-full");
       window.removeEventListener("keydown", onKey);
     };
   }, [fakeFull]);

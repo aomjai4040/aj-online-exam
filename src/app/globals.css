@@ -161,6 +161,13 @@
 
 /* ปุ่มหนาสไตล์เกม (Duolingo-like): ขอบล่างหนา กดแล้วยุบลง
    สี border/bg กำหนด inline ต่อปุ่ม — คลาสนี้คุมมิติและจังหวะกดอย่างเดียว */
+/* เต็มจอเทียมของตัวเล่นวิดีโอ (iPhone/LINE ไม่มี Fullscreen API):
+   ซ่อนแถบหัวและแถบล่างของแอป ไม่งั้นบังคลิป — ดู CourseVideoPlayer.tsx */
+body.video-fake-full header,
+body.video-fake-full nav {
+  display: none !important;
+}
+
 .chunky {
   border: 2px solid;
   border-bottom-width: 4px;
