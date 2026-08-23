@@ -12,7 +12,6 @@
  */
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { getPublishedExams } from "@/lib/firestore";
 import { isMockExam, type Exam } from "@/lib/types";
@@ -219,34 +218,7 @@ export default function CoursePage() {
   return (
     <div className="min-h-screen bg-stone-50 font-sans pb-28">
 
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md" style={{ borderBottom: "1px solid #EBEBEA" }}>
-        <div className="max-w-lg md:max-w-4xl mx-auto px-5 h-14 flex items-center justify-between">
-          <Link href="/?pick=1" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: "#0B6E65" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="white"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </div>
-            <span className="font-bold text-[15px] text-gray-900 tracking-tight">
-              AJ <span style={{ color: "#0B6E65" }}>ExamOnline</span>
-            </span>
-          </Link>
-          <Link href="/dashboard" className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-            {user?.photoURL ? (
-              <Image src={user.photoURL} alt="" width={32} height={32} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white text-[13px] font-bold"
-                style={{ backgroundColor: "#0B6E65" }}>
-                {(user?.displayName ?? user?.email ?? "?")[0].toUpperCase()}
-              </div>
-            )}
-          </Link>
-        </div>
-      </header>
+      {/* แถบหัวใช้ Navbar กลางของแอป (layout) — ไม่วาดซ้ำ (Aj 2026-08-23: ซ้อนกัน 2 แถว) */}
 
       {/* ── แถบชื่อคอร์ส ── */}
       <section className="relative overflow-hidden px-5 pt-6 pb-5"
