@@ -27,6 +27,7 @@ import { setActiveField, ownsFieldKey, ownedFields } from "@/lib/active-field";
 import BottomNav from "@/components/BottomNav";
 import TodayPlanCard from "@/components/TodayPlanCard";
 import TodayTasksCard from "@/components/TodayTasksCard";
+import CourseProgressCard from "@/components/CourseProgressCard";
 import {
   LatestCard, LatestSkeleton, PreExamSheetCard, DcdLineCard, FeedbackCard, RecallCard,
 } from "@/components/HomeCards";
@@ -189,6 +190,9 @@ export default function CoursePage() {
 
       {/* ── การ์ด + เมนู ── */}
       <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-5">
+
+        {/* ความคืบหน้าคอร์ส — อัตโนมัติจากคลิปที่ดู/ข้อสอบที่ส่ง/Mock (Aj 2026-08-21) */}
+        <CourseProgressCard field={field} access={access} />
 
         {/* วันนี้ทำอะไร — ปฏิทินของสนามนี้ (/api/course-plan/[field]) */}
         <TodayTasksCard />

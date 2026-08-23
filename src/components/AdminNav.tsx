@@ -23,6 +23,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/admin/insights",   label: "ภาพรวมธุรกิจ" },
       { href: "/admin/revenue",    label: "รายงานยอดขาย" },
       { href: "/admin/users",      label: "สมาชิก" },
+      { href: "/admin/progress",   label: "ความคืบหน้าผู้เรียน" },
       { href: "/admin/feedback",   label: "ผลประเมิน" },
       { href: "/admin/dcd-intake", label: "แบบสอบถาม" },
     ],
