@@ -75,6 +75,17 @@ export async function GET(req: NextRequest) {
       const tb = b.createdAt?.toMillis?.() ?? 0;
       return ta - tb;
     });
+    // ?raw=1 → คำตอบรายใบ (นิรนาม ไม่มีชื่อ/อีเมล) ให้หน้า admin ทำไฟล์ Excel ไปวิเคราะห์ต่อ
+    if (req.nextUrl.searchParams.get("raw") === "1") {
+      return NextResponse.json({
+        rows: allAnswerDocs.map((doc, i) => ({
+          n: i + 1,
+          createdAt: doc.createdAt?.toDate?.()?.toISOString() ?? null,
+          answers: (doc.answers ?? {}) as SurveyAnswers,
+        })),
+      });
+    }
+
     allAnswerDocs.forEach((doc) => {
       const a = (doc.answers ?? {}) as SurveyAnswers;
       for (const q of SURVEY) {

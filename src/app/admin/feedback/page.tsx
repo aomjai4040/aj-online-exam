@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { BRAND } from "@/lib/subjects";
-import { SURVEY, FEEDBACK_REWARD, type SurveyQuestion } from "@/lib/feedback-types";
+import { SURVEY, FEEDBACK_REWARD, type SurveyQuestion, type SurveyAnswers } from "@/lib/feedback-types";
 
 interface Summary {
   responses: number;
@@ -129,6 +129,75 @@ export default function AdminFeedbackPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // ── Export Excel: ชีท 1 คำตอบรายใบ (แปลงรหัส → ข้อความไทย) · ชีท 2 สรุปนับ ──
+  const [exporting, setExporting] = useState(false);
+  async function exportXlsx() {
+    if (!user || exporting) return;
+    setExporting(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/feedback?raw=1", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error();
+      const { rows } = await res.json() as { rows: { n: number; createdAt: string | null; answers: SurveyAnswers }[] };
+      const XLSX = await import("xlsx");
+
+      const labelOf = (q: SurveyQuestion, v: string) => q.choices?.find((c) => c.value === v)?.label ?? v;
+      const fmtDate = (iso: string | null) =>
+        iso ? new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "";
+
+      // หัวคอลัมน์: grid แตกเป็นคอลัมน์ละแถว (เช่น "แต่ละส่วนช่วยมากแค่ไหน: คลิปติว")
+      const header: string[] = ["ลำดับ", "วันที่ตอบ"];
+      for (const q of SURVEY) {
+        if (q.kind === "grid") (q.rows ?? []).forEach((r) => header.push(`${q.title}: ${r.label}`));
+        else header.push(q.title);
+      }
+      const body = rows.map((r) => {
+        const line: (string | number)[] = [r.n, fmtDate(r.createdAt)];
+        for (const q of SURVEY) {
+          const v = r.answers[q.id];
+          if (q.kind === "grid") {
+            const rec = (v && typeof v === "object" && !Array.isArray(v) ? v : {}) as Record<string, string>;
+            (q.rows ?? []).forEach((row) => line.push(q.scale?.find((s) => s.value === rec[row.value])?.label ?? rec[row.value] ?? ""));
+          } else if (q.kind === "stars") line.push(typeof v === "number" ? v : "");
+          else if (q.kind === "multi") line.push(Array.isArray(v) ? v.map((x) => labelOf(q, String(x))).join("; ") : "");
+          else if (q.kind === "single") line.push(typeof v === "string" ? labelOf(q, v) : "");
+          else line.push(typeof v === "string" ? v : "");
+        }
+        return line;
+      });
+      const ws1 = XLSX.utils.aoa_to_sheet([header, ...body]);
+      ws1["!cols"] = header.map((h, i) => ({ wch: i < 2 ? 12 : Math.min(40, Math.max(16, h.length)) }));
+
+      // ชีทสรุป จาก tally ที่โหลดอยู่แล้ว
+      const sum: (string | number)[][] = [["คำถาม", "ตัวเลือก", "จำนวน", "สัดส่วน (%)"]];
+      const total = rows.length || 1;
+      for (const q of SURVEY) {
+        const t = data?.tally[q.id] ?? {};
+        if (q.kind === "text") continue;
+        if (q.kind === "grid") {
+          for (const row of q.rows ?? []) for (const s of q.scale ?? []) {
+            const n = t[`${row.value}:${s.value}`] ?? 0;
+            sum.push([`${q.title}: ${row.label}`, s.label, n, Math.round((n / total) * 100)]);
+          }
+        } else if (q.kind === "stars") {
+          for (const star of [5, 4, 3, 2, 1]) { const n = t[String(star)] ?? 0; sum.push([q.title, `${star} ดาว`, n, Math.round((n / total) * 100)]); }
+        } else {
+          for (const c of q.choices ?? []) { const n = t[c.value] ?? 0; sum.push([q.title, c.label, n, Math.round((n / total) * 100)]); }
+        }
+      }
+      const ws2 = XLSX.utils.aoa_to_sheet(sum);
+      ws2["!cols"] = [{ wch: 44 }, { wch: 30 }, { wch: 8 }, { wch: 12 }];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws1, "คำตอบรายใบ");
+      XLSX.utils.book_append_sheet(wb, ws2, "สรุปนับ");
+      const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
+      XLSX.writeFile(wb, `feedback-${today}.xlsx`);
+    } catch {
+      alert("Export ไม่สำเร็จ ลองใหม่อีกครั้ง");
+    } finally { setExporting(false); }
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5FAF9" }}>
       <div className="max-w-3xl mx-auto px-5 pt-6 pb-16">
@@ -140,11 +209,18 @@ export default function AdminFeedbackPage() {
               น้องตอบที่ <Link href="/feedback" className="underline">/feedback</Link> · ตอบครบได้โค้ดลด ฿{FEEDBACK_REWARD.amount}
             </p>
           </div>
-          <button onClick={load} disabled={loading}
-            className="text-[12px] font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
-            style={{ backgroundColor: "#EBF5F3", color: BRAND.primary }}>
-            {loading ? "กำลังโหลด…" : "รีเฟรช"}
-          </button>
+          <div className="flex gap-2 flex-shrink-0">
+            <button onClick={exportXlsx} disabled={exporting || !data}
+              className="text-[12px] font-semibold px-3 py-1.5 rounded-lg text-white disabled:opacity-50"
+              style={{ backgroundColor: BRAND.primary }}>
+              {exporting ? "กำลังสร้างไฟล์…" : "⬇ Export Excel"}
+            </button>
+            <button onClick={load} disabled={loading}
+              className="text-[12px] font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+              style={{ backgroundColor: "#EBF5F3", color: BRAND.primary }}>
+              {loading ? "กำลังโหลด…" : "รีเฟรช"}
+            </button>
+          </div>
         </div>
 
         {err && <p className="text-[13px] mb-4" style={{ color: "#DC2626" }}>{err}</p>}
