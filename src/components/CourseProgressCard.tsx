@@ -31,7 +31,11 @@ function Ring({ pct }: { pct: number }) {
   );
 }
 
-export default function CourseProgressCard({ field, access }: { field: ExamFieldKey; access: UserAccess }) {
+export default function CourseProgressCard({ field, access, onPct }: {
+  field: ExamFieldKey; access: UserAccess;
+  /** แจ้ง % รวมให้หน้าแม่ (ใช้ตัดสินว่า "จบคอร์ส" แล้วหรือยัง) */
+  onPct?: (pct: number) => void;
+}) {
   const { user } = useAuth();
   const [data, setData] = useState<CourseProgress | null>(null);
   const [open, setOpen] = useState(false);
@@ -59,10 +63,14 @@ export default function CourseProgressCard({ field, access }: { field: ExamField
           videos: vp,
           exams: new Map(sums.map((s) => [s.examId, { best: s.bestPercentage ?? s.percentage, lastDoneAt: new Date(s.lastDoneAt) }])),
         };
-        if (!cancelled) setData(buildCourseProgress(field, videos, exams, done));
+        if (cancelled) return;
+        const p = buildCourseProgress(field, videos, exams, done);
+        setData(p);
+        onPct?.(p.pct);
       } catch { if (!cancelled) setData(null); }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, field, access]);
 
   if (!data) return null;

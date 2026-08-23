@@ -28,8 +28,9 @@ import BottomNav from "@/components/BottomNav";
 import TodayPlanCard from "@/components/TodayPlanCard";
 import TodayTasksCard from "@/components/TodayTasksCard";
 import CourseProgressCard from "@/components/CourseProgressCard";
+import CourseQuickLinks from "@/components/CourseQuickLinks";
 import {
-  LatestCard, LatestSkeleton, PreExamSheetCard, DcdLineCard, FeedbackCard, RecallCard,
+  LatestCard, LatestSkeleton, PreExamSheetCard, FeedbackCard, RecallCard,
 } from "@/components/HomeCards";
 
 // ─── เมนูต่อสนาม ────────────────────────────────────────────────────────────
@@ -87,6 +88,7 @@ export default function CoursePage() {
   const [exams, setExams]     = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [planShown, setPlanShown] = useState(false);
+  const [pct, setPct] = useState(0); // % ความคืบหน้าคอร์ส (จาก CourseProgressCard)
 
   // ── สิทธิ์ + redirect ──
   useEffect(() => {
@@ -191,15 +193,19 @@ export default function CoursePage() {
       {/* ── การ์ด + เมนู ── */}
       <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-5">
 
+        {/* คร. (Aj 2026-08-23 แบบ A): ลิงก์ด่วนแถวเดียว — กลุ่ม LINE / ชีท
+            น้องใหม่ 3 วันแรกที่ยังไม่เข้ากลุ่มเห็นเป็นการ์ดเต็มใบ แล้วหดเป็นชิปถาวร */}
+        {field === "dcd" && <CourseQuickLinks field="dcd" />}
+
         {/* ความคืบหน้าคอร์ส — อัตโนมัติจากคลิปที่ดู/ข้อสอบที่ส่ง/Mock (Aj 2026-08-21) */}
-        <CourseProgressCard field={field} access={access} />
+        <CourseProgressCard field={field} access={access} onPct={setPct} />
 
         {/* วันนี้ทำอะไร — ปฏิทินของสนามนี้ (/api/course-plan/[field]) */}
         <TodayTasksCard />
 
         {field === "moph" && <RecallCard />}
-        {field === "dcd"  && <DcdLineCard />}
-        <FeedbackCard />
+        {/* ประเมินการสอน: สป.สธ. โชว์ตามเดิม · คร. ค่อยโผล่หลังจบคอร์ส (Aj 2026-08-23) */}
+        {(field === "moph" || pct >= 100) && <FeedbackCard />}
         {field === "moph" && <PreExamSheetCard />}
         {field === "moph" && <TodayPlanCard onVisible={setPlanShown} />}
 
