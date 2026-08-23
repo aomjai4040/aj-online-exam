@@ -21,9 +21,10 @@ import { useAuth } from "@/lib/auth-context";
 import { BRAND } from "@/lib/subjects";
 import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 import {
-  EXAM_FIELDS, examSetField, type ExamFieldKey,
+  EXAM_FIELDS, FIELD_SHORT, examSetField, type ExamFieldKey,
 } from "@/lib/exam-fields";
-import { setActiveField, ownsFieldKey, ownedFields } from "@/lib/active-field";
+import { setActiveField, ownsFieldKey, ownedFields, courseHref } from "@/lib/active-field";
+import { dcdCurrentPrice } from "@/lib/pricing";
 import BottomNav from "@/components/BottomNav";
 import TodayPlanCard from "@/components/TodayPlanCard";
 import TodayTasksCard from "@/components/TodayTasksCard";
@@ -110,20 +111,20 @@ export default function CoursePage() {
   const [lineOpen, setLineOpen] = useState(false);
   const driveUrl = useDriveUrl(field ?? "moph");
 
-  // ── สิทธิ์ + redirect ──
+  // ── สิทธิ์ ──
+  // ไม่มีสิทธิ์ (ยังไม่ login / ยังไม่ซื้อ / ซื้อสนามอื่น) → หน้า "ล็อก" บอกให้สมัคร
+  // (Aj 2026-08-23: ไม่เด้งไปหน้าสมัครทันที จะได้ไม่งงเวลากดผิดคอร์ส)
+  const [locked, setLocked] = useState<UserAccess | "guest" | null>(null);
   useEffect(() => {
     if (!field || !meta) { router.replace("/"); return; }
     if (authLoading) return;
-    if (!user) { router.replace("/"); return; }
+    if (!user) { setLocked("guest"); return; }
     let cancelled = false;
     getUserAccess(user.uid)
       .then((a) => {
         if (cancelled) return;
-        if (!ownsFieldKey(a, field)) {
-          // ไม่มีสิทธิ์สนามนี้ → หน้าสมัครทันที
-          router.replace(meta.hrefBuy ?? "/packages");
-          return;
-        }
+        if (!ownsFieldKey(a, field)) { setLocked(a); return; }
+        setLocked(null);
         setActiveField(field);
         setAccess(a);
       })
@@ -139,6 +140,67 @@ export default function CoursePage() {
         all.filter((e) => !isMockExam(e) && !isFinalLapExam(e) && examSetField(e) === field)))
       .finally(() => setLoading(false));
   }, [access, field]);
+
+  // ── หน้าล็อก: ยังไม่มีสิทธิ์คอร์สนี้ ──
+  if (field && meta && locked) {
+    const other = locked !== "guest" ? ownedFields(locked).filter((f) => f !== field) : [];
+    const price = field === "dcd" ? dcdCurrentPrice().amount : meta.price;
+    return (
+      <div className="min-h-screen bg-stone-50 font-sans pb-28">
+        <div className="max-w-lg mx-auto px-5 pt-10">
+          <div className="rounded-3xl overflow-hidden" style={{ boxShadow: "0 12px 32px -12px rgba(11,79,72,.35)" }}>
+            <div className="px-5 pt-6 pb-5 text-white"
+              style={{ background: `linear-gradient(150deg, ${meta.accent} 0%, #0B4F48 85%)` }}>
+              <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-md mb-2"
+                style={{ backgroundColor: "rgba(255,255,255,0.18)" }}>{meta.code}</span>
+              <h1 className="text-[22px] font-bold leading-tight">{meta.name}</h1>
+              <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,0.75)" }}>{meta.blurb}</p>
+            </div>
+            <div className="bg-white px-5 py-5">
+              <div className="flex items-start gap-3 mb-4">
+                <span className="text-[22px] leading-none">🔒</span>
+                <div>
+                  <p className="text-[15px] font-bold text-gray-900">
+                    {locked === "guest" ? "เข้าสู่ระบบแล้วสมัครคอร์สนี้ก่อนนะคะ" : "คุณยังไม่ได้สมัครคอร์สนี้"}
+                  </p>
+                  <p className="text-[13px] mt-1 leading-relaxed" style={{ color: "#6B7280" }}>
+                    คลังข้อสอบ · Mock Exam · คลิปติว · กลุ่ม LINE ของสนาม {meta.code}{" "}
+                    เปิดให้เฉพาะผู้ที่สมัครคอร์ส{meta.name}
+                    {other.length > 0 && ` — คอร์สที่คุณมีอยู่คือ ${other.map((f) => FIELD_SHORT[f]).join(", ")} ถ้ากดมาผิด กลับไปคอร์สของคุณได้เลย`}
+                  </p>
+                </div>
+              </div>
+              {meta.status === "open" && meta.hrefBuy ? (
+                <Link href={meta.hrefBuy}
+                  className="block w-full text-center py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98] transition-transform"
+                  style={{ backgroundColor: BRAND.primary }}>
+                  สมัครคอร์ส{meta.code}{price ? ` · ฿${price}` : ""}
+                </Link>
+              ) : (
+                <p className="text-[13px] text-center py-3 rounded-2xl" style={{ backgroundColor: "#F5F5F3", color: "#A8A8A6" }}>
+                  คอร์สนี้ยังไม่เปิดรับสมัคร
+                </p>
+              )}
+              {other.length > 0 ? (
+                <Link href={courseHref(other[0])}
+                  className="block w-full text-center py-3 rounded-2xl text-[14px] font-semibold mt-2"
+                  style={{ backgroundColor: BRAND.primarySoft, color: BRAND.primary }}>
+                  ← กลับไปคอร์ส{FIELD_SHORT[other[0]]}ของฉัน
+                </Link>
+              ) : (
+                <Link href="/?pick=1"
+                  className="block w-full text-center py-3 rounded-2xl text-[14px] font-semibold mt-2"
+                  style={{ backgroundColor: BRAND.primarySoft, color: BRAND.primary }}>
+                  ← ดูคอร์สทั้งหมด
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
 
   if (!field || !meta || !access) {
     return (

@@ -36,8 +36,10 @@ function FieldCard({ field, access }: { field: ExamField; access: UserAccess }) 
   const left  = field.examDate ? daysUntil(field.examDate) : null;
   const price = field.id === "dcd" ? dcdCurrentPrice().amount : field.price;
 
-  // ยังไม่เปิดขายและไม่มีสิทธิ์ → การ์ดกดไม่ได้ (ไม่พาไปหน้าที่ยังไม่มีของ)
-  const href = owned ? field.hrefOwned : field.hrefBuy;
+  // มีสิทธิ์ → หน้าคอร์ส · ยังไม่มีสิทธิ์แต่เปิดขาย → หน้าคอร์สเหมือนกัน (จะเจอหน้า "ล็อก"
+  // บอกให้สมัคร — Aj 2026-08-23: ไม่เด้งไปหน้าจ่ายเงินทันที จะได้ไม่งงถ้ากดผิดคอร์ส)
+  // ยังไม่เปิดขาย → การ์ดกดไม่ได้
+  const href = owned ? field.hrefOwned : field.hrefBuy ? field.hrefOwned : undefined;
   const Wrapper = href ? Link : "div";
   const wrapperProps = href ? { href } : {};
 
