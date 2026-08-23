@@ -18,8 +18,6 @@ import SampleVideoTeaser from "@/components/SampleVideoTeaser";
 import { effectiveField } from "@/lib/active-field";
 import type { ExamFieldKey } from "@/lib/exam-fields";
 import { useDriveUrl } from "@/components/CourseQuickLinks";
-import DriveFilesButton from "@/components/DriveFilesButton";
-import LineJoinButton from "@/components/LineJoinButton";
 
 // ─── /videos — คอร์สวิดีโอ (เฉพาะคอร์สเต็ม) ───────────────────────────────────
 // player ควบคุมเองทั้งหมด (ดู components/CourseVideoPlayer) — ปิดทุกทางที่
@@ -238,13 +236,8 @@ export default function VideosPage() {
 
       {/* ทรัพยากรของสนาม: คร. = เอกสาร + กลุ่ม LINE คร. · สป.สธ. = ชีท + LINE คอร์สเต็ม */}
       <div className="max-w-2xl mx-auto lg:max-w-none px-5 lg:px-0 pt-4">
-        {field === "dcd" ? (
-          <div className="bg-white rounded-2xl p-4 space-y-2.5" style={{ border: "1px solid #C3E5DE" }}>
-            <p className="text-[12px] font-bold mb-1" style={{ color: BRAND.primary }}>สมาชิกคอร์สกรมควบคุมโรค</p>
-            <DriveFilesButton field="dcd" label="เอกสารประกอบ / ชีทของคอร์ส" />
-            <LineJoinButton field="dcd" label="เข้ากลุ่ม LINE คอร์ส คร." />
-          </div>
-        ) : access.hasFull ? (
+        {field === "dcd" ? null /* คร.: เอกสาร + LINE อยู่ในแผงเมนูหน้าคอร์สแล้ว (Aj 2026-08-23) */
+        : access.hasFull ? (
           <CourseResources />
         ) : !access.hasReview ? null : (
           <Link href="/checkout/up-full2"
