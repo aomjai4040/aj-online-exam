@@ -26,6 +26,7 @@ import {
 import { setActiveField, ownsFieldKey, ownedFields, courseHref } from "@/lib/active-field";
 import { dcdCurrentPrice } from "@/lib/pricing";
 import BottomNav from "@/components/BottomNav";
+import { OtherCourses } from "@/components/ExamFieldGrid";
 import TodayPlanCard from "@/components/TodayPlanCard";
 import TodayTasksCard from "@/components/TodayTasksCard";
 import CourseProgressCard from "@/components/CourseProgressCard";
@@ -258,12 +259,11 @@ export default function CoursePage() {
               style={{ backgroundColor: "rgba(255,255,255,0.18)", color: "white" }}>
               {meta.code} · คอร์สของฉัน
             </span>
-            {canSwitch && (
-              <Link href="/?pick=1" className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: "rgba(255,255,255,0.16)", color: "white" }}>
-                สลับคอร์ส ⇄
-              </Link>
-            )}
+            {/* โผล่ทุกคน (Aj 2026-08-23): ทั้งสลับคอร์สที่มี และไปดู/สมัครคอร์สอื่น */}
+            <Link href="/?pick=1" className="text-[12px] font-semibold px-2.5 py-1 rounded-full"
+              style={{ backgroundColor: "rgba(255,255,255,0.16)", color: "white" }}>
+              {canSwitch ? "สลับ / คอร์สทั้งหมด ›" : "คอร์สทั้งหมด ›"}
+            </Link>
           </div>
           <h1 className="text-[22px] font-bold text-white leading-tight">{meta.name}</h1>
           <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,0.75)" }}>
@@ -413,6 +413,10 @@ export default function CoursePage() {
               )}
         </div>
       </section>
+
+      {/* ── คอร์สอื่นที่เปิดรับสมัคร (เฉพาะที่ยังไม่มี) — ทางไปสมัครคอร์สใหม่จากในคอร์ส
+          (Aj 2026-08-23: น้อง สป.สธ. หาคอร์ส คร. ไม่เจอ) ── */}
+      <OtherCourses access={access} />
 
       <BottomNav />
     </div>

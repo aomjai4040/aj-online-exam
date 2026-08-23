@@ -150,6 +150,26 @@ function FieldCard({ field, access }: { field: ExamField; access: UserAccess }) 
   );
 }
 
+/** "คอร์สอื่นที่เปิดรับสมัคร" — ท้ายหน้าคอร์ส โชว์เฉพาะสนามที่เปิดขายและผู้ใช้ยังไม่มี
+ *  (Aj 2026-08-23: ให้น้องในคอร์สหนึ่งเห็นทางไปสมัครอีกคอร์สโดยไม่ต้องหาเมนู) */
+export function OtherCourses({ access }: { access: UserAccess }) {
+  const others = EXAM_FIELDS.filter((f) => f.status === "open" && !ownsField(f, access));
+  if (others.length === 0) return null;
+  return (
+    <section className="max-w-lg md:max-w-4xl mx-auto px-5 pt-2 pb-4">
+      <div className="section-head mb-1">
+        <h2 className="text-[17px] font-bold text-gray-900">คอร์สอื่นที่เปิดรับสมัคร</h2>
+      </div>
+      <p className="text-[12.5px] mb-3" style={{ color: "#A8A8A6" }}>
+        สมัครเพิ่มได้ในบัญชีเดียวกัน — สลับคอร์สได้จากปุ่มบนหัวหน้า
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {others.map((f) => <FieldCard key={f.id} field={f} access={access} />)}
+      </div>
+    </section>
+  );
+}
+
 export default function ExamFieldGrid() {
   const { user } = useAuth();
   const [access, setAccess] = useState<UserAccess>(EMPTY_ACCESS);
