@@ -17,6 +17,9 @@ import NextStepPanel from "@/components/NextStepPanel";
 import SampleVideoTeaser from "@/components/SampleVideoTeaser";
 import { effectiveField } from "@/lib/active-field";
 import type { ExamFieldKey } from "@/lib/exam-fields";
+import { useDriveUrl } from "@/components/CourseQuickLinks";
+import DriveFilesButton from "@/components/DriveFilesButton";
+import LineJoinButton from "@/components/LineJoinButton";
 
 // ─── /videos — คอร์สวิดีโอ (เฉพาะคอร์สเต็ม) ───────────────────────────────────
 // player ควบคุมเองทั้งหมด (ดู components/CourseVideoPlayer) — ปิดทุกทางที่
@@ -33,6 +36,7 @@ export default function VideosPage() {
   const [current, setCurrent] = useState<CourseVideo | null>(null);
   const [progress, setProgress] = useState<Map<string, VideoProgress>>(new Map());
   const [field,   setField]   = useState<ExamFieldKey>("moph"); // สนามที่กำลังดู
+  const dcdDrive = useDriveUrl("dcd"); // ลิงก์เอกสาร คร. (null = ยังไม่วาง) — ใช้เมื่อ field = dcd
 
   useEffect(() => {
     if (guard !== "allowed" || !user) return;
@@ -225,14 +229,22 @@ export default function VideosPage() {
             nextTitle={nextVideo?.title}
             onNext={nextVideo ? () => setCurrent(nextVideo) : undefined}
             watched={!!progress.get(current.id)?.completed}
-            showSheet={access.hasFull}
+            showSheet={field === "dcd" ? !!dcdDrive : access.hasFull}
+            field={field}
+            sheetHref={field === "dcd" ? dcdDrive : undefined}
           />
         </div>
       )}
 
-      {/* ทรัพยากรคอร์สเต็ม: ชีทสรุป + กลุ่ม LINE (เฉพาะคอร์สเต็ม) */}
+      {/* ทรัพยากรของสนาม: คร. = เอกสาร + กลุ่ม LINE คร. · สป.สธ. = ชีท + LINE คอร์สเต็ม */}
       <div className="max-w-2xl mx-auto lg:max-w-none px-5 lg:px-0 pt-4">
-        {access.hasFull ? (
+        {field === "dcd" ? (
+          <div className="bg-white rounded-2xl p-4 space-y-2.5" style={{ border: "1px solid #C3E5DE" }}>
+            <p className="text-[12px] font-bold mb-1" style={{ color: BRAND.primary }}>สมาชิกคอร์สกรมควบคุมโรค</p>
+            <DriveFilesButton field="dcd" label="เอกสารประกอบ / ชีทของคอร์ส" />
+            <LineJoinButton field="dcd" label="เข้ากลุ่ม LINE คอร์ส คร." />
+          </div>
+        ) : access.hasFull ? (
           <CourseResources />
         ) : !access.hasReview ? null : (
           <Link href="/checkout/up-full2"

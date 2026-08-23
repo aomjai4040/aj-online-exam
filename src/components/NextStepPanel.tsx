@@ -15,7 +15,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getPublishedExams } from "@/lib/firestore";
-import { normalizeSubject, isMockExam, type Exam } from "@/lib/types";
+import { normalizeSubject, isMockExam, DCD_SUBJECTS, type Exam } from "@/lib/types";
+import { examSetField, type ExamFieldKey } from "@/lib/exam-fields";
+import { chapterNoOf } from "@/lib/course-progress";
 import { isFinalLapExam } from "@/lib/final-review";
 import { subjectForChapter } from "@/lib/curriculum";
 import { COURSE_RESOURCES } from "@/lib/pricing";
@@ -30,6 +32,10 @@ interface Props {
   /** ดูคลิปนี้จบแล้วหรือยัง — จบแล้วเน้นปุ่มข้อสอบให้เด่นขึ้น */
   watched?:     boolean;
   showSheet?:   boolean;
+  /** สนามของคลิป — คร. ใช้ข้อสอบ/เอกสารของ คร. (ไม่ใช่ของ สป.สธ.) */
+  field?:       ExamFieldKey;
+  /** ลิงก์ชีทของสนาม (คร. = Drive จาก /api/line/dcd) — ไม่ส่ง = ใช้ของ สป.สธ. */
+  sheetHref?:   string | null;
 }
 
 function Step({
@@ -73,12 +79,15 @@ function Step({
 }
 
 export default function NextStepPanel({
-  chapter, nextTitle, onNext, watched, showSheet = true,
+  chapter, nextTitle, onNext, watched, showSheet = true, field = "moph", sheetHref,
 }: Props) {
   const [exam, setExam] = useState<Exam | null>(null);
-  const subject = subjectForChapter(chapter);
+  // สป.สธ.: ชื่อบท → หมวด (curriculum.ts) · คร.: เลขบท → รหัสหมวด DCD_SUBJECTS (บท 1–9)
+  const subject = field === "dcd"
+    ? (() => { const no = chapterNoOf(chapter); return no ? DCD_SUBJECTS[no - 1]?.code ?? null : null; })()
+    : subjectForChapter(chapter);
 
-  // ชุดข้อสอบของหมวดเดียวกับบทนี้ — เลือกชุดแรกที่เผยแพร่
+  // ชุดข้อสอบของหมวดเดียวกับบทนี้ (เฉพาะสนามเดียวกัน) — เลือกชุดแรกที่เผยแพร่
   useEffect(() => {
     if (!subject) { setExam(null); return; }
     let cancelled = false;
@@ -86,16 +95,17 @@ export default function NextStepPanel({
       .then((all) => {
         if (cancelled) return;
         const match = all
-          .filter((e) => !isMockExam(e) && !isFinalLapExam(e))
+          .filter((e) => !isMockExam(e) && !isFinalLapExam(e) && examSetField(e) === field)
           .filter((e) => normalizeSubject(e.subject) === subject)
           .sort((a, b) => a.title.localeCompare(b.title, "th"));
         setExam(match[0] ?? null);
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [subject]);
+  }, [subject, field]);
 
-  const hasSheet = showSheet && !!COURSE_RESOURCES.driveDocs;
+  const sheet = sheetHref !== undefined ? sheetHref : COURSE_RESOURCES.driveDocs;
+  const hasSheet = showSheet && !!sheet;
   if (!hasSheet && !exam && !nextTitle) return null;
 
   let n = 0;
@@ -113,7 +123,7 @@ export default function NextStepPanel({
           <Step n={++n} accent={false} external
             title="อ่านชีทสรุปของบทนี้"
             sub="เปิดโฟลเดอร์เอกสารคอร์ส"
-            href={COURSE_RESOURCES.driveDocs} />
+            href={sheet!} />
         )}
 
         {exam && (
