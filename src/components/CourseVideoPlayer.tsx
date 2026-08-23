@@ -42,7 +42,9 @@ function fmt(sec: number): string {
   return `${h > 0 ? h + ":" : ""}${mm}:${String(s).padStart(2, "0")}`;
 }
 
-const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
+// ช้าลงได้ด้วย (Aj 2026-08-23: น้องขอให้ปรับช้า/เร็วได้) — 0.5 ไว้ฟังตอนจด
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const SPEED_KEY = "aj-video-speed";
 
 /** ปิดคำบรรยาย (CC) — YouTube เปิดซับกลับเองตอนเริ่มเล่นตาม preference ผู้ชม
  *  ต้องทั้งถอดโมดูล (player เก่า) และล้าง track (player HTML5 ปัจจุบัน)
@@ -120,6 +122,24 @@ export default function CourseVideoPlayer({
   const [time,     setTime]     = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed,    setSpeed]    = useState(1);
+  const speedRef = useRef(1);            // ให้ onReady ของ player ตัวใหม่อ่านค่าล่าสุดได้
+  const [speedMenu, setSpeedMenu] = useState(false);
+  useEffect(() => {
+    // โหลดความเร็วที่จำไว้ (หลัง mount เท่านั้น — SSR ไม่มี localStorage)
+    try {
+      const s = Number(localStorage.getItem(SPEED_KEY));
+      if (SPEEDS.includes(s)) { speedRef.current = s; setSpeed(s); }
+    } catch {}
+  }, []);
+  // แถบควบคุมซ่อนตัว → ปิดเมนูความเร็วตามไปด้วย
+  useEffect(() => { if (!controlsVisible) setSpeedMenu(false); }, [controlsVisible]);
+  function chooseSpeed(s: number) {
+    speedRef.current = s;
+    setSpeed(s);
+    setSpeedMenu(false);
+    playerRef.current?.setPlaybackRate?.(s);
+    try { localStorage.setItem(SPEED_KEY, String(s)); } catch {}
+  }
 
   // เต็มจอ: nativeFull = Fullscreen API จริง · fakeFull = จำลองด้วย CSS
   // (iPhone Safari / เบราว์เซอร์ใน LINE ไม่มี Fullscreen API สำหรับ div เลย)
@@ -277,7 +297,12 @@ export default function CourseVideoPlayer({
         events: {
           // onApiChange ยิงตอนโมดูลซับพร้อม — จุดที่ถอดได้ผลแน่นอนที่สุด
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onReady:     (e: any) => killCaptions(e.target),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onReady:     (e: any) => {
+            killCaptions(e.target);
+            // ใช้ความเร็วที่น้องเลือกไว้ล่าสุดกับทุกคลิป (จำใน localStorage)
+            if (speedRef.current !== 1) e.target.setPlaybackRate?.(speedRef.current);
+          },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onApiChange: (e: any) => killCaptions(e.target),
         },
@@ -367,12 +392,6 @@ export default function CourseVideoPlayer({
   function skip(delta: number) {
     const d = durRef.current || duration;
     seekTo(Math.max(0, Math.min(d > 0 ? d - 1 : timeRef.current + delta, timeRef.current + delta)));
-  }
-
-  function cycleSpeed() {
-    const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
-    playerRef.current?.setPlaybackRate?.(next);
-    setSpeed(next);
   }
 
   /** Android: ล็อกจอแนวนอนตอนเข้าเต็มจอ (ต้องอยู่ในเต็มจอจริงก่อน lock ถึงทำงาน) */
@@ -503,9 +522,29 @@ export default function CourseVideoPlayer({
             {fmt(time)} / {fmt(duration)}
           </span>
           <div className="flex-1" />
-          <button onClick={cycleSpeed} className="text-white/85 text-[11.5px] font-bold w-10 text-right">
-            {speed}x
-          </button>
+          {/* ความเร็ว — ปุ่มเม็ดยาเห็นชัด กดแล้วเปิดเมนูเลือก 0.5–2x */}
+          <div className="relative">
+            <button onClick={() => { setSpeedMenu((m) => !m); bumpControls(); }}
+              className="text-[11.5px] font-bold px-2 py-0.5 rounded-md"
+              style={{ backgroundColor: speed === 1 ? "rgba(255,255,255,0.16)" : "#5DCAA5",
+                       color: speed === 1 ? "rgba(255,255,255,0.9)" : "#083B36" }}
+              aria-label="ความเร็ว">
+              {speed}x
+            </button>
+            {speedMenu && (
+              <div className="absolute bottom-8 right-0 rounded-xl py-1 min-w-[96px] shadow-lg"
+                style={{ backgroundColor: "rgba(20,20,20,0.96)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                <p className="text-[10.5px] px-3 pt-1 pb-1" style={{ color: "rgba(255,255,255,0.5)" }}>ความเร็ว</p>
+                {SPEEDS.map((s) => (
+                  <button key={s} onClick={() => chooseSpeed(s)}
+                    className="w-full text-left px-3 py-1.5 text-[13px] font-semibold"
+                    style={{ color: s === speed ? "#5DCAA5" : "white" }}>
+                    {s === speed ? "✓ " : ""}{s === 1 ? "ปกติ (1x)" : `${s}x`}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={toggleFullscreen} className="text-white"
             aria-label={isFull ? "ออกจากเต็มจอ" : "เต็มจอ"}>
             <svg viewBox="0 0 24 24" fill="none" stroke="white"
