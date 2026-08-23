@@ -28,7 +28,7 @@ import BottomNav from "@/components/BottomNav";
 import TodayPlanCard from "@/components/TodayPlanCard";
 import TodayTasksCard from "@/components/TodayTasksCard";
 import CourseProgressCard from "@/components/CourseProgressCard";
-import CourseQuickLinks from "@/components/CourseQuickLinks";
+import CourseQuickLinks, { LineJoinSheet, useDriveUrl } from "@/components/CourseQuickLinks";
 import {
   LatestCard, LatestSkeleton, PreExamSheetCard, FeedbackCard, RecallCard,
 } from "@/components/HomeCards";
@@ -36,8 +36,12 @@ import {
 // ─── เมนูต่อสนาม ────────────────────────────────────────────────────────────
 
 interface MenuItem {
-  title: string; desc: string; href: string; badge?: string; external?: boolean;
+  title: string; desc: string; href?: string; badge?: string; external?: boolean;
+  /** ไม่มี href = ปุ่มกดแล้วทำ action (เช่น เปิดแผ่น LINE) */
+  onClick?: () => void;
   icon: React.ReactNode;
+  /** สีพื้นไอคอน (ค่าเริ่มต้น = โทนแบรนด์) */
+  iconBg?: string;
 }
 
 const ic = (paths: React.ReactNode) => (
@@ -54,23 +58,37 @@ const ICONS = {
   clock: ic(<><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>),
   check: ic(<><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /><polyline points="10 9 12 11 16 7" /></>),
   user:  ic(<><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
+  docs:  ic(<><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></>),
+  line: (
+    <svg viewBox="0 0 24 24" fill="white" style={{ width: 20, height: 20 }}>
+      <path d="M12 3C6.48 3 2 6.64 2 11.13c0 4.03 3.58 7.4 8.41 8.04.33.07.77.22.89.5.1.26.07.66.03.92l-.14.86c-.04.26-.2 1.01.89.55 1.09-.46 5.87-3.46 8.01-5.92C21.62 14.4 22 12.83 22 11.13 22 6.64 17.52 3 12 3z" />
+    </svg>
+  ),
 };
 
-function menuFor(field: ExamFieldKey): MenuItem[] {
-  const common: MenuItem[] = [
-    { title: "เกมทบทวน",  desc: "เกมเลือกสถิติ · Flash Card", href: "/games", badge: "ฟรี", icon: ICONS.game },
-    { title: "คอร์สวิดีโอ", desc: field === "dcd" ? "คลิปติว คร. ทยอยลง" : "ติวครบทุกหัวข้อ", href: "/videos", icon: ICONS.video },
-    { title: "Mock Exam",  desc: "จำลองสอบเสมือนจริง", href: "/mock-exam", icon: ICONS.clock },
-    { title: "บันทึกของฉัน", desc: "ผลสอบและคะแนน", href: "/dashboard", icon: ICONS.user },
-  ];
+function menuFor(field: ExamFieldKey, extra: { driveUrl: string | null; openLine: () => void }): MenuItem[] {
+  const video: MenuItem = { title: "คอร์สวิดีโอ", desc: field === "dcd" ? "คลิปติว คร. ทยอยลง" : "ติวครบทุกหัวข้อ", href: "/videos", icon: ICONS.video };
+  const mock:  MenuItem = { title: "Mock Exam",  desc: "จำลองสอบเสมือนจริง", href: "/mock-exam", icon: ICONS.clock };
+  const game:  MenuItem = { title: "เกมทบทวน",  desc: "เกมเลือกสถิติ · Flash Card", href: "/games", badge: "ฟรี", icon: ICONS.game };
+  const me:    MenuItem = { title: "บันทึกของฉัน", desc: "ผลสอบและคะแนน", href: "/dashboard", icon: ICONS.user };
+
   if (field === "moph") {
     return [
       { title: "ติวโค้งสุดท้าย", desc: "จบแคมป์แล้ว · ดูคลิป/ชีทย้อนหลัง", href: "/final-review", icon: ICONS.flame },
-      ...common,
+      game, video, mock, me,
       { title: "Checklist วิดีโอ", desc: "ติดตามวิดีโอที่ดู", href: "https://jade-fenglisu-32fb47.netlify.app", external: true, icon: ICONS.check },
     ];
   }
-  return common;
+  // คร. (Aj 2026-08-23): เอกสาร + กลุ่ม LINE เป็นการ์ดในแผง เรียงตามการใช้งาน
+  return [
+    video, mock,
+    { title: "เอกสารประกอบ", desc: extra.driveUrl ? "ชีท / ไฟล์เรียนของคอร์ส" : "พี่อ้อมกำลังเตรียม",
+      ...(extra.driveUrl ? { href: extra.driveUrl, external: true } : {}), icon: ICONS.docs,
+      iconBg: "#FDF6E9" },
+    { title: "กลุ่ม LINE", desc: "ประกาศคลิปใหม่ · ถามพี่อ้อม", onClick: extra.openLine, icon: ICONS.line,
+      iconBg: "#07C160" },
+    game, me,
+  ];
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -89,6 +107,8 @@ export default function CoursePage() {
   const [loading, setLoading] = useState(true);
   const [planShown, setPlanShown] = useState(false);
   const [pct, setPct] = useState(0); // % ความคืบหน้าคอร์ส (จาก CourseProgressCard)
+  const [lineOpen, setLineOpen] = useState(false);
+  const driveUrl = useDriveUrl(field ?? "moph");
 
   // ── สิทธิ์ + redirect ──
   useEffect(() => {
@@ -131,7 +151,7 @@ export default function CoursePage() {
   const canSwitch = ownedFields(access).length > 1;
   const latest = exams.slice(0, 5);
   const examsHref = field === "dcd" ? "/exams?field=dcd" : "/exams";
-  const menu = menuFor(field);
+  const menu = menuFor(field, { driveUrl, openLine: () => setLineOpen(true) });
 
   return (
     <div className="min-h-screen bg-stone-50 font-sans pb-28">
@@ -261,30 +281,49 @@ export default function CoursePage() {
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {menu.map((item) => (
-            <Link key={item.title} href={item.href}
-              {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className="card-elev card-elev-hover px-4 py-4 flex items-center gap-3 active:scale-[0.97]">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: BRAND.primarySoft }}>
-                {item.icon}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-bold text-[15px] text-gray-900 leading-tight truncate">{item.title}</p>
-                  {item.badge && (
-                    <span className="text-[10px] font-bold px-1.5 py-[2px] rounded-full flex-shrink-0"
-                      style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
-                      {item.badge}
-                    </span>
-                  )}
+          {menu.map((item) => {
+            const cls = "card-elev card-elev-hover px-4 py-4 flex items-center gap-3 active:scale-[0.97] text-left w-full";
+            const body = (
+              <>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: item.iconBg ?? BRAND.primarySoft }}>
+                  {item.icon}
                 </div>
-                <p className="text-[12.5px] mt-0.5 truncate text-gray-500">{item.desc}</p>
-              </div>
-            </Link>
-          ))}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-bold text-[15px] text-gray-900 leading-tight truncate">{item.title}</p>
+                    {item.badge && (
+                      <span className="text-[10px] font-bold px-1.5 py-[2px] rounded-full flex-shrink-0"
+                        style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[12.5px] mt-0.5 truncate text-gray-500">{item.desc}</p>
+                </div>
+              </>
+            );
+            if (item.href) {
+              return (
+                <Link key={item.title} href={item.href}
+                  {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  className={cls}>
+                  {body}
+                </Link>
+              );
+            }
+            return (
+              <button key={item.title} type="button" onClick={item.onClick}
+                className={`${cls} ${item.onClick ? "" : "opacity-60"}`} disabled={!item.onClick}>
+                {body}
+              </button>
+            );
+          })}
         </div>
       </section>
+
+      {/* แผ่นล่าง "เข้ากลุ่ม LINE" — เปิดจากการ์ดเมนู (คร.) */}
+      <LineJoinSheet field={field} open={lineOpen} onClose={() => setLineOpen(false)} />
 
       <div className="max-w-lg md:max-w-4xl mx-auto px-5">
         <div className="h-px" style={{ backgroundColor: "#EBEBEA" }} />
