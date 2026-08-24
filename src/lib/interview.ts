@@ -362,29 +362,109 @@ export function questionsForField(field: ExamFieldKey): InterviewQuestion[] {
   return QUESTIONS.filter((q) => !q.fields || q.fields.includes(field));
 }
 
-/** สุ่มชุดซ้อม n ข้อ คละหมวด (เดินทีละหมวดกันสุ่มได้หมวดเดียวรวด) */
-export function pickPracticeSet(field: ExamFieldKey, n = 5): InterviewQuestion[] {
+// ─── สถิติการซ้อม (จำในเครื่อง — ใช้กันสุ่มซ้ำ + วนข้อที่ยังตอบไม่ลื่นกลับมาบ่อย) ──
+
+export type PracticeRating = "good" | "ok" | "weak";
+
+/** ต่อข้อ: n = เจอมาแล้วกี่ครั้ง · r = ผลประเมินตัวเองครั้งล่าสุด */
+export type PracticeStats = Record<string, { n: number; r: PracticeRating }>;
+
+const practiceKey = (field: ExamFieldKey) => `interview-practice-${field}`;
+
+export function loadPracticeStats(field: ExamFieldKey): PracticeStats {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(practiceKey(field)) ?? "{}") as PracticeStats;
+  } catch {
+    return {};
+  }
+}
+
+export function recordPracticeRating(
+  field: ExamFieldKey, questionId: string, rating: PracticeRating
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    const stats = loadPracticeStats(field);
+    stats[questionId] = { n: (stats[questionId]?.n ?? 0) + 1, r: rating };
+    localStorage.setItem(practiceKey(field), JSON.stringify(stats));
+  } catch {}
+}
+
+/** กี่ข้อในคลังของสนามนี้ที่เคยซ้อมแล้ว (โชว์ "เจอแล้ว x/y" หน้าเริ่มซ้อม) */
+export function practiceProgress(field: ExamFieldKey, stats: PracticeStats): { seen: number; total: number } {
   const pool = questionsForField(field);
+  return { seen: pool.filter((q) => stats[q.id]).length, total: pool.length };
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** สุ่มถ่วงน้ำหนักแบบไม่ซ้ำ — ข้อที่ตอบยังไม่ลื่นถูกหยิบบ่อยกว่า */
+const RATING_WEIGHT: Record<PracticeRating, number> = { weak: 4, ok: 2, good: 1 };
+
+function weightedSample(
+  candidates: InterviewQuestion[], stats: PracticeStats, n: number
+): InterviewQuestion[] {
+  const left = [...candidates];
+  const picked: InterviewQuestion[] = [];
+  while (picked.length < n && left.length > 0) {
+    const weights = left.map((q) => RATING_WEIGHT[stats[q.id]?.r ?? "ok"]);
+    const total = weights.reduce((a, b) => a + b, 0);
+    let roll = Math.random() * total;
+    let idx = 0;
+    for (; idx < left.length; idx++) {
+      roll -= weights[idx];
+      if (roll <= 0) break;
+    }
+    picked.push(left.splice(Math.min(idx, left.length - 1), 1)[0]);
+  }
+  return picked;
+}
+
+/**
+ * สุ่มชุดซ้อม n ข้อ:
+ *   1) ข้อที่ยังไม่เคยเจอมาก่อนเสมอ (คละหมวด round-robin) — วนจนครบคลังก่อนค่อยเริ่มซ้ำ
+ *   2) ถ้าไม่พอ เติมจากข้อที่เคยเจอ ถ่วงน้ำหนักตามผลครั้งล่าสุด (ตะกุกตะกัก > พอได้ > ลื่น)
+ * pure เมื่อส่ง stats เข้ามา — เทสได้โดยไม่แตะ localStorage
+ */
+export function pickPracticeSet(
+  field: ExamFieldKey, n = 5, stats: PracticeStats = {}
+): InterviewQuestion[] {
+  const pool = questionsForField(field);
+  const unseen = pool.filter((q) => !stats[q.id]);
+  const seen   = pool.filter((q) => stats[q.id]);
+
+  // เฟส 1: ข้อใหม่ก่อน — เดินทีละหมวดกันสุ่มได้หมวดเดียวรวด
   const byCat = new Map<InterviewCat, InterviewQuestion[]>();
-  for (const q of pool) {
+  for (const q of unseen) {
     const list = byCat.get(q.cat) ?? [];
     list.push(q);
     byCat.set(q.cat, list);
   }
-  const shuffled = [...byCat.values()].map((list) =>
-    [...list].sort(() => Math.random() - 0.5));
-  shuffled.sort(() => Math.random() - 0.5);
+  const lists = shuffle([...byCat.values()].map(shuffle));
   const picked: InterviewQuestion[] = [];
   let round = 0;
   while (picked.length < n && round < 10) {
-    for (const list of shuffled) {
+    for (const list of lists) {
       if (picked.length >= n) break;
       const q = list[round];
       if (q) picked.push(q);
     }
     round++;
   }
-  return picked.sort(() => Math.random() - 0.5);
+
+  // เฟส 2: ยังไม่ครบ n → เติมจากข้อที่เคยเจอ ข้อที่ตอบยังไม่ลื่นมาบ่อยกว่า
+  if (picked.length < n) {
+    picked.push(...weightedSample(seen, stats, n - picked.length));
+  }
+  return shuffle(picked);
 }
 
 /** เวลาแนะนำต่อ 1 คำตอบในโหมดซ้อม (วินาที) */

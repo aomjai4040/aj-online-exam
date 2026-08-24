@@ -11,8 +11,9 @@ import type { ExamFieldKey } from "@/lib/exam-fields";
 import { BRAND } from "@/lib/subjects";
 import {
   INTERVIEW_CATS, catOf, questionsForField, pickPracticeSet,
+  loadPracticeStats, recordPracticeRating, practiceProgress,
   ANSWER_PRINCIPLES, INTERVIEW_CHECKLIST, PRACTICE_SECONDS,
-  type InterviewQuestion,
+  type InterviewQuestion, type PracticeRating,
 } from "@/lib/interview";
 
 // ─── คลังคำถาม ────────────────────────────────────────────────────────────────
@@ -130,7 +131,7 @@ export function QuestionBank({ field }: { field: ExamFieldKey }) {
 
 // ─── ซ้อมตอบ ─────────────────────────────────────────────────────────────────
 
-type Rating = "good" | "ok" | "weak";
+type Rating = PracticeRating;
 
 const RATING_META: Record<Rating, { label: string; emoji: string; color: string; bg: string }> = {
   good: { label: "ตอบได้ลื่น",   emoji: "😄", color: "#15803D", bg: "#EBF5EF" },
@@ -149,7 +150,14 @@ export function PracticeMode({ field }: { field: ExamFieldKey }) {
   const [revealed, setRevealed] = useState(false);
   const [secs, setSecs]         = useState(PRACTICE_SECONDS);
   const [ratings, setRatings]   = useState<Rating[]>([]);
+  const [progress, setProgress] = useState<{ seen: number; total: number } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // "เจอแล้ว x/y" — อ่านใน effect กัน hydration mismatch (localStorage ไม่มีตอน SSR)
+  useEffect(() => {
+    if (phase === "run") return;
+    setProgress(practiceProgress(field, loadPracticeStats(field)));
+  }, [field, phase]);
 
   // นาฬิกาเดินเฉพาะช่วงคิดคำตอบ (ก่อนเปิดแนวทาง)
   useEffect(() => {
@@ -164,7 +172,8 @@ export function PracticeMode({ field }: { field: ExamFieldKey }) {
   }, [phase, revealed, idx]);
 
   const start = () => {
-    setSet(pickPracticeSet(field, 5));
+    // สุ่มโดยดูประวัติ: ข้อใหม่มาก่อนจนครบคลัง · ข้อที่ตอบยังไม่ลื่นวนกลับมาบ่อยกว่า
+    setSet(pickPracticeSet(field, 5, loadPracticeStats(field)));
     setIdx(0);
     setRatings([]);
     setRevealed(false);
@@ -173,6 +182,7 @@ export function PracticeMode({ field }: { field: ExamFieldKey }) {
   };
 
   const rate = (r: Rating) => {
+    recordPracticeRating(field, set[idx].id, r);
     setRatings((prev) => [...prev, r]);
     if (idx + 1 >= set.length) { setPhase("done"); return; }
     setIdx(idx + 1);
@@ -207,7 +217,9 @@ export function PracticeMode({ field }: { field: ExamFieldKey }) {
           เริ่มซ้อม 5 ข้อ
         </button>
         <p className="text-[12px] text-gray-400 mt-3">
-          ซ้อมกี่รอบก็ได้ — คำถามสุ่มใหม่ทุกรอบ
+          {progress && progress.seen > 0
+            ? `เจอคำถามไปแล้ว ${progress.seen}/${progress.total} ข้อ — ข้อใหม่มาก่อนเสมอ ข้อที่ยังตอบไม่ลื่นจะวนกลับมาให้ซ้อมซ้ำ`
+            : "ซ้อมกี่รอบก็ได้ — ระบบจำให้ว่าเจอข้อไหนแล้ว ไม่สุ่มซ้ำจนกว่าจะครบคลัง"}
         </p>
       </div>
     );
