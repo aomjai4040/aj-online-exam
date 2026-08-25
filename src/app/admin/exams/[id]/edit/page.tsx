@@ -20,12 +20,16 @@ export default function EditExamPage() {
           timeLimit: exam.timeLimit,
           isPublished: exam.isPublished,
           isFree: exam.isFree ?? false,
+          // ⚠ ทุกฟิลด์ของชุดต้องส่งเข้า initial ครบ — ฟิลด์ที่ขาดจะถูกเขียนทับ
+          // เป็นค่า default ตอนกดบันทึก (บั๊ก Aj 2026-08-25: ธง Mock หลุดทุกครั้งที่เซฟ)
+          isMock: exam.isMock ?? false,
           packageId: exam.packageId,
           questions: qs.map((q: Question) => ({
             text: q.text,
             options: q.options,
             correctAnswer: q.correctAnswer,
             explanation: q.explanation,
+            tags: q.tags, // แท็กข้อ (ประเภท/บริบทหน่วยงาน ฯลฯ) — ไม่ส่ง = โดนลบตอนเซฟ
           })),
         });
       }
