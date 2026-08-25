@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAllExams, deleteExam, togglePublish } from "@/lib/firestore";
 import type { Exam } from "@/lib/types";
-import TagCoverageCard from "@/components/TagCoverageCard";
 
 export default function AdminExamsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -45,7 +44,7 @@ export default function AdminExamsPage() {
         </div>
       </div>
 
-      <TagCoverageCard />
+      {/* การ์ดนับแท็กถูกถอด (Aj 2026-08-25: เลิกแท็กรายข้อ — จำแนกด้วยสนาม+หมวดของชุด) */}
 
       {loading ? (
         <div className="flex justify-center py-20">
