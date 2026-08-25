@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Exam, Question, ExamResult, ExamForm, QuestionForm } from "./types";
+import { examSetField } from "./exam-fields";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -178,12 +179,20 @@ export async function createExamMeta(data: ExamMetaInput): Promise<string> {
 
 // ─── Import helpers ──────────────────────────────────────────────────────────
 
-export async function findExamByTitle(title: string): Promise<Exam | null> {
-  const q = query(collection(db, "exams"), where("title", "==", title), limit(1));
+/** หา "ชุดเดิม" จากชื่อ — ระบุ field แล้วจะจับคู่เฉพาะชุดสนามเดียวกัน
+ *  (บั๊ก Aj 2026-08-24: import Mock คร. ชื่อ "Mock Exam ชุดที่ 2" ไปต่อท้าย
+ *  ชุด สป.สธ. ชื่อเดียวกัน — ห้ามต่อท้ายข้ามสนามอีก) */
+export async function findExamByTitle(
+  title: string, field?: "moph" | "dcd",
+): Promise<Exam | null> {
+  const q = query(collection(db, "exams"), where("title", "==", title), limit(10));
   const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data(), createdAt: toDate(d.data().createdAt), updatedAt: toDate(d.data().updatedAt) } as Exam;
+  const all = snap.docs.map((d) => ({
+    id: d.id, ...d.data(),
+    createdAt: toDate(d.data().createdAt), updatedAt: toDate(d.data().updatedAt),
+  }) as Exam);
+  if (!field) return all[0] ?? null;
+  return all.find((e) => examSetField(e) === field) ?? null;
 }
 
 export async function appendQuestionsToExam(

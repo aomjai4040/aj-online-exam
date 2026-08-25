@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { createExam, findExamByTitle, appendQuestionsToExam } from "@/lib/firestore";
@@ -187,10 +187,10 @@ export default function ImportPage() {
 
       const grouped = rowsToGroups(parsed);
 
-      // Check existing exams in Firestore
+      // Check existing exams in Firestore — จับคู่เฉพาะชุดสนามเดียวกับที่เลือกไว้
       const withExisting = await Promise.all(
         grouped.map(async (g) => {
-          const existing = await findExamByTitle(g.setName).catch(() => null);
+          const existing = await findExamByTitle(g.setName, field).catch(() => null);
           return { ...g, existing: existing ? { id: existing.id, questionCount: existing.questionCount } : null };
         })
       );
@@ -204,7 +204,19 @@ export default function ImportPage() {
     } finally {
       setParsing(false);
     }
-  }, []);
+  }, [field]);
+
+  // สลับสนามตอนอยู่หน้า preview → เช็ค "ชุดเดิม" ใหม่ตามสนามที่เลือก
+  useEffect(() => {
+    if (step !== "preview" || groups.length === 0) return;
+    let cancelled = false;
+    Promise.all(groups.map(async (g) => {
+      const existing = await findExamByTitle(g.setName, field).catch(() => null);
+      return { ...g, existing: existing ? { id: existing.id, questionCount: existing.questionCount } : null };
+    })).then((gs) => { if (!cancelled) setGroups(gs); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [field]);
 
   // ── Import ─────────────────────────────────────────────────────────────────
 
