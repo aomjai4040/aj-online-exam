@@ -44,6 +44,8 @@ function fmt(sec: number): string {
 
 // ช้าลงได้ด้วย (Aj 2026-08-23: น้องขอให้ปรับช้า/เร็วได้) — 0.5 ไว้ฟังตอนจด
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+/** ขยายขนาดที่ YouTube "เห็น" เพื่อให้เลือกส่ง HD (มือถือ ~400px → 1000px ≈ 720p+) */
+const HD_SCALE = 2.5;
 const SPEED_KEY = "aj-video-speed";
 
 /** ปิดคำบรรยาย (CC) — YouTube เปิดซับกลับเองตอนเริ่มเล่นตาม preference ผู้ชม
@@ -439,9 +441,17 @@ export default function CourseVideoPlayer({
         ? "fixed inset-0 z-[9999] w-full h-full bg-black select-none"
         : "relative w-full bg-black select-none"}
       style={fakeFull ? undefined : { aspectRatio: "16/9" }}>
-      {/* iframe ของ YouTube (โดนโล่คลุม — แตะไม่โดน) */}
+      {/* iframe ของ YouTube (โดนโล่คลุม — แตะไม่โดน)
+          เรนเดอร์ใหญ่ HD_SCALE เท่าแล้วย่อด้วย CSS — YouTube เลือกความชัดตามขนาด
+          กล่องที่มันเห็น บนมือถือกล่องเล็กเลยได้ 360p ทั้งที่จอคม (น้องบ่นภาพไม่ชัด
+          2026-08-25) · แบนด์วิดท์ไม่บาน: เน็ตช้า YouTube ยังลดคุณภาพให้เอง */}
       <div className="absolute inset-0 overflow-hidden">
-        <div ref={mountRef} className="w-full h-full" />
+        <div style={{
+          width: `${HD_SCALE * 100}%`, height: `${HD_SCALE * 100}%`,
+          transform: `scale(${1 / HD_SCALE})`, transformOrigin: "top left",
+        }}>
+          <div ref={mountRef} className="w-full h-full" />
+        </div>
       </div>
 
       {/* โล่ใสเต็มจอ — ทุกการแตะเป็นของเรา ไม่มีทางแตะโดนลิงก์ YouTube
