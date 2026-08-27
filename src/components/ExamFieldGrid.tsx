@@ -16,7 +16,7 @@ import {
   EXAM_FIELDS, ownsField, daysUntil, sortFields, type ExamField,
 } from "@/lib/exam-fields";
 import { setActiveField } from "@/lib/active-field";
-import { dcdCurrentPrice } from "@/lib/pricing";
+import { dcdCurrentPrice, PRICING } from "@/lib/pricing";
 
 /** กดการ์ดสนามไหน = เลือกสนามนั้นทั้งแอป (คลังข้อสอบ/Mock ตามไปหมด) */
 function rememberField(field: ExamField) {
@@ -87,7 +87,13 @@ function FieldCard({ field, access }: { field: ExamField; access: UserAccess }) 
               </p>
             )}
             {price && (
-              <span className="text-[17px] font-extrabold text-white flex-shrink-0">฿{price}</span>
+              <span className="text-[17px] font-extrabold text-white flex-shrink-0">
+                {field.id === "dcd" ? (
+                  <><span className="text-[12px] font-semibold opacity-80">เริ่ม </span>฿{PRICING.dcdApp.price}</>
+                ) : (
+                  <>฿{price}</>
+                )}
+              </span>
             )}
           </div>
         </div>

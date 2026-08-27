@@ -93,7 +93,11 @@ export async function pickDaily(
     .filter((d) => !isMockLike(d.data()) && Number(d.data().questionCount ?? 0) >= 5)
     .filter((d) => {
       const pid = String(d.data().packageId ?? "");
-      return pid ? owned.includes(pid) : hasLegacy;
+      if (!pid) return hasLegacy;
+      if (owned.includes(pid)) return true;
+      // สนาม คร.: ทุกแพ็กของสนามเห็นชุดของสนาม (dcd-app ↔ dcd-2026)
+      return pid.toLowerCase().startsWith("dcd-")
+        && owned.some((id) => id.toLowerCase().startsWith("dcd-"));
     })
     .sort((a, b) => a.id.localeCompare(b.id)); // เรียงคงที่ ให้ index เสถียร
   if (exams.length === 0) return null;

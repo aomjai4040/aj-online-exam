@@ -6,7 +6,7 @@ import { useLoginGuard } from "@/lib/use-login-guard";
 import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 import { getPublishedVideos, type CourseVideo } from "@/lib/video-firestore";
 import { getAllVideoProgress, saveVideoProgress, type VideoProgress } from "@/lib/video-progress";
-import { PRICING } from "@/lib/pricing";
+import { PRICING, dcdUpgradePrice } from "@/lib/pricing";
 import { daysToExam } from "@/lib/exam-config";
 import { BRAND } from "@/lib/subjects";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
@@ -56,7 +56,7 @@ export default function VideosPage() {
             const vf = v.field === "dcd" ? "dcd" : "moph";
             if (vf !== f) return false;
             return vf === "dcd"
-              ? a.hasDcd
+              ? a.hasDcdFull // App Only คร. ไม่เห็นคลิป (Aj 2026-08-27)
               : (a.hasFull || (a.hasReview && v.chapter.includes("โค้งสุดท้าย")));
           });
           setVideos(vs);
@@ -198,7 +198,9 @@ export default function VideosPage() {
             <div className="w-full flex items-center justify-center text-white/60 text-[13.5px] px-6 text-center"
               style={{ aspectRatio: "16/9" }}>
               {field === "dcd"
-                ? "คลิปติวสนามกรมควบคุมโรคกำลังทยอยมา — มีคลิปใหม่พี่อ้อมแจ้งในกลุ่ม LINE ทุกครั้ง"
+                ? (access.hasDcdFull
+                    ? "คลิปติวสนามกรมควบคุมโรคกำลังทยอยมา — มีคลิปใหม่พี่อ้อมแจ้งในกลุ่ม LINE ทุกครั้ง"
+                    : "คลิปติว + กลุ่ม LINE อยู่ในแพ็กติวเข้มกรมควบคุมโรค — อัปเกรดจากแพ็กแอปได้ด้านล่าง")
                 : access.hasFull
                 ? "ยังไม่มีวิดีโอในคอร์ส — Admin เพิ่มได้ที่ Admin › คอร์สวิดีโอ"
                 : "คลิปสรุปโค้งสุดท้ายกำลังทยอยมา — กลับมาเช็คที่นี่ได้เลย"}
@@ -236,8 +238,17 @@ export default function VideosPage() {
 
       {/* ทรัพยากรของสนาม: คร. = เอกสาร + กลุ่ม LINE คร. · สป.สธ. = ชีท + LINE คอร์สเต็ม */}
       <div className="max-w-2xl mx-auto lg:max-w-none px-5 lg:px-0 pt-4">
-        {field === "dcd" ? null /* คร.: เอกสาร + LINE อยู่ในแผงเมนูหน้าคอร์สแล้ว (Aj 2026-08-23) */
-        : access.hasFull ? (
+        {field === "dcd" ? (
+          /* คร.: เอกสาร + LINE อยู่ในแผงเมนูหน้าคอร์สแล้ว (Aj 2026-08-23)
+             App Only คร. → ชวนอัปเกรดจ่ายส่วนต่าง (Aj 2026-08-27) */
+          access.hasDcdFull ? null : (
+            <Link href="/checkout/up-dcd"
+              className="block rounded-2xl px-4 py-3.5 text-[13px] active:scale-[0.99] transition-transform"
+              style={{ backgroundColor: "#FDF6E9", color: "#92400E", border: "1px solid #FDE9C8" }}>
+              🎬 อยากได้คลิปติว + เอกสาร + กลุ่ม LINE คร.? อัปเกรดเป็นติวเข้ม จ่ายเพิ่ม ฿{dcdUpgradePrice()} →
+            </Link>
+          )
+        ) : access.hasFull ? (
           <CourseResources />
         ) : !access.hasReview ? null : (
           <Link href="/checkout/up-full2"

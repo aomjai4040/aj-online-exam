@@ -23,7 +23,7 @@ import {
   EXAM_FIELDS, FIELD_SHORT, examSetField, type ExamFieldKey,
 } from "@/lib/exam-fields";
 import { setActiveField, ownsFieldKey, ownedFields, courseHref } from "@/lib/active-field";
-import { dcdCurrentPrice } from "@/lib/pricing";
+import { dcdCurrentPrice, dcdUpgradePrice, PRICING } from "@/lib/pricing";
 import BottomNav from "@/components/BottomNav";
 import { OtherCourses } from "@/components/ExamFieldGrid";
 import TodayPlanCard from "@/components/TodayPlanCard";
@@ -68,7 +68,7 @@ const ICONS = {
   ),
 };
 
-function menuFor(field: ExamFieldKey, extra: { driveUrl: string | null; openLine: () => void }): MenuItem[] {
+function menuFor(field: ExamFieldKey, extra: { driveUrl: string | null; openLine: () => void; dcdFull?: boolean }): MenuItem[] {
   const video: MenuItem = { title: "คอร์สวิดีโอ", desc: field === "dcd" ? "คลิปติว คร. ทยอยลง" : "ติวครบทุกหัวข้อ", href: "/videos", icon: ICONS.video };
   const mock:  MenuItem = { title: "Mock Exam",  desc: "จำลองสอบเสมือนจริง", href: "/mock-exam", icon: ICONS.clock };
   const game:  MenuItem = { title: "เกมทบทวน",  desc: "เกมเลือกสถิติ · Flash Card", href: "/games", badge: "ฟรี", icon: ICONS.game };
@@ -84,6 +84,14 @@ function menuFor(field: ExamFieldKey, extra: { driveUrl: string | null; openLine
     ];
   }
   // คร. (Aj 2026-08-23): เอกสาร + กลุ่ม LINE เป็นการ์ดในแผง เรียงตามการใช้งาน
+  // App Only คร. (Aj 2026-08-27): สองการ์ดนั้นแทนด้วยปุ่มอัปเกรดจ่ายส่วนต่าง
+  if (!extra.dcdFull) {
+    return [
+      { title: "อัปเกรดติวเข้ม", desc: `คลิป + เอกสาร + LINE · +฿${dcdUpgradePrice()}`,
+        href: "/checkout/up-dcd", icon: ICONS.flame, iconBg: "#FDF6E9" },
+      video, mock, game, me,
+    ];
+  }
   return [
     video, mock,
     { title: "เอกสารประกอบ", desc: extra.driveUrl ? "ชีท / ไฟล์เรียนของคอร์ส" : "พี่อ้อมกำลังเตรียม",
@@ -174,11 +182,21 @@ export default function CoursePage() {
                 </div>
               </div>
               {meta.status === "open" && meta.hrefBuy ? (
-                <Link href={meta.hrefBuy}
-                  className="block w-full text-center py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98] transition-transform"
-                  style={{ backgroundColor: BRAND.primary }}>
-                  สมัครคอร์ส{meta.code}{price ? ` · ฿${price}` : ""}
-                </Link>
+                <>
+                  <Link href={meta.hrefBuy}
+                    className="block w-full text-center py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98] transition-transform"
+                    style={{ backgroundColor: BRAND.primary }}>
+                    สมัครคอร์ส{meta.code}{price ? ` · ฿${price}` : ""}
+                  </Link>
+                  {/* คร. มีทางเลือกเฉพาะแอปข้อสอบ (Aj 2026-08-27) */}
+                  {field === "dcd" && (
+                    <Link href="/checkout/dcd-app"
+                      className="block w-full text-center py-3 rounded-2xl text-[14px] font-semibold mt-2 active:scale-[0.98] transition-transform"
+                      style={{ border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
+                      เอาเฉพาะแอปข้อสอบ — App Only ฿{PRICING.dcdApp.price}
+                    </Link>
+                  )}
+                </>
               ) : (
                 <p className="text-[13px] text-center py-3 rounded-2xl" style={{ backgroundColor: "#F5F5F3", color: "#A8A8A6" }}>
                   คอร์สนี้ยังไม่เปิดรับสมัคร
@@ -216,7 +234,7 @@ export default function CoursePage() {
   const canSwitch = ownedFields(access).length > 1;
   const latest = exams.slice(0, 5);
   const examsHref = field === "dcd" ? "/exams?field=dcd" : "/exams";
-  const menu = menuFor(field, { driveUrl, openLine: () => setLineOpen(true) });
+  const menu = menuFor(field, { driveUrl, openLine: () => setLineOpen(true), dcdFull: access.hasDcdFull });
 
   return (
     <div className="min-h-screen bg-stone-50 font-sans pb-28">
@@ -252,7 +270,7 @@ export default function CoursePage() {
 
         {/* คร. (Aj 2026-08-23 แบบ A): ลิงก์ด่วนแถวเดียว — กลุ่ม LINE / ชีท
             น้องใหม่ 3 วันแรกที่ยังไม่เข้ากลุ่มเห็นเป็นการ์ดเต็มใบ แล้วหดเป็นชิปถาวร */}
-        {field === "dcd" && <CourseQuickLinks field="dcd" />}
+        {field === "dcd" && access.hasDcdFull && <CourseQuickLinks field="dcd" />}
 
         {/* ความคืบหน้าคอร์ส — อัตโนมัติจากคลิปที่ดู/ข้อสอบที่ส่ง/Mock (Aj 2026-08-21) */}
         <CourseProgressCard field={field} access={access} onPct={setPct} />

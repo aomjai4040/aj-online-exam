@@ -37,6 +37,14 @@ export const PRICING = {
     tagline:     "นักวิชาการสาธารณสุข กรมควบคุมโรค — วันสอบรอประกาศ",
     period:      "ใช้ได้ 12 เดือน",
   },
+  /** App Only ของสนาม คร. (Aj 2026-08-27): ฝึกข้อสอบในแอปอย่างเดียว
+   *  ไม่มีคลิปติว / กลุ่ม LINE / เอกสาร — อัปเกรดเป็นติวเข้มจ่ายส่วนต่างจริง */
+  dcdApp: {
+    price:   299,
+    name:    "App Only กรมควบคุมโรค",
+    tagline: "สำหรับคนต้องการฝึกข้อสอบสนาม คร. ด้วยตัวเอง",
+    period:  "ใช้ได้ 12 เดือน",
+  },
   upgradePrice: 400,          // App → คอร์สเต็ม จ่ายส่วนต่าง
   upToReviewPrice: 200,       // App → แพ็กติวทบทวน จ่ายส่วนต่าง
   reviewToFullPrice: 200,     // แพ็กติวทบทวน → คอร์สเต็ม จ่ายส่วนต่าง
@@ -50,6 +58,11 @@ export function dcdCurrentPrice(now: Date = new Date()): { amount: number; isLau
   const bkkDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(now);
   const isLaunch = bkkDate <= PRICING.dcd.launchUntil;
   return { amount: isLaunch ? PRICING.dcd.launchPrice : PRICING.dcd.price, isLaunch };
+}
+
+/** ส่วนต่างอัปเกรด App Only คร. → ติวเข้ม คร. (ราคา ณ ตอนนั้น: โปร 499 = +200 · หลังโปร 699 = +400) */
+export function dcdUpgradePrice(now: Date = new Date()): number {
+  return dcdCurrentPrice(now).amount - PRICING.dcdApp.price;
 }
 
 /** ช่องทางติดต่อสั่งซื้อ — LINE OA ของ Aj */

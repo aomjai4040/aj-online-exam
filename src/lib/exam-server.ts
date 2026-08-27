@@ -27,7 +27,12 @@ export async function serverExamAllowed(
   const snap = await db.collection("userCourses").where("userId", "==", uid).get();
   const packageIds = snap.docs.map((d) => String(d.data().courseId ?? "")).filter(Boolean);
   const packageId  = String(exam.packageId ?? "");
-  if (packageId) return packageIds.includes(packageId);
+  if (packageId) {
+    if (packageIds.includes(packageId)) return true;
+    // สนาม คร.: ข้อสอบเปิดให้ทุกแพ็กของสนาม (dcd-app ทำข้อสอบชุด dcd-2026 ได้)
+    return packageId.toLowerCase().startsWith("dcd-")
+      && packageIds.some((id) => id.toLowerCase().startsWith("dcd-"));
+  }
   // legacy (ไม่ผูก packageId) = คลัง สป.สธ. เดิม — สนามใหม่ (dcd-) ไม่นับ
   // ตรงกับ hasAny ฝั่ง client (access.ts): แต่ละสนามแยกขาด ซื้อคอร์สไหนได้แค่คอร์สนั้น
   return packageIds.some((id) => !id.toLowerCase().startsWith("dcd-"));

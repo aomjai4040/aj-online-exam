@@ -10,7 +10,9 @@ export type OrderTier =
   | "upgrade"    // 400: app → full
   | "up-review"  // 200: app → review
   | "up-full2"   // 200: review → full
-  | "dcd";       // สนามกรมควบคุมโรค 2569 — ซื้อแยกจาก สป.สธ.
+  | "dcd"        // สนามกรมควบคุมโรค 2569 (ติวเข้ม: คลิป+ข้อสอบ+LINE) — ซื้อแยกจาก สป.สธ.
+  | "dcd-app"    // 299: App Only สนาม คร. — ฝึกข้อสอบอย่างเดียว (Aj 2026-08-27)
+  | "up-dcd";    // ส่วนต่างจริง: dcd-app → ติวเข้ม คร. (โปร +200 · หลังโปร +400)
 export type OrderStatus = "pending" | "paid" | "rejected" | "expired";
 
 export interface Order {
@@ -32,7 +34,7 @@ export interface Order {
   createdAt:  Date;
 }
 
-import { PRICING, dcdCurrentPrice } from "./pricing";
+import { PRICING, dcdCurrentPrice, dcdUpgradePrice } from "./pricing";
 
 /** map tier → courseId/courseName/ราคา (ฝั่ง server ใช้กำหนดของจริง) */
 export function tierPlan(tier: OrderTier): { courseId: string; courseName: string; amount: number } {
@@ -43,6 +45,19 @@ export function tierPlan(tier: OrderTier): { courseId: string; courseName: strin
         courseId:   "dcd-2026",
         courseName: `${PRICING.dcd.name} 2569`,
         amount:     dcdCurrentPrice().amount,
+      };
+    case "dcd-app":
+      return {
+        courseId:   "dcd-app-2026",
+        courseName: `${PRICING.dcdApp.name} 2569`,
+        amount:     PRICING.dcdApp.price,
+      };
+    case "up-dcd":
+      // ส่วนต่างจริง ณ วันจ่าย — ได้สิทธิ์ติวเข้ม คร. เต็ม (dcd-2026)
+      return {
+        courseId:   "dcd-2026",
+        courseName: "อัปเกรดเป็นติวเข้มกรมควบคุมโรค (จาก App Only)",
+        amount:     dcdUpgradePrice(),
       };
     case "app":
       return { courseId: "app-2026", courseName: "App Only (แอปข้อสอบ) 2569", amount: 299 };

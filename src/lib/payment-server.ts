@@ -12,6 +12,7 @@ import QRCode from "qrcode";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb, adminAccessToken } from "./firebase-admin";
 import { tierPlan, type OrderTier } from "./order-types";
+import { dcdUpgradePrice } from "./pricing";
 import { normalizeCode } from "./discount-types";
 
 /** bucket เก็บรูปสลิปที่ตรวจไม่ผ่าน (ใช้ bucket backup เดิม — lifecycle ลบเอง 30 วัน) */
@@ -32,16 +33,20 @@ export async function makePromptPayQR(amount: number): Promise<string> {
  *  แยกตาม "สนาม": สิทธิ์ของ สป.สธ. (app/review/full) กับ กรมควบคุมโรค (dcd-)
  *  ไม่เกี่ยวกัน — คนที่ซื้อคอร์สเต็ม สป.สธ. ต้องซื้อคอร์ส คร. ได้ตามปกติ */
 async function serverAccess(uid: string): Promise<{
-  hasAny: boolean; hasReview: boolean; hasFull: boolean; hasDcd: boolean;
+  hasAny: boolean; hasReview: boolean; hasFull: boolean;
+  hasDcd: boolean; hasDcdFull: boolean; hasDcdApp: boolean;
 }> {
   const snap = await adminDb().collection("userCourses").where("userId", "==", uid).get();
   const ids  = snap.docs.map((d) => String(d.data().courseId ?? "").toLowerCase());
-  const isDcd = (id: string) => id.startsWith("dcd-");
+  const isDcd    = (id: string) => id.startsWith("dcd-");
+  const isDcdApp = (id: string) => id.startsWith("dcd-app");
   return {
     hasAny:    ids.some((id) => !isDcd(id)),   // สิทธิ์ฝั่ง สป.สธ. เท่านั้น
     hasReview: ids.some((id) => id.startsWith("review-")),
     hasFull:   ids.some((id) => !id.startsWith("app-") && !id.startsWith("review-") && !isDcd(id)),
     hasDcd:    ids.some(isDcd),
+    hasDcdFull: ids.some((id) => isDcd(id) && !isDcdApp(id)), // ติวเข้ม คร. (คลิป/LINE/เอกสาร)
+    hasDcdApp:  ids.some(isDcdApp),
   };
 }
 
@@ -81,7 +86,8 @@ export async function pendingOrder(uid: string, tier: OrderTier): Promise<{
 /** ผู้ใช้ถือสิทธิ์ของ tier นี้อยู่แล้วหรือยัง — ใช้ก่อนแสดงหน้าจ่ายเงิน */
 export async function alreadyOwns(uid: string, tier: OrderTier): Promise<boolean> {
   const acc = await serverAccess(uid);
-  if (tier === "dcd") return acc.hasDcd;
+  if (tier === "dcd" || tier === "up-dcd") return acc.hasDcdFull;
+  if (tier === "dcd-app") return acc.hasDcd; // มีติวเข้มอยู่แล้วก็ถือว่าครอบ App
   if (tier === "app") return acc.hasAny;
   if (tier === "review") return acc.hasReview || acc.hasFull;
   if (tier === "full" || tier === "upgrade" || tier === "up-full2") return acc.hasFull;
@@ -96,8 +102,14 @@ export async function createOrder(
   const acc = await serverAccess(uid);
 
   // สนามกรมควบคุมโรค — คนละสนามกับ สป.สธ. ตรวจแยก และไม่ติดเงื่อนไขของสนามเดิม
-  if (tier === "dcd") {
-    if (acc.hasDcd) throw new CheckoutError("บัญชีนี้มีคอร์สกรมควบคุมโรคอยู่แล้ว");
+  if (tier === "dcd" || tier === "dcd-app" || tier === "up-dcd") {
+    if (acc.hasDcdFull) throw new CheckoutError("บัญชีนี้มีคอร์สติวเข้มกรมควบคุมโรคอยู่แล้ว");
+    if (tier === "dcd" && acc.hasDcdApp)
+      throw new CheckoutError(`บัญชีนี้มี App Only คร. แล้ว — อัปเกรดเป็นติวเข้มจ่ายเพิ่มแค่ ${dcdUpgradePrice()} บาท`);
+    if (tier === "dcd-app" && acc.hasDcd)
+      throw new CheckoutError("บัญชีนี้มีสิทธิ์สนามกรมควบคุมโรคอยู่แล้ว");
+    if (tier === "up-dcd" && !acc.hasDcdApp)
+      throw new CheckoutError("เมนูนี้สำหรับผู้ที่มี App Only คร. อยู่แล้ว — กรุณาเลือกคอร์สติวเข้มกรมควบคุมโรค");
     const openDcd = await pendingOrder(uid, tier);
     if (openDcd) return openDcd;
     const plan = tierPlan(tier);

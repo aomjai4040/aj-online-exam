@@ -6,7 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import CourseResources from "@/components/CourseResources";
 import SampleVideoTeaser from "@/components/SampleVideoTeaser";
 import { BRAND } from "@/lib/subjects";
-import { PRICING, dcdCurrentPrice } from "@/lib/pricing";
+import { PRICING, dcdCurrentPrice, dcdUpgradePrice } from "@/lib/pricing";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, EMPTY_ACCESS, type UserAccess } from "@/lib/access";
 import { daysToExam, daysToDcdExam, daysToDcdApplyClose } from "@/lib/exam-config";
@@ -98,8 +98,9 @@ export default function PackagesPage() {
 
       <section className="max-w-lg md:max-w-4xl mx-auto px-5 py-6 space-y-4">
 
-        {/* ── สนามกรมควบคุมโรค — สนามที่กำลังเปิดรับสมัคร วางไว้บนสุด ─────── */}
-        {!access.hasDcd && daysToDcdExam() >= 0 && (
+        {/* ── สนามกรมควบคุมโรค — สนามที่กำลังเปิดรับสมัคร วางไว้บนสุด
+            (โชว์ทั้งคนยังไม่มี และคน App Only คร. ที่อัปเกรดได้) ─────── */}
+        {!access.hasDcdFull && daysToDcdExam() >= 0 && (
           <div className="rounded-2xl overflow-hidden" style={{ border: "2px solid #0B6E65" }}>
             <div className="px-5 py-4" style={{ backgroundColor: "#0B4F48" }}>
               <div className="flex items-center gap-2 mb-1.5">
@@ -157,10 +158,30 @@ export default function PackagesPage() {
                 ))}
               </ul>
 
-              <Link href="/checkout/dcd"
-                className="btn-primary w-full py-3.5 text-[15px] block text-center">
-                สมัครคอร์สกรมควบคุมโรค ฿{dcdCurrentPrice().amount}
-              </Link>
+              {access.hasDcd ? (
+                /* มี App Only คร. แล้ว → เหลือทางเดียวคืออัปเกรดจ่ายส่วนต่าง */
+                <Link href="/checkout/up-dcd"
+                  className="btn-primary w-full py-3.5 text-[15px] block text-center">
+                  อัปเกรดเป็นติวเข้ม จ่ายเพิ่ม ฿{dcdUpgradePrice()} (จาก App Only)
+                </Link>
+              ) : (
+                <>
+                  <Link href="/checkout/dcd"
+                    className="btn-primary w-full py-3.5 text-[15px] block text-center">
+                    สมัครคอร์สกรมควบคุมโรค ฿{dcdCurrentPrice().amount}
+                  </Link>
+                  {/* ทางเลือกเฉพาะแอปข้อสอบ (Aj 2026-08-27): ไม่มีคลิป/LINE/เอกสาร */}
+                  <Link href="/checkout/dcd-app"
+                    className="w-full py-3 text-[14px] font-semibold block text-center rounded-xl mt-2"
+                    style={{ border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
+                    เอาเฉพาะแอปข้อสอบ — App Only ฿{PRICING.dcdApp.price}
+                  </Link>
+                  <p className="text-[11.5px] text-center mt-1.5" style={{ color: "#A8A8A6" }}>
+                    App Only = ฝึกข้อสอบ+Mock ในแอปอย่างเดียว (ไม่มีคลิป/กลุ่ม LINE/เอกสาร) ·
+                    อัปเกรดทีหลังจ่ายแค่ส่วนต่าง
+                  </p>
+                </>
+              )}
               <p className="text-[12px] text-center mt-2" style={{ color: "#A8A8A6" }}>
                 มีโค้ดส่วนลดจากการทำแบบประเมิน ใช้ได้ในหน้าถัดไป
               </p>

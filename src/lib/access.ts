@@ -18,11 +18,13 @@ export interface UserAccess {
   hasAny:     boolean;  // มีคอร์ส/แพ็กอย่างน้อย 1 อัน (legacy fallback)
   hasReview:  boolean;  // มี "แพ็กติวทบทวน 499" → ดูคลิปโค้งสุดท้ายได้ (ไม่เห็นคอร์สวิดีโอเต็ม)
   hasFull:    boolean;  // มี "คอร์สเต็ม" → ดูวิดีโอได้ครบ
-  hasDcd:     boolean;  // มีคอร์สสนามกรมควบคุมโรค (สนามคนละสนามกับ สป.สธ.)
+  hasDcd:     boolean;  // มีคอร์สสนามกรมควบคุมโรค (ตัวไหนก็ได้ — คุมสิทธิ์เข้า "สนาม")
+  hasDcdFull: boolean;  // มี "ติวเข้ม คร." (dcd- ที่ไม่ใช่ dcd-app) → คลิป + LINE + เอกสาร
 }
 
 export const EMPTY_ACCESS: UserAccess = {
-  packageIds: [], hasAny: false, hasReview: false, hasFull: false, hasDcd: false,
+  packageIds: [], hasAny: false, hasReview: false, hasFull: false,
+  hasDcd: false, hasDcdFull: false,
 };
 
 /**
@@ -43,6 +45,10 @@ export function isReviewCourse(courseId: string): boolean {
 }
 export function isDcdCourse(courseId: string): boolean {
   return courseId.toLowerCase().startsWith("dcd-");
+}
+/** App Only ของสนาม คร. (299 — Aj 2026-08-27): ฝึกข้อสอบอย่างเดียว ไม่มีคลิป/LINE/เอกสาร */
+export function isDcdAppCourse(courseId: string): boolean {
+  return courseId.toLowerCase().startsWith("dcd-app");
 }
 export function isFullCourse(courseId: string): boolean {
   return !isAppOnlyCourse(courseId) && !isReviewCourse(courseId) && !isDcdCourse(courseId);
@@ -65,6 +71,7 @@ export async function getUserAccess(uid: string): Promise<UserAccess> {
     hasReview: packageIds.some(isReviewCourse),
     hasFull:   packageIds.some(isFullCourse),
     hasDcd:    packageIds.some(isDcdCourse),
+    hasDcdFull: packageIds.some((id) => isDcdCourse(id) && !isDcdAppCourse(id)),
   };
 }
 
@@ -79,7 +86,10 @@ export function decideExamAccess(
   if (exam.isFree) return "allowed";        // ฟรี — แม้ยังไม่ login ก็ผ่านด่านนี้
   if (!userId)     return "need-login";
   if (exam.packageId) {
-    return access.packageIds.includes(exam.packageId) ? "allowed" : "locked";
+    if (access.packageIds.includes(exam.packageId)) return "allowed";
+    // สนาม คร.: ข้อสอบเปิดให้ทุกแพ็กของสนาม (dcd-app ก็ทำได้ — ต่างกันที่คลิป/LINE)
+    if (isDcdCourse(exam.packageId) && access.hasDcd) return "allowed";
+    return "locked";
   }
   // ยังไม่ผูกแพ็ก → legacy: มีคอร์สอะไรก็ได้ก็เข้าได้
   return access.hasAny ? "allowed" : "locked";

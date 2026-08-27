@@ -17,7 +17,7 @@ import DriveFilesButton from "@/components/DriveFilesButton";
 
 type Phase = "loading" | "intake" | "qr" | "verifying" | "success" | "owned" | "error";
 
-const TIERS: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2", "dcd"];
+const TIERS: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2", "dcd", "dcd-app", "up-dcd"];
 
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -91,7 +91,7 @@ export default function CheckoutPage() {
 
         if (res.ok && d.owned)   { setPhase("owned"); return; }
         if (res.ok && d.pending) { setOrder(d.pending); setPhase("qr"); return; }
-        if (res.ok && tier === "dcd" && !d.intakeDone) { setPhase("intake"); return; }
+        if (res.ok && (tier === "dcd" || tier === "dcd-app") && !d.intakeDone) { setPhase("intake"); return; }
       } catch { /* ถามไม่ได้ก็ไปทางเดิม ไม่บล็อกการขาย */ }
       if (!cancelled) createOrderNow();
     })();
@@ -247,16 +247,26 @@ export default function CheckoutPage() {
         <p className="text-[14px] mb-1" style={{ color: "#A8A8A6" }}>ปลดล็อกเรียบร้อยแล้ว</p>
         <p className="text-[16px] font-bold mb-6" style={{ color: BRAND.primary }}>{okName}</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
-          {tier === "dcd" ? (
+          {tier === "dcd" || tier === "up-dcd" ? (
             <>
-              {/* คร. — เข้ากลุ่ม LINE ก่อน (ประกาศทุกอย่างอยู่ที่นั่น) แล้วค่อยเริ่มทำข้อสอบ */}
+              {/* คร. ติวเข้ม — เข้ากลุ่ม LINE ก่อน (ประกาศทุกอย่างอยู่ที่นั่น) แล้วค่อยเริ่มทำข้อสอบ */}
               <LineJoinButton field="dcd" label="เข้ากลุ่ม LINE คอร์ส คร. เลย" />
               <DriveFilesButton field="dcd" />
-              <button onClick={() => router.push("/exams")}
-                className="btn-secondary w-full py-3 text-[14px]">เริ่มทำข้อสอบ</button>
+              <button onClick={() => router.push("/course/dcd")}
+                className="btn-secondary w-full py-3 text-[14px]">เข้าหน้าคอร์ส</button>
               <p className="text-[12.5px] leading-relaxed mt-1" style={{ color: "#A8A8A6" }}>
                 คลิปและข้อสอบเฉพาะสนามกรมควบคุมโรค พี่อ้อมจะทยอยเพิ่มให้
                 มีของใหม่เมื่อไหร่แจ้งในกลุ่ม LINE ทุกครั้งนะคะ
+              </p>
+            </>
+          ) : tier === "dcd-app" ? (
+            <>
+              {/* App Only คร. — ไม่มีกลุ่ม LINE/เอกสาร พาเข้าคอร์สเลย */}
+              <button onClick={() => router.push("/course/dcd")}
+                className="btn-primary w-full py-3 text-[14px]">เข้าหน้าคอร์ส — เริ่มทำข้อสอบ</button>
+              <p className="text-[12.5px] leading-relaxed mt-1" style={{ color: "#A8A8A6" }}>
+                แพ็กนี้ฝึกข้อสอบในแอปอย่างเดียว — อยากได้คลิปติว + กลุ่ม LINE
+                อัปเกรดเป็นติวเข้มได้ทีหลัง จ่ายแค่ส่วนต่าง
               </p>
             </>
           ) : tier === "review" || tier === "up-review" ? (

@@ -29,6 +29,8 @@ export async function GET(
     .where("userId", "==", user.uid).get();
   const owned = snap.docs.some((d) => {
     const id = String(d.data().courseId ?? "").toLowerCase();
+    // App Only คร. (dcd-app) ไม่มีสิทธิ์กลุ่ม LINE/เอกสาร — เฉพาะติวเข้ม (Aj 2026-08-27)
+    if (id.startsWith("dcd-app")) return false;
     return def.ownPrefixes.some((p) => id.startsWith(p));
   });
   if (!owned) return NextResponse.json({ error: "no-access" }, { status: 403 });

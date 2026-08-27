@@ -7,7 +7,7 @@ import type { OrderTier } from "@/lib/order-types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const VALID: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2", "dcd"];
+const VALID: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2", "dcd", "dcd-app", "up-dcd"];
 
 /** สถานะก่อนเข้าหน้าจ่ายเงิน — ถามก่อนเสมอ จะได้ไม่ถามแบบสอบถามคนที่ซื้อไปแล้ว
  *
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const [owned, pending, intakeSnap] = await Promise.all([
       alreadyOwns(user.uid, tier),
       pendingOrder(user.uid, tier),
-      tier === "dcd"
+      tier === "dcd" || tier === "dcd-app"
         ? adminDb().collection("dcdIntake").doc(user.uid).get()
         : Promise.resolve(null),
     ]);
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     const order = await createOrder(user.uid, user.email, tier);
 
     // แบบสอบถามก่อนจ่ายของคอร์ส คร. — เก็บแยก 1 doc/คน (พลาดก็ไม่ block การจ่าย)
-    if (tier === "dcd" && intake && typeof intake === "object" && !Array.isArray(intake)) {
+    if ((tier === "dcd" || tier === "dcd-app") && intake && typeof intake === "object" && !Array.isArray(intake)) {
       await adminDb().collection("dcdIntake").doc(user.uid).set({
         userId:    user.uid,
         email:     user.email,

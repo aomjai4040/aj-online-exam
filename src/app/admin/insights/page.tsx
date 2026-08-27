@@ -248,7 +248,11 @@ export default function AdminInsights() {
                 </div>
                 <div className="text-right">
                   <div className="text-[26px] font-extrabold leading-none" style={{ color: "#0B6E65" }}>{data.paid.dcd ?? 0}</div>
-                  <div className="text-[11px]" style={{ color: "#A8A8A6" }}>ออเดอร์จ่ายแล้ว</div>
+                  <div className="text-[11px]" style={{ color: "#A8A8A6" }}>ติวเข้ม (จ่ายแล้ว)</div>
+                  <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>
+                    App ฿299: <b style={{ color: "#B45309" }}>{data.paid["dcd-app"] ?? 0}</b>
+                    {" · "}อัปเกรด: <b style={{ color: "#0B6E65" }}>{data.paid["up-dcd"] ?? 0}</b>
+                  </div>
                 </div>
               </div>
             </div>
