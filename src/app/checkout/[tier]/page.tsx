@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
 import { tierPlan, type OrderTier } from "@/lib/order-types";
+import { PRICING, dcdCurrentPrice } from "@/lib/pricing";
 import { BRAND } from "@/lib/subjects";
 import { DCD_INTAKE, intakeComplete, type IntakeAnswers } from "@/lib/dcd-intake";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
@@ -308,9 +309,36 @@ export default function CheckoutPage() {
         </Link>
 
         <h1 className="text-[20px] font-bold text-gray-900 mb-1">ชำระเงิน</h1>
-        <p className="text-[13.5px] mb-6" style={{ color: "#A8A8A6" }}>
+        <p className="text-[13.5px] mb-4" style={{ color: "#A8A8A6" }}>
           {plan!.courseName} · <span className="font-bold" style={{ color: BRAND.primary }}>฿{plan!.amount}</span>
         </p>
+
+        {/* กันกดผิดสนาม (เคส 27 ส.ค.: น้องจะซื้อ App คร. แต่จ่าย App สป.สธ. เพราะราคา 299 เท่ากัน)
+            แพ็ก สป.สธ. ทุกตัวขึ้นป้ายเตือน + ทางลัดไปแพ็ก คร. */}
+        {!["dcd", "dcd-app", "up-dcd"].includes(tier) && (
+          <div className="rounded-2xl px-4 py-3.5 mb-6"
+            style={{ backgroundColor: "#FFFBEB", border: "1.5px solid #FCD34D" }}>
+            <p className="text-[13px] font-bold mb-1" style={{ color: "#92400E" }}>
+              ⚠️ แพ็กนี้เป็นของสนาม สป.สธ. (สอบไปแล้ว 15 ส.ค. 69)
+            </p>
+            <p className="text-[12.5px] leading-relaxed mb-2.5" style={{ color: "#B45309" }}>
+              ถ้าคุณกำลังเตรียมสอบ<b>กรมควบคุมโรค</b> ต้องใช้แพ็กของสนาม คร. เท่านั้น —
+              ข้อสอบและคลิปเป็นคนละชุดกัน
+            </p>
+            <div className="flex gap-2">
+              <Link href="/checkout/dcd-app"
+                className="flex-1 text-center text-[12.5px] font-bold py-2 rounded-xl"
+                style={{ backgroundColor: "#B45309", color: "white" }}>
+                App คร. ฿{PRICING.dcdApp.price}
+              </Link>
+              <Link href="/checkout/dcd"
+                className="flex-1 text-center text-[12.5px] font-bold py-2 rounded-xl"
+                style={{ border: "1.5px solid #B45309", color: "#B45309" }}>
+                ติวเข้ม คร. ฿{dcdCurrentPrice().amount}
+              </Link>
+            </div>
+          </div>
+        )}
 
         {phase === "intake" && (
           <>
