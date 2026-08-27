@@ -47,6 +47,7 @@ const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 /** ขยายขนาดที่ YouTube "เห็น" เพื่อให้เลือกส่ง HD (มือถือ ~400px → 1000px ≈ 720p+) */
 const HD_SCALE = 2.5;
 const SPEED_KEY = "aj-video-speed";
+const AUTONEXT_KEY = "aj-video-autonext";
 
 /** ปิดคำบรรยาย (CC) — YouTube เปิดซับกลับเองตอนเริ่มเล่นตาม preference ผู้ชม
  *  ต้องทั้งถอดโมดูล (player เก่า) และล้าง track (player HTML5 ปัจจุบัน)
@@ -135,6 +136,42 @@ export default function CourseVideoPlayer({
   }, []);
   // แถบควบคุมซ่อนตัว → ปิดเมนูความเร็วตามไปด้วย
   useEffect(() => { if (!controlsVisible) setSpeedMenu(false); }, [controlsVisible]);
+
+  // ── double-tap seek (แบบ YouTube) ──
+  const lastTapRef = useRef<{ t: number; side: "l" | "r" | null }>({ t: 0, side: null });
+  const tapTimerRef = useRef<number | null>(null);
+  const [seekFlash, setSeekFlash] = useState<{ side: "l" | "r"; n: number } | null>(null);
+  useEffect(() => {
+    if (!seekFlash) return;
+    const t = window.setTimeout(() => setSeekFlash(null), 650);
+    return () => window.clearTimeout(t);
+  }, [seekFlash]);
+  useEffect(() => () => { if (tapTimerRef.current) window.clearTimeout(tapTimerRef.current); }, []);
+
+  // ── เล่นคลิปถัดไปอัตโนมัติ (จำ preference ต่อเครื่อง — ค่าเริ่มต้น: เปิด) ──
+  const [autoNext, setAutoNext] = useState(true);
+  const [countdown, setCountdown] = useState<number | null>(null); // null = ไม่ได้นับ
+  useEffect(() => {
+    try { setAutoNext(localStorage.getItem(AUTONEXT_KEY) !== "off"); } catch {}
+  }, []);
+  function setAutoNextPref(on: boolean) {
+    setAutoNext(on);
+    try { localStorage.setItem(AUTONEXT_KEY, on ? "on" : "off"); } catch {}
+  }
+  // เริ่มนับเมื่อคลิปจบ (มีคลิปถัดไป + เปิด auto) — ยกเลิกเมื่อผู้ใช้กดอะไรก็ตาม
+  useEffect(() => {
+    if (!ended || !hasNext || !autoNext) { setCountdown(null); return; }
+    setCountdown(5);
+    const iv = window.setInterval(() => {
+      setCountdown((c) => (c === null ? null : c - 1));
+    }, 1000);
+    return () => window.clearInterval(iv);
+  }, [ended, hasNext, autoNext]);
+  useEffect(() => {
+    if (countdown === 0) { setCountdown(null); onNextRef.current?.(); }
+  }, [countdown]);
+  const onNextRef = useRef(onNext);
+  useEffect(() => { onNextRef.current = onNext; }, [onNext]);
   function chooseSpeed(s: number) {
     speedRef.current = s;
     setSpeed(s);
@@ -455,14 +492,51 @@ export default function CourseVideoPlayer({
       </div>
 
       {/* โล่ใสเต็มจอ — ทุกการแตะเป็นของเรา ไม่มีทางแตะโดนลิงก์ YouTube
-          แตะตอนแถบซ่อน = โชว์แถบก่อน (แบบ YouTube) · แตะตอนแถบโชว์ = เล่น/หยุด */}
+          แตะตอนแถบซ่อน = โชว์แถบก่อน (แบบ YouTube) · แตะตอนแถบโชว์ = เล่น/หยุด
+          แตะสองครั้งครึ่งซ้าย/ขวา = ถอย/เดินหน้า 10 วิ (น้องขอแบบ YouTube 2026-08-27) */}
       <div className="absolute inset-0 z-10 cursor-pointer"
-        onClick={() => {
-          if (!controlsVisible && playingRef.current) { bumpControls(); return; }
-          toggle();
-          bumpControls();
+        onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const frac = (e.clientX - rect.left) / Math.max(1, rect.width);
+          const side: "l" | "r" | null = frac < 0.35 ? "l" : frac > 0.65 ? "r" : null;
+          const now = Date.now();
+          const isDouble = side !== null
+            && now - lastTapRef.current.t < 320 && lastTapRef.current.side === side;
+          lastTapRef.current = { t: now, side };
+
+          if (isDouble) {
+            // แตะครั้งที่สอง — ยกเลิกงานแตะเดี่ยวที่ตั้งเวลาไว้ แล้ว seek
+            if (tapTimerRef.current) { window.clearTimeout(tapTimerRef.current); tapTimerRef.current = null; }
+            skip(side === "l" ? -10 : 10);
+            setSeekFlash({ side: side!, n: Date.now() });
+            bumpControls();
+            return;
+          }
+          // แตะเดี่ยว — หน่วงสั้น ๆ เผื่อเป็นจังหวะแรกของ double tap
+          if (tapTimerRef.current) window.clearTimeout(tapTimerRef.current);
+          tapTimerRef.current = window.setTimeout(() => {
+            tapTimerRef.current = null;
+            if (!controlsVisible && playingRef.current) { bumpControls(); return; }
+            toggle();
+            bumpControls();
+          }, 260);
         }}
         onMouseMove={bumpControls} />
+
+      {/* ไฟกระพริบบอกว่า seek แล้ว — โผล่ข้างที่แตะแล้วจางหาย */}
+      {seekFlash && (
+        <div key={seekFlash.n}
+          className={`absolute top-1/2 -translate-y-1/2 z-20 pointer-events-none seek-flash
+                      ${seekFlash.side === "l" ? "left-6" : "right-6"}`}>
+          <div className="flex flex-col items-center gap-1 px-4 py-3 rounded-full"
+            style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
+            <span className="text-white text-[18px] leading-none">
+              {seekFlash.side === "l" ? "⏪" : "⏩"}
+            </span>
+            <span className="text-white/90 text-[11px] font-bold">10 วินาที</span>
+          </div>
+        </div>
+      )}
 
       <CornerWatermark label={userLabel} />
 
@@ -477,25 +551,46 @@ export default function CourseVideoPlayer({
         </button>
       )}
 
-      {/* จอจบคลิปของเรา — ทับ end screen ของ YouTube */}
+      {/* จอจบคลิปของเรา — ทับ end screen ของ YouTube
+          มีคลิปถัดไป + เปิดเล่นต่ออัตโนมัติ → นับถอยหลัง 5 วิแล้วไปเอง (น้องขอ 2026-08-27) */}
       {ended && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4"
           style={{ backgroundColor: "rgba(0,0,0,0.92)" }}>
-          <p className="text-white/80 text-[14px]">จบคลิปแล้ว ✓</p>
+          {hasNext && autoNext && countdown !== null ? (
+            <p className="text-white/80 text-[14px]">
+              จบคลิปแล้ว ✓ · เล่นคลิปถัดไปใน{" "}
+              <span className="text-[18px] font-extrabold" style={{ color: "#5DCAA5" }}>{countdown}</span>
+            </p>
+          ) : (
+            <p className="text-white/80 text-[14px]">จบคลิปแล้ว ✓</p>
+          )}
           <div className="flex gap-3">
-            <button onClick={replay}
+            <button onClick={() => { setCountdown(null); replay(); }}
               className="px-5 py-2.5 rounded-xl text-[13.5px] font-semibold text-white"
               style={{ border: "1px solid rgba(255,255,255,0.4)" }}>
               ↻ ดูซ้ำ
             </button>
             {hasNext && (
-              <button onClick={onNext}
+              <button onClick={() => { setCountdown(null); onNext?.(); }}
                 className="px-5 py-2.5 rounded-xl text-[13.5px] font-bold"
                 style={{ backgroundColor: "white", color: "#0B4F48" }}>
                 คลิปถัดไป →
               </button>
             )}
           </div>
+          {hasNext && (
+            autoNext && countdown !== null ? (
+              <button onClick={() => setCountdown(null)}
+                className="text-white/60 text-[12.5px] underline">
+                ยกเลิกเล่นอัตโนมัติครั้งนี้
+              </button>
+            ) : (
+              <button onClick={() => setAutoNextPref(!autoNext)}
+                className="text-white/50 text-[12px] underline">
+                เล่นคลิปถัดไปอัตโนมัติ: {autoNext ? "เปิดอยู่" : "ปิดอยู่ — แตะเพื่อเปิด"}
+              </button>
+            )
+          )}
         </div>
       )}
 

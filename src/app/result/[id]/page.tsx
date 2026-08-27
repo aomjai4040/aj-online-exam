@@ -290,6 +290,15 @@ export default function ResultPage() {
           </Link>
         </div>
 
+        {/* สถิติรายชุด + ข้อที่เคยผิดของชุดนี้ (น้องขอ 2026-08-27) */}
+        <Link
+          href={`/exam/${result.examId}/stats`}
+          className="mt-3 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[13.5px] font-semibold"
+          style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}
+        >
+          📊 สถิติชุดนี้ของฉัน — ทำไปกี่รอบ · ข้อที่เคยผิด
+        </Link>
+
       </div>
     </div>
   );

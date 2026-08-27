@@ -161,6 +161,15 @@
 
 /* ปุ่มหนาสไตล์เกม (Duolingo-like): ขอบล่างหนา กดแล้วยุบลง
    สี border/bg กำหนด inline ต่อปุ่ม — คลาสนี้คุมมิติและจังหวะกดอย่างเดียว */
+/* ไฟกระพริบตอน double-tap seek ±10 วิ ในตัวเล่นวิดีโอ */
+@keyframes seek-flash {
+  0%   { opacity: 0; transform: translateY(-50%) scale(0.85); }
+  20%  { opacity: 1; transform: translateY(-50%) scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-50%) scale(1); }
+}
+.seek-flash { animation: seek-flash 0.65s ease-out both; }
+
 /* เต็มจอเทียมของตัวเล่นวิดีโอ (iPhone/LINE ไม่มี Fullscreen API):
    ซ่อนแถบหัวและแถบล่างของแอป ไม่งั้นบังคลิป — ดู CourseVideoPlayer.tsx */
 body.video-fake-full header,

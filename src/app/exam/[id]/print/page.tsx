@@ -55,6 +55,15 @@ export default function ExamPrintPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // กันหมุนค้างเงียบ (มีรายงาน 2026-08-27): เกิน 20 วิยังไม่พร้อม → ขึ้นหน้า error ให้กดลองใหม่
+  useEffect(() => {
+    if (phase !== "loading") return;
+    const t = window.setTimeout(() => {
+      setPhase((p) => (p === "loading" ? "error" : p));
+    }, 20_000);
+    return () => window.clearTimeout(t);
+  }, [phase]);
+
   if (authLoading || !user || phase === "loading") return <AccessGuardSpinner />;
 
   if (phase === "locked") {

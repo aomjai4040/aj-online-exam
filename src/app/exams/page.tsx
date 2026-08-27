@@ -213,7 +213,16 @@ function ExamCardItem({ exam, record, locked }: { exam: ExamCard; record: ExamRe
                     {" "}รอบล่าสุด ({record.score}/{record.totalQuestions} ข้อ)
                   </span>
                 </span>
-                <span style={{ color: "#A8A8A6" }}>{formatRecordDate(record.doneAt)}</span>
+                {/* สถิติรายชุด: กี่รอบ/พัฒนาการ/ข้อที่เคยผิด (น้องขอ 2026-08-27)
+                    ทั้งการ์ดเป็น Link อยู่แล้ว — ใช้ button กันลิงก์ซ้อนลิงก์ */}
+                <button type="button"
+                  onClick={(e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    window.location.href = `/exam/${exam.id}/stats`;
+                  }}
+                  className="font-semibold underline" style={{ color: "#0B6E65" }}>
+                  📊 สถิติ
+                </button>
               </div>
               <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: "#F0EFEC" }}>
                 <div

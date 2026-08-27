@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, setDoc, getDocs,
-  addDoc, query, orderBy, limit,
+  addDoc, query, where, orderBy, limit,
   serverTimestamp, Timestamp, increment,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -102,6 +102,20 @@ export async function getUserHistory(uid: string): Promise<Record<string, ExamRe
     };
   });
   return out;
+}
+
+/** ทุกครั้งที่เคยทำ "ชุดเดียว" เรียงเก่า→ใหม่ (หน้า /exam/[id]/stats ใช้ — Aj 2026-08-27)
+ *  ไม่ใส่ orderBy ใน query เพื่อเลี่ยง composite index — เรียงฝั่ง client แทน */
+export async function getExamAttempts(uid: string, examId: string): Promise<UserResult[]> {
+  const q    = query(collection(db, "users", uid, "results"), where("examId", "==", examId));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<UserResult, "id" | "doneAt">),
+      doneAt: toDate(d.data().doneAt),
+    }))
+    .sort((a, b) => a.doneAt.getTime() - b.doneAt.getTime());
 }
 
 /** Returns recent individual results for dashboard chart + streak. */
