@@ -23,6 +23,13 @@ const EMPTY_Q: QuestionForm = {
 
 // ─── Input focus helpers (inline styles because globals.css .input uses @apply) ─
 
+/** textarea สูงตามเนื้อหา — ใช้เป็น ref (ตอน mount/โหลดข้อเดิม) และเรียกซ้ำตอนพิมพ์ */
+const autoGrow = (el: HTMLTextAreaElement | null) => {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${Math.max(el.scrollHeight, 56)}px`;
+};
+
 const focusOn  = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
   e.currentTarget.style.borderColor = "transparent";
   e.currentTarget.style.boxShadow   = "0 0 0 3px rgba(11,110,101,0.15)";
@@ -258,15 +265,18 @@ function QuestionCard({
             คำอธิบายเฉลย{" "}
             <span className="normal-case font-normal" style={{ color: "#C4C4C0" }}>(ถ้ามี)</span>
           </label>
+          {/* สูงตามเนื้อหาอัตโนมัติ — Aj ตรวจเฉลยยาว ๆ ไม่ต้องเลื่อนในกล่องเล็ก (2026-08-28) */}
           <textarea
+            ref={autoGrow}
             className="w-full rounded-xl px-4 py-2.5 text-[14px] text-gray-900
-                       placeholder-gray-400 resize-none focus:outline-none transition-all h-14"
+                       placeholder-gray-400 resize-none focus:outline-none transition-all
+                       min-h-14 overflow-hidden"
             style={{ border: "1px solid #E0DFDC" }}
             onFocus={focusOn}
             onBlur={focusOff}
             placeholder="อธิบายเหตุผลว่าทำไมถึงเป็นคำตอบที่ถูก..."
             value={q.explanation}
-            onChange={(e) => onUpdate("explanation", e.target.value)}
+            onChange={(e) => { onUpdate("explanation", e.target.value); autoGrow(e.target); }}
           />
         </div>
 
