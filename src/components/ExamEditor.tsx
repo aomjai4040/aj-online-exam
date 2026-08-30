@@ -423,7 +423,13 @@ export default function ExamEditor({
       await onSave({ ...meta, questions });
       showToast("บันทึกสำเร็จ 🎉", "success");
       setTimeout(() => router.push(backHref), 1500);
-    } catch {
+    } catch (e) {
+      // โชว์สาเหตุจริง — "เกิดข้อผิดพลาด" เฉย ๆ ทำให้ debug เคสเซฟไม่เข้าไม่ได้
+      // (เคส Mock คร. ชุดที่ 3 บันทึกครึ่งเดียว 2026-08-30)
+      console.error("[ExamEditor save]", e);
+      const msg = e instanceof Error ? `${e.name}: ${e.message}`.slice(0, 180) : String(e).slice(0, 180);
+      setError(`บันทึกไม่สำเร็จ — ${msg}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       showToast("เกิดข้อผิดพลาด กรุณาลองอีกครั้ง", "error");
       setSaving(false);
     }

@@ -78,8 +78,12 @@ export async function getQuestions(examId: string): Promise<Question[]> {
  *  ignoreUndefinedProperties) · tags ของข้อเก่าเป็น undefined ปกติ */
 function questionDoc(q: QuestionForm, order: number): Record<string, unknown> {
   const out: Record<string, unknown> = {
-    text: q.text, options: q.options,
-    correctAnswer: q.correctAnswer, explanation: q.explanation, order,
+    // กัน undefined ทุกช่อง — ค่า undefined ตัวเดียวทำให้ batch เขียนล้มทั้งก้อน
+    text: q.text ?? "",
+    options: (q.options ?? ["", "", "", ""]).map((o) => o ?? ""),
+    correctAnswer: q.correctAnswer ?? 0,
+    explanation: q.explanation ?? "",
+    order,
   };
   if (q.tags && Object.values(q.tags).some((v) => v !== undefined && v !== "")) {
     out.tags = Object.fromEntries(
@@ -115,6 +119,30 @@ export async function createExam(form: ExamForm): Promise<string> {
 }
 
 export async function updateExam(examId: string, form: ExamForm): Promise<void> {
+  // ⚠️ เขียน "ตัวข้อสอบ" ก่อน แล้วค่อยเขียนเอกสารชุด — เดิมเขียนเอกสารชุดก่อน
+  // ถ้าครึ่งข้อสอบพลาด updatedAt จะขยับทั้งที่เนื้อหาไม่ได้บันทึก (เคส 2026-08-30
+  // "เซฟแล้วระบบไม่จำ" — ตรวจย้อนหลังแล้วหลอกว่าบันทึกสำเร็จครึ่งเดียว)
+
+  // เขียนทับเอกสารเดิมตามตำแหน่ง เพื่อให้ question id คงเดิม —
+  // ห้ามลบแล้วสร้างใหม่: id ใหม่ทั้งชุดทำให้คนที่กำลังทำข้อสอบค้างอยู่
+  // ส่งตรวจแล้วจับคู่เฉลยไม่ได้ (correctAnswer = -1 รั่วเข้า Smart Review)
+  const existing = await getDocs(
+    query(collection(db, "exams", examId, "questions"), orderBy("order", "asc"))
+  );
+  // แบ่ง batch ละ ≤300 งาน กันชนลิมิต/ payload ใหญ่ (ชุด 100+ ข้อ)
+  const jobs: Array<(b: ReturnType<typeof writeBatch>) => void> = [];
+  form.questions.forEach((q, i) => {
+    const qRef = existing.docs[i]?.ref
+      ?? doc(collection(db, "exams", examId, "questions"));
+    jobs.push((b) => b.set(qRef, questionDoc(q, i)));
+  });
+  existing.docs.slice(form.questions.length).forEach((d) => jobs.push((b) => b.delete(d.ref)));
+  for (let i = 0; i < jobs.length; i += 300) {
+    const batch = writeBatch(db);
+    jobs.slice(i, i + 300).forEach((fn) => fn(batch));
+    await batch.commit();
+  }
+
   await updateDoc(doc(db, "exams", examId), {
     title: form.title,
     description: form.description,
@@ -128,21 +156,6 @@ export async function updateExam(examId: string, form: ExamForm): Promise<void> 
     questionCount: form.questions.length,
     updatedAt: serverTimestamp(),
   });
-
-  // เขียนทับเอกสารเดิมตามตำแหน่ง เพื่อให้ question id คงเดิม —
-  // ห้ามลบแล้วสร้างใหม่: id ใหม่ทั้งชุดทำให้คนที่กำลังทำข้อสอบค้างอยู่
-  // ส่งตรวจแล้วจับคู่เฉลยไม่ได้ (correctAnswer = -1 รั่วเข้า Smart Review)
-  const existing = await getDocs(
-    query(collection(db, "exams", examId, "questions"), orderBy("order", "asc"))
-  );
-  const batch = writeBatch(db);
-  form.questions.forEach((q, i) => {
-    const qRef = existing.docs[i]?.ref
-      ?? doc(collection(db, "exams", examId, "questions"));
-    batch.set(qRef, questionDoc(q, i));
-  });
-  existing.docs.slice(form.questions.length).forEach((d) => batch.delete(d.ref));
-  await batch.commit();
 }
 
 export async function deleteExam(examId: string): Promise<void> {
