@@ -32,7 +32,9 @@ export const PRICING = {
   dcd: {
     price:       699,
     launchPrice: 499,
-    launchUntil: "2026-08-31",   // ถึงสิ้นวัน (เวลาไทย)
+    launchUntil: "2026-08-31",   // ป้ายที่สื่อสาร ("ถึง 31 ส.ค.") — เส้นตายจริงดู launchEndsAt
+    /** เส้นตายจริงแบบเป๊ะเวลา (Aj 2026-09-01: ต่อโปรถึงเช้า 08:30 ค่อยขึ้น 699) */
+    launchEndsAt: "2026-09-01T08:30:00+07:00",
     name:        "ติวเข้มกรมควบคุมโรค",
     tagline:     "นักวิชาการสาธารณสุข กรมควบคุมโรค — วันสอบรอประกาศ",
     period:      "ใช้ได้ 12 เดือน",
@@ -55,8 +57,9 @@ export const PRICING = {
  * ใช้ทั้งฝั่งแสดงผลและฝั่ง server ตอนสร้างออเดอร์ (แหล่งเดียว ราคาไม่มีทางไม่ตรงกัน)
  */
 export function dcdCurrentPrice(now: Date = new Date()): { amount: number; isLaunch: boolean } {
-  const bkkDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(now);
-  const isLaunch = bkkDate <= PRICING.dcd.launchUntil;
+  // เทียบเวลาจริง (มี timezone ในสตริง) — เดิมเทียบแค่วันที่ ทำให้ตัดโปรตอนเที่ยงคืน
+  // ทั้งที่ Aj ต้องการตัดตอนเช้า (เคส 1 ก.ย. 69: QR ขึ้น 699 ก่อนเวลา)
+  const isLaunch = now.getTime() < new Date(PRICING.dcd.launchEndsAt).getTime();
   return { amount: isLaunch ? PRICING.dcd.launchPrice : PRICING.dcd.price, isLaunch };
 }
 
