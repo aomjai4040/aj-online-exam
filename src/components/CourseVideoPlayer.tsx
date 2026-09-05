@@ -44,8 +44,10 @@ function fmt(sec: number): string {
 
 // ช้าลงได้ด้วย (Aj 2026-08-23: น้องขอให้ปรับช้า/เร็วได้) — 0.5 ไว้ฟังตอนจด
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-/** ขยายขนาดที่ YouTube "เห็น" เพื่อให้เลือกส่ง HD (มือถือ ~400px → 1000px ≈ 720p+) */
-const HD_SCALE = 2.5;
+/** เป้าความกว้าง layout ที่อยากให้ YouTube "เห็น" — 1920 ≈ จอ 1080p
+ *  (วัดจริง 2026-09-02: คูณ 2.5 บนกล่อง 420px ได้สูงแค่ 591px → YT ส่ง 480p
+ *  ต้องขยายจนสูง ≥1080 ถึงได้ hd1080 — เน็ตช้า YT ยังลดคุณภาพเองตามปกติ) */
+const HD_TARGET_W = 1920;
 const SPEED_KEY = "aj-video-speed";
 const AUTONEXT_KEY = "aj-video-autonext";
 
@@ -147,6 +149,18 @@ export default function CourseVideoPlayer({
     return () => window.clearTimeout(t);
   }, [seekFlash]);
   useEffect(() => () => { if (tapTimerRef.current) window.clearTimeout(tapTimerRef.current); }, []);
+
+  // ── ขยาย layout ของ iframe ให้ YT เลือกส่ง HD — สเกลตามขนาดกล่องจริง ──
+  const [hdScale, setHdScale] = useState(4); // ค่าตั้งต้นสำหรับกล่อง ~480px
+  useEffect(() => {
+    const compute = () => {
+      const w = wrapRef.current?.clientWidth || window.innerWidth || 400;
+      setHdScale(Math.min(6, Math.max(1.5, Math.round((HD_TARGET_W / Math.max(w, 200)) * 100) / 100)));
+    };
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, []);
 
   // ── เล่นคลิปถัดไปอัตโนมัติ (จำ preference ต่อเครื่อง — ค่าเริ่มต้น: เปิด) ──
   const [autoNext, setAutoNext] = useState(true);
@@ -341,6 +355,12 @@ export default function CourseVideoPlayer({
             killCaptions(e.target);
             // ใช้ความเร็วที่น้องเลือกไว้ล่าสุดกับทุกคลิป (จำใน localStorage)
             if (speedRef.current !== 1) e.target.setPlaybackRate?.(speedRef.current);
+            // เครื่องมือ debug ความชัด (เรียกจาก console): __ajq() → คุณภาพที่เล่นอยู่จริง
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).__ajq = () => ({
+              quality: playerRef.current?.getPlaybackQuality?.(),
+              levels:  playerRef.current?.getAvailableQualityLevels?.(),
+            });
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onApiChange: (e: any) => killCaptions(e.target),
@@ -484,8 +504,8 @@ export default function CourseVideoPlayer({
           2026-08-25) · แบนด์วิดท์ไม่บาน: เน็ตช้า YouTube ยังลดคุณภาพให้เอง */}
       <div className="absolute inset-0 overflow-hidden">
         <div style={{
-          width: `${HD_SCALE * 100}%`, height: `${HD_SCALE * 100}%`,
-          transform: `scale(${1 / HD_SCALE})`, transformOrigin: "top left",
+          width: `${hdScale * 100}%`, height: `${hdScale * 100}%`,
+          transform: `scale(${1 / hdScale})`, transformOrigin: "top left",
         }}>
           <div ref={mountRef} className="w-full h-full" />
         </div>
