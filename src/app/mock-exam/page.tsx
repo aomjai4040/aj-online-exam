@@ -151,6 +151,19 @@ export default function MockExamPage() {
                       </span>
                     </>
                   )}
+                  {!locked && (
+                    /* สถิติ + ข้อที่เคยผิดของชุดนี้ — ทั้งการ์ดเป็น Link จึงใช้ button
+                       (เคสน้องเผลอกด back ตอนไล่ดูข้อผิด Mock 2026-09-06) */
+                    <button type="button"
+                      onClick={(e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        window.location.href = `/exam/${exam.id}/stats`;
+                      }}
+                      className="ml-auto font-semibold underline flex-shrink-0"
+                      style={{ color: BRAND.primary }}>
+                      📊 สถิติ / ข้อที่เคยผิด
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-center gap-2 py-3 rounded-xl
