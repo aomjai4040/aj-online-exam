@@ -496,8 +496,9 @@ export default function CourseVideoPlayer({
     <div ref={wrapRef}
       className={fakeFull
         ? "fixed inset-0 z-[9999] w-full h-full bg-black select-none"
-        : "relative w-full bg-black select-none"}
-      style={fakeFull ? undefined : { aspectRatio: "16/9" }}>
+        // aspect-video-fb = สัดส่วน 16:9 ด้วย padding (ไม่ใช้ aspect-ratio —
+        // เบราว์เซอร์ทีวีรุ่นเก่าไม่รองรับ ทำให้กล่องสูง 0 ตัวเล่นหายทั้งแท่ง)
+        : "relative w-full bg-black select-none aspect-video-fb"}>
       {/* iframe ของ YouTube (โดนโล่คลุม — แตะไม่โดน)
           เรนเดอร์ใหญ่ HD_SCALE เท่าแล้วย่อด้วย CSS — YouTube เลือกความชัดตามขนาด
           กล่องที่มันเห็น บนมือถือกล่องเล็กเลยได้ 360p ทั้งที่จอคม (น้องบ่นภาพไม่ชัด

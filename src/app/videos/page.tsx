@@ -196,7 +196,7 @@ export default function VideosPage() {
             />
           ) : (
             <div className="w-full flex items-center justify-center text-white/60 text-[13.5px] px-6 text-center"
-              style={{ aspectRatio: "16/9" }}>
+              style={{ aspectRatio: "16/9", minHeight: 200 /* fallback เบราว์เซอร์ทีวีเก่า */ }}>
               {field === "dcd"
                 ? (access.hasDcdFull
                     ? "คลิปติวสนามกรมควบคุมโรคกำลังทยอยมา — มีคลิปใหม่พี่อ้อมแจ้งในกลุ่ม LINE ทุกครั้ง"
