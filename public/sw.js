@@ -1,7 +1,7 @@
 // AJ Exam Online - Service Worker (network-first, safe for auth & exam data)
-// Version: 1.1.0
+// Version: 1.2.0 — bump ล้างแคชเก่า (มีคนค้างบันเดิลก่อนแก้ความชัดวิดีโอ 2026-09-06)
 
-const CACHE_NAME = "aj-exam-shell-v2";
+const CACHE_NAME = "aj-exam-shell-v3";
 
 // Only cache these static shell assets — never cache API/auth/exam routes
 const PRECACHE_URLS = ["/", "/login"];

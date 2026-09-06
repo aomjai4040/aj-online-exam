@@ -50,6 +50,11 @@ const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const HD_TARGET_W = 1920;
 const SPEED_KEY = "aj-video-speed";
 const AUTONEXT_KEY = "aj-video-autonext";
+/** ชื่อระดับความชัดของ YouTube → ป้ายที่คนอ่านรู้เรื่อง */
+const QUALITY_LABEL: Record<string, string> = {
+  highres: "4K", hd2160: "4K", hd1440: "1440p", hd1080: "HD 1080",
+  hd720: "HD 720", large: "480p", medium: "360p", small: "240p", tiny: "144p",
+};
 
 /** ปิดคำบรรยาย (CC) — YouTube เปิดซับกลับเองตอนเริ่มเล่นตาม preference ผู้ชม
  *  ต้องทั้งถอดโมดูล (player เก่า) และล้าง track (player HTML5 ปัจจุบัน)
@@ -138,6 +143,9 @@ export default function CourseVideoPlayer({
   }, []);
   // แถบควบคุมซ่อนตัว → ปิดเมนูความเร็วตามไปด้วย
   useEffect(() => { if (!controlsVisible) setSpeedMenu(false); }, [controlsVisible]);
+
+  // ป้ายความชัดจริงจาก YouTube (อัปเดตจากรอบ poll)
+  const [qLabel, setQLabel] = useState("");
 
   // ── double-tap seek (แบบ YouTube) ──
   const lastTapRef = useRef<{ t: number; side: "l" | "r" | null }>({ t: 0, side: null });
@@ -396,6 +404,9 @@ export default function CourseVideoPlayer({
 
       killCaptions(p); // YouTube เปิดซับกลับได้ตลอด — กดปิดซ้ำทุกรอบ poll
 
+      // ป้ายความชัดจริง — ให้น้องแคปหน้าจอมาแล้ววินิจฉัยได้ทันที (2026-09-06)
+      try { setQLabel(QUALITY_LABEL[p.getPlaybackQuality?.() as string] ?? ""); } catch {}
+
       const t = (() => { try { return p.getCurrentTime?.() ?? 0; } catch { return 0; } })();
       const d = (() => { try { return p.getDuration?.() ?? 0; } catch { return 0; } })();
 
@@ -648,6 +659,16 @@ export default function CourseVideoPlayer({
             {fmt(time)} / {fmt(duration)}
           </span>
           <div className="flex-1" />
+          {/* ความชัดจริงที่ YouTube ส่งมาตอนนี้ — เขียว = HD · เหลือง = ถูกลดตามเน็ต */}
+          {qLabel && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+              style={qLabel.startsWith("HD") || qLabel === "4K" || qLabel === "1440p"
+                ? { backgroundColor: "rgba(93,202,165,0.25)", color: "#5DCAA5" }
+                : { backgroundColor: "rgba(251,191,36,0.22)", color: "#FCD34D" }}>
+              {qLabel}
+            </span>
+          )}
+
           {/* ความเร็ว — ปุ่มเม็ดยาเห็นชัด กดแล้วเปิดเมนูเลือก 0.5–2x */}
           <div className="relative">
             <button onClick={() => { setSpeedMenu((m) => !m); bumpControls(); }}
