@@ -147,6 +147,20 @@ export default function CourseVideoPlayer({
   // ป้ายความชัดจริงจาก YouTube (อัปเดตจากรอบ poll)
   const [qLabel, setQLabel] = useState("");
 
+  // ── "ดันชัดใหม่": YouTube บางเซสชันปักคลิปไว้ที่ 360p ทั้งที่เน็ตแรง (พบ 2026-09-07
+  //    น้องเน็ต 442Mbps คลิป 17 ล็อก 360p แต่คลิป 19 ได้ HD — เริ่มเซสชันใหม่แล้วหาย)
+  //    แตะป้ายเหลือง = ทำลาย player แล้วสร้างใหม่ตรงวินาทีเดิม → YT เลือกความชัดใหม่ ──
+  const [hdNonce, setHdNonce]  = useState(0);
+  const resumeAtRef = useRef<number | null>(null);
+  function hdRetry() {
+    resumeAtRef.current = Math.floor(timeRef.current);
+    try { playerRef.current?.destroy?.(); } catch {}
+    playerRef.current = null;
+    if (mountRef.current) mountRef.current.innerHTML = "";
+    setQLabel("");
+    setHdNonce((n) => n + 1);
+  }
+
   // ── double-tap seek (แบบ YouTube) ──
   const lastTapRef = useRef<{ t: number; side: "l" | "r" | null }>({ t: 0, side: null });
   const tapTimerRef = useRef<number | null>(null);
@@ -334,7 +348,10 @@ export default function CourseVideoPlayer({
     endedRef.current = false;
     lastReportRef.current = Date.now();
 
-    const startAt = initialSeconds > 5 ? Math.floor(initialSeconds) : 0;
+    // ดันชัดใหม่ = กลับมาเล่นต่อวินาทีเดิมอัตโนมัติ
+    const resume = resumeAtRef.current;
+    resumeAtRef.current = null;
+    const startAt = resume ?? (initialSeconds > 5 ? Math.floor(initialSeconds) : 0);
 
     loadYT().then(() => {
       if (cancelled || !mountRef.current) return;
@@ -345,7 +362,15 @@ export default function CourseVideoPlayer({
         setTimeout(() => killCaptions(playerRef.current), 800);
         return;
       }
-      playerRef.current = new window.YT.Player(mountRef.current, {
+      // สร้างใน holder ลูกของ mount div — YT จะแทนที่ holder ด้วย iframe
+      // (mount div ตัวจริงอยู่รอด ทำให้ทำลายแล้วสร้างใหม่ได้ตอน "ดันชัดใหม่")
+      const host = mountRef.current;
+      host.innerHTML = "";
+      const holder = document.createElement("div");
+      holder.style.width = "100%";
+      holder.style.height = "100%";
+      host.appendChild(holder);
+      playerRef.current = new window.YT.Player(holder, {
         videoId: ytId,
         width: "100%",
         height: "100%",
@@ -353,6 +378,7 @@ export default function CourseVideoPlayer({
           controls: 0, rel: 0, fs: 0, disablekb: 1,
           playsinline: 1, iv_load_policy: 3, modestbranding: 1,
           start: startAt,
+          autoplay: resume !== null ? 1 : 0, // รีโหลดเพื่อดันชัด → เล่นต่อทันที
           origin: window.location.origin,
         },
         events: {
@@ -369,6 +395,7 @@ export default function CourseVideoPlayer({
               quality: playerRef.current?.getPlaybackQuality?.(),
               levels:  playerRef.current?.getAvailableQualityLevels?.(),
             });
+            (window as any).__ajHdRetry = hdRetry; // debug: สั่งดันชัดจาก console ได้
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onApiChange: (e: any) => killCaptions(e.target),
@@ -392,7 +419,8 @@ export default function CourseVideoPlayer({
       report(false, ytId); // flush ความคืบหน้าของ "คลิปนี้" ก่อนสลับ/ออกจากหน้า
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ytId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ytId, hdNonce]);
 
   // ── Polling: แหล่งความจริงเดียวของสถานะ (ไม่พึ่ง event) ────────────────────
   useEffect(() => {
@@ -659,14 +687,23 @@ export default function CourseVideoPlayer({
             {fmt(time)} / {fmt(duration)}
           </span>
           <div className="flex-1" />
-          {/* ความชัดจริงที่ YouTube ส่งมาตอนนี้ — เขียว = HD · เหลือง = ถูกลดตามเน็ต */}
+          {/* ความชัดจริงที่ YouTube ส่งมาตอนนี้ — เขียว = HD
+              เหลือง = ต่ำกว่า HD และ "แตะได้" เพื่อรีโหลดตัวเล่นตรงวินาทีเดิม
+              (แก้อาการ YT ปักเซสชันไว้ 360p ทั้งที่เน็ตแรง) */}
           {qLabel && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-              style={qLabel.startsWith("HD") || qLabel === "4K" || qLabel === "1440p"
-                ? { backgroundColor: "rgba(93,202,165,0.25)", color: "#5DCAA5" }
-                : { backgroundColor: "rgba(251,191,36,0.22)", color: "#FCD34D" }}>
-              {qLabel}
-            </span>
+            qLabel.startsWith("HD") || qLabel === "4K" || qLabel === "1440p" ? (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                style={{ backgroundColor: "rgba(93,202,165,0.25)", color: "#5DCAA5" }}>
+                {qLabel}
+              </span>
+            ) : (
+              <button type="button" onClick={() => { hdRetry(); bumpControls(); }}
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                style={{ backgroundColor: "rgba(251,191,36,0.22)", color: "#FCD34D" }}
+                aria-label="แตะเพื่อลองดึงภาพชัดใหม่">
+                {qLabel} · แตะดันชัด ↻
+              </button>
+            )
           )}
 
           {/* ความเร็ว — ปุ่มเม็ดยาเห็นชัด กดแล้วเปิดเมนูเลือก 0.5–2x */}
