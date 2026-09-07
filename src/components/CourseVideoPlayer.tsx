@@ -152,6 +152,8 @@ export default function CourseVideoPlayer({
   //    แตะป้ายเหลือง = ทำลาย player แล้วสร้างใหม่ตรงวินาทีเดิม → YT เลือกความชัดใหม่ ──
   const [hdNonce, setHdNonce]  = useState(0);
   const resumeAtRef = useRef<number | null>(null);
+  const lowSinceRef    = useRef<number | null>(null); // เวลาเริ่มเห็นความชัดต่ำต่อเนื่อง
+  const autoRetriedRef = useRef(false);               // ดันอัตโนมัติไปแล้ว (1 ครั้ง/คลิป)
   function hdRetry() {
     resumeAtRef.current = Math.floor(timeRef.current);
     try { playerRef.current?.destroy?.(); } catch {}
@@ -342,6 +344,10 @@ export default function CourseVideoPlayer({
     let cancelled = false;
     setPlaying(false); setEnded(false); setTime(0); setDuration(0);
 
+    // เปลี่ยน "คลิป" จริง (ไม่ใช่แค่ดันชัด) → เปิดสิทธิ์ดันอัตโนมัติรอบใหม่
+    if (activeYtIdRef.current !== ytId) autoRetriedRef.current = false;
+    lowSinceRef.current = null;
+
     activeYtIdRef.current = ytId;
     timeRef.current = 0;
     durRef.current = 0;
@@ -433,7 +439,25 @@ export default function CourseVideoPlayer({
       killCaptions(p); // YouTube เปิดซับกลับได้ตลอด — กดปิดซ้ำทุกรอบ poll
 
       // ป้ายความชัดจริง — ให้น้องแคปหน้าจอมาแล้ววินิจฉัยได้ทันที (2026-09-06)
-      try { setQLabel(QUALITY_LABEL[p.getPlaybackQuality?.() as string] ?? ""); } catch {}
+      let q = "";
+      try { q = String(p.getPlaybackQuality?.() ?? ""); } catch {}
+      setQLabel(QUALITY_LABEL[q] ?? "");
+
+      // ── ดันชัดอัตโนมัติ (Aj 2026-09-07): ความชัด ≤480p ต่อเนื่อง 20 วิขณะเล่น
+      //    และแอปมองเห็นอยู่ → รีเซ็ตเซสชันเอง 1 ครั้ง/คลิป (YT ชอบปักเซสชันไว้ต่ำ)
+      //    ดันแล้วยังต่ำ = เน็ตช้าจริง ไม่ยุ่งซ้ำ (ป้ายเหลืองยังแตะดันเองได้) ──
+      const lowQ = ["large", "medium", "small", "tiny"].includes(q);
+      if (!lowQ || state !== 1 || document.visibilityState === "hidden") {
+        lowSinceRef.current = null;
+      } else {
+        lowSinceRef.current ??= Date.now();
+        if (Date.now() - lowSinceRef.current > 20_000 && !autoRetriedRef.current) {
+          autoRetriedRef.current = true;
+          lowSinceRef.current = null;
+          hdRetry();
+          return; // player กำลังถูกสร้างใหม่ — จบรอบ poll นี้
+        }
+      }
 
       const t = (() => { try { return p.getCurrentTime?.() ?? 0; } catch { return 0; } })();
       const d = (() => { try { return p.getDuration?.() ?? 0; } catch { return 0; } })();
