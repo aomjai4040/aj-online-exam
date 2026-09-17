@@ -29,6 +29,7 @@ import { OtherCourses } from "@/components/ExamFieldGrid";
 import TodayPlanCard from "@/components/TodayPlanCard";
 import TodayTasksCard from "@/components/TodayTasksCard";
 import CourseProgressCard from "@/components/CourseProgressCard";
+import RecallVolunteerCard from "@/components/RecallVolunteerCard";
 import CourseQuickLinks, { LineJoinSheet, useDriveUrl } from "@/components/CourseQuickLinks";
 import {
   LatestCard, LatestSkeleton, PreExamSheetCard, FeedbackCard, RecallCard,
@@ -271,6 +272,9 @@ export default function CoursePage() {
         {/* คร. (Aj 2026-08-23 แบบ A): ลิงก์ด่วนแถวเดียว — กลุ่ม LINE / ชีท
             น้องใหม่ 3 วันแรกที่ยังไม่เข้ากลุ่มเห็นเป็นการ์ดเต็มใบ แล้วหดเป็นชิปถาวร */}
         {field === "dcd" && access.hasDcdFull && <CourseQuickLinks field="dcd" />}
+
+        {/* อาสาจำข้อสอบ คร.69 คนละ 1 ข้อ (Aj 2026-09-17) — ทุกแพ็ก คร. · ซ่อนเองหลัง 5 ต.ค. */}
+        {field === "dcd" && <RecallVolunteerCard />}
 
         {/* ความคืบหน้าคอร์ส — อัตโนมัติจากคลิปที่ดู/ข้อสอบที่ส่ง/Mock (Aj 2026-08-21) */}
         <CourseProgressCard field={field} access={access} onPct={setPct} />

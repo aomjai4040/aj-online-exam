@@ -194,6 +194,91 @@ function VerdictBox({
 
 // ─── หน้า ─────────────────────────────────────────────────────────────────────
 
+// ─── อาสาจำข้อสอบ คร.69 — ความคืบหน้า + รายชื่อ (Aj 2026-09-17) ───────────────
+
+interface RvRow { no: number; round: number; email: string; name: string; submitted: boolean }
+interface RvData {
+  assigned: number; mainFilled: number; total: number;
+  volunteers: number; submittedPeople: number; submittedNos: number;
+  rows: RvRow[];
+}
+
+function DcdVolunteerPanel() {
+  const { user } = useAuth();
+  const [data, setData] = useState<RvData | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    user.getIdToken()
+      .then((t) => fetch("/api/recall-volunteer?admin=1", { headers: { Authorization: `Bearer ${t}` } }))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d) setData(d); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user]);
+
+  if (!data) return null;
+  const missingNos: number[] = [];
+  if (data.submittedNos < data.total) {
+    const has = new Set(data.rows.filter((r) => r.submitted).map((r) => r.no));
+    for (let i = 1; i <= data.total; i++) if (!has.has(i)) missingNos.push(i);
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: "1.5px solid #FCD34D" }}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
+          🙏 อาสาจำข้อสอบ คร.69
+        </p>
+        <button onClick={() => setOpen((o) => !o)} className="text-[12px] font-semibold underline"
+          style={{ color: BRAND.primary }}>
+          {open ? "ซ่อนรายชื่อ" : `ดูรายชื่อ (${data.volunteers})`}
+        </button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+        {[
+          { l: "ข้อที่มีเจ้าภาพ", v: `${data.mainFilled}/${data.total}`, c: "#B45309" },
+          { l: "อาสาทั้งหมด (รวมสำรอง)", v: data.volunteers, c: "#0B6E65" },
+          { l: "คนที่ส่งแล้ว (หลังสอบ)", v: data.submittedPeople, c: "#16A34A" },
+          { l: "เลขข้อที่ได้ของแล้ว", v: `${data.submittedNos}/${data.total}`, c: "#7C3AED" },
+        ].map((k) => (
+          <div key={k.l}>
+            <div className="text-[22px] font-extrabold leading-none" style={{ color: k.c }}>{k.v}</div>
+            <div className="text-[11.5px] font-semibold text-gray-500 mt-0.5">{k.l}</div>
+          </div>
+        ))}
+      </div>
+      {missingNos.length > 0 && missingNos.length < data.total && (
+        <p className="text-[12px] mt-3 leading-relaxed" style={{ color: "#DC2626" }}>
+          ข้อที่ยังไม่มีใครส่ง: {missingNos.join(", ")} — โพสต์ตามเก็บเฉพาะเลขพวกนี้ในกลุ่มได้เลย
+        </p>
+      )}
+      {open && (
+        <div className="mt-3 max-h-72 overflow-y-auto rounded-xl" style={{ border: "1px solid #F3F2F0" }}>
+          {data.rows.map((r, i) => (
+            <div key={`${r.no}-${r.email}-${i}`} className="flex items-center gap-2.5 px-3 py-2 text-[12.5px]"
+              style={{ borderTop: i > 0 ? "1px solid #F7F6F4" : "none" }}>
+              <span className="w-14 font-bold flex-shrink-0" style={{ color: "#92400E" }}>
+                ข้อ {r.no}{r.round > 1 ? ` (${r.round})` : ""}
+              </span>
+              <span className="flex-1 truncate" style={{ color: "#6B7280" }}>{r.email}</span>
+              <span className="flex-shrink-0 font-semibold"
+                style={{ color: r.submitted ? "#16A34A" : "#A8A8A6" }}>
+                {r.submitted ? "✓ ส่งแล้ว" : "ยังไม่ส่ง"}
+              </span>
+            </div>
+          ))}
+          {data.rows.length === 0 && (
+            <p className="text-[12.5px] text-center py-4" style={{ color: "#A8A8A6" }}>ยังไม่มีอาสา</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminRecallPage() {
   const { user } = useAuth();
   const [subs,     setSubs]     = useState<RecallSubmission[]>([]);
@@ -334,6 +419,9 @@ export default function AdminRecallPage() {
             {loading ? "กำลังโหลด…" : "รีเฟรช"}
           </button>
         </div>
+
+        {/* อาสาจำข้อสอบ คร.69 (Aj 2026-09-17) */}
+        <DcdVolunteerPanel />
 
         {/* สรุป */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">

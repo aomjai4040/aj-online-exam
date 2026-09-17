@@ -45,6 +45,8 @@ export interface RecallInput {
   subject:    SubjectCode | "";
   confidence: RecallConfidence;
   note:       string;
+  /** สนามของข้อสอบ — "dcd" = คร.69 (อาสาจำข้อสอบ) · ไม่ใส่ = สป.สธ. เดิม */
+  field?:     string;
 }
 
 const COL       = "recallSubmissions";
@@ -67,6 +69,7 @@ export async function submitRecall(
     subject:    input.subject,
     confidence: input.confidence,
     note:       input.note.trim(),
+    ...(input.field ? { field: input.field } : {}),
     userId:     user.uid,
     userEmail:  user.email       ?? "",
     userName:   user.displayName ?? "",
