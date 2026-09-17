@@ -273,8 +273,9 @@ export default function CoursePage() {
             น้องใหม่ 3 วันแรกที่ยังไม่เข้ากลุ่มเห็นเป็นการ์ดเต็มใบ แล้วหดเป็นชิปถาวร */}
         {field === "dcd" && access.hasDcdFull && <CourseQuickLinks field="dcd" />}
 
-        {/* อาสาจำข้อสอบ คร.69 คนละ 1 ข้อ (Aj 2026-09-17) — ทุกแพ็ก คร. · ซ่อนเองหลัง 5 ต.ค. */}
-        {field === "dcd" && <RecallVolunteerCard />}
+        {/* อาสาจำข้อสอบ คร.69 (Aj 2026-09-17) — การ์ดใหญ่เฉพาะตอนรอตัดสินใจ/ช่วงส่งหลังสอบ
+            ตัดสินใจแล้วจะยุบไปเป็นการ์ดเล็กใต้แผงเมนู (slot menu — Aj 2026-09-18) */}
+        {field === "dcd" && <RecallVolunteerCard slot="top" />}
 
         {/* ความคืบหน้าคอร์ส — อัตโนมัติจากคลิปที่ดู/ข้อสอบที่ส่ง/Mock (Aj 2026-08-21) */}
         <CourseProgressCard field={field} access={access} onPct={setPct} />
@@ -379,6 +380,9 @@ export default function CoursePage() {
             );
           })}
         </div>
+
+        {/* อาสาจำข้อสอบแบบยุบแล้ว — การ์ดเล็กใต้แผงเมนู ไม่กวนสายตาตอนติว */}
+        {field === "dcd" && <RecallVolunteerCard slot="menu" />}
       </section>
 
       {/* แผ่นล่าง "เข้ากลุ่ม LINE" — เปิดจากการ์ดเมนู (คร.) */}
