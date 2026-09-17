@@ -92,16 +92,25 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
   const [options, setOptions] = useState(["", "", "", ""]);
   const [answer, setAnswer]   = useState("");
   const [unsure, setUnsure]   = useState(false);
+  // ทางหนีไฟ (Aj 2026-09-18): จำข้อตัวเองไม่ได้ → ส่งข้ออื่น/ไม่รู้เลขก็ได้
+  const [flexNo, setFlexNo]   = useState(false);
+  const [altNo, setAltNo]     = useState("");
 
   async function send() {
     if (!user || busy || !text.trim() || !st?.mine) return;
     setBusy(true); setErr("");
     try {
+      const parsed = Number(altNo);
+      const no = flexNo
+        ? (Number.isInteger(parsed) && parsed >= 1 && parsed <= st.total ? parsed : null)
+        : st.mine.no;
       await submitRecall(
         { uid: user.uid, email: user.email, displayName: user.displayName },
         {
-          no: st.mine.no, text, options, answer,
-          subject: "", confidence: unsure ? "maybe" : "sure", note: "", field: "dcd",
+          no, text, options, answer,
+          subject: "", confidence: unsure ? "maybe" : "sure",
+          note: flexNo ? `อาสาข้อที่ ${st.mine.no} แต่ส่งข้ออื่นแทน` : "",
+          field: "dcd",
         },
       );
       await load(); poke();
@@ -140,6 +149,11 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
       </p>
       <p className="text-[12px] mt-0.5" style={{ color: "#B45309" }}>
         จำโจทย์ + ช้อยทั้ง 4 ของข้อนี้ · สอบเสร็จกลับมาส่งที่การ์ดนี้เลย
+      </p>
+      <p className="text-[11.5px] mt-1.5 leading-relaxed rounded-lg px-2.5 py-1.5"
+        style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
+        สบายใจได้ 💚 ถึงหน้างานแล้วลืมเลข/จำข้อตัวเองไม่ทัน ไม่เป็นไรเลย —
+        <b>ส่งข้อไหนก็ได้ที่จำได้</b> มีเพื่อนอาสาสำรองข้อเดียวกันช่วยอยู่ อย่าให้เรื่องนี้กวนสมาธิสอบนะคะ
       </p>
       <button onClick={() => act("withdraw")} disabled={busy}
         className="text-[11.5px] underline mt-1.5" style={{ color: "#B45309" }}>
@@ -183,11 +197,26 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
       <p className="text-[14.5px] font-bold" style={{ color: "#92400E" }}>
         📝 สอบเสร็จแล้ว — ส่งข้อที่ <span className="text-[18px]">{st.mine.no}</span> ที่คุณอาสาจำ
       </p>
-      <p className="text-[12px] mt-0.5 mb-3" style={{ color: "#B45309" }}>
+      <p className="text-[12px] mt-0.5 mb-2" style={{ color: "#B45309" }}>
         ไม่ต้องเป๊ะทุกคำ จับใจความได้ก็มีค่ามากแล้ว
       </p>
+      {/* ทางหนีไฟ: ลืม/จำข้อตัวเองไม่ได้ → ส่งข้ออื่นที่จำได้แทน มีค่าเท่ากัน */}
+      <button type="button" onClick={() => setFlexNo((f) => !f)}
+        className="text-[12px] underline mb-2 block" style={{ color: "#B45309" }}>
+        {flexNo ? "← กลับไปส่งข้อของตัวเอง" : "จำข้อของตัวเองไม่ได้? ส่งข้ออื่นที่จำได้แทน (มีค่าเท่ากัน)"}
+      </button>
+      {flexNo && (
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[12.5px] font-semibold" style={{ color: "#92400E" }}>ข้อที่จะส่งคือข้อที่</span>
+          <input value={altNo} onChange={(e) => setAltNo(e.target.value)}
+            type="number" min={1} max={st.total} placeholder="ไม่รู้ก็เว้นได้"
+            className="w-28 rounded-xl px-3 py-2 text-[13.5px] bg-white focus:outline-none"
+            style={INPUT_STYLE} />
+          <span className="text-[11.5px]" style={{ color: "#B45309" }}>(จำเลขไม่ได้ เว้นว่างได้เลย)</span>
+        </div>
+      )}
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
-        placeholder={`โจทย์ข้อที่ ${st.mine.no} ที่จำได้…`}
+        placeholder={flexNo ? "โจทย์ข้อที่จำได้…" : `โจทย์ข้อที่ ${st.mine.no} ที่จำได้…`}
         className={INPUT} style={INPUT_STYLE} />
       <div className="grid grid-cols-2 gap-2 mt-2">
         {options.map((o, i) => (
@@ -216,7 +245,7 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
       <button onClick={send} disabled={busy || !text.trim()}
         className="mt-3 w-full py-3 rounded-xl text-[14.5px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-40"
         style={{ backgroundColor: BRAND.primary }}>
-        {busy ? "กำลังส่ง…" : `ส่งข้อที่ ${st.mine.no} 💚`}
+        {busy ? "กำลังส่ง…" : flexNo ? "ส่งข้อที่จำได้ 💚" : `ส่งข้อที่ ${st.mine.no} 💚`}
       </button>
     </>
   );
