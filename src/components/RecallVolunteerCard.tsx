@@ -95,6 +95,8 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
   // ทางหนีไฟ (Aj 2026-09-18): จำข้อตัวเองไม่ได้ → ส่งข้ออื่น/ไม่รู้เลขก็ได้
   const [flexNo, setFlexNo]   = useState(false);
   const [altNo, setAltNo]     = useState("");
+  // เผื่อข้อสอบมีหลายชุดสลับข้อ (Aj 2026-09-19) — ติดไปกับ note ให้ admin แยกชุดได้
+  const [examSet, setExamSet] = useState("");
 
   async function send() {
     if (!user || busy || !text.trim() || !st?.mine) return;
@@ -109,7 +111,10 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
         {
           no, text, options, answer,
           subject: "", confidence: unsure ? "maybe" : "sure",
-          note: flexNo ? `อาสาข้อที่ ${st.mine.no} แต่ส่งข้ออื่นแทน` : "",
+          note: [
+            examSet.trim() ? `ชุดข้อสอบ: ${examSet.trim()}` : "",
+            flexNo ? `อาสาข้อที่ ${st.mine.no} แต่ส่งข้ออื่นแทน` : "",
+          ].filter(Boolean).join(" · "),
           field: "dcd",
         },
       );
@@ -154,6 +159,10 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
         style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
         สบายใจได้ 💚 ถึงหน้างานแล้วลืมเลข/จำข้อตัวเองไม่ทัน ไม่เป็นไรเลย —
         <b>ส่งข้อไหนก็ได้ที่จำได้</b> มีเพื่อนอาสาสำรองข้อเดียวกันช่วยอยู่ อย่าให้เรื่องนี้กวนสมาธิสอบนะคะ
+      </p>
+      <p className="text-[11.5px] mt-1.5 leading-relaxed" style={{ color: "#B45309" }}>
+        📌 ถ้าหัวกระดาษข้อสอบระบุ &quot;ชุด&quot; (เช่น ชุด A/B หรือ 01/02) ช่วยสังเกตไว้ด้วย —
+        ตอนส่งจะมีช่องให้กรอก ใช้แยกกรณีข้อสอบสลับชุดได้
       </p>
       <button onClick={() => act("withdraw")} disabled={busy}
         className="text-[11.5px] underline mt-1.5" style={{ color: "#B45309" }}>
@@ -215,6 +224,16 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
           <span className="text-[11.5px]" style={{ color: "#B45309" }}>(จำเลขไม่ได้ เว้นว่างได้เลย)</span>
         </div>
       )}
+      {/* เผื่อข้อสอบมีหลายชุด (สลับข้อ/สลับช้อย) — ไม่บังคับกรอก */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[12.5px] font-semibold flex-shrink-0" style={{ color: "#92400E" }}>
+          ชุดข้อสอบ (ถ้ามีระบุ)
+        </span>
+        <input value={examSet} onChange={(e) => setExamSet(e.target.value)}
+          placeholder="เช่น A / B / 01 — ไม่มีก็เว้นได้"
+          className="flex-1 rounded-xl px-3 py-2 text-[13.5px] bg-white focus:outline-none"
+          style={INPUT_STYLE} />
+      </div>
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
         placeholder={flexNo ? "โจทย์ข้อที่จำได้…" : `โจทย์ข้อที่ ${st.mine.no} ที่จำได้…`}
         className={INPUT} style={INPUT_STYLE} />
