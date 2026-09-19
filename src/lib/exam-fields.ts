@@ -48,8 +48,8 @@ export const EXAM_FIELDS: ExamField[] = [
     blurb: "นักวิชาการสาธารณสุขปฏิบัติการ",
     status: "open",
     accent: "#0B6E65",
-    // Aj 2026-08-16: ยังไม่โชว์วันสอบ (กรมระบุว่าอาจปรับได้) — รอประกาศทางการ
-    examLabel: "วันสอบข้อเขียน รอประกาศ",
+    examDate: "2026-09-20",
+    examLabel: "สอบข้อเขียน 20 ก.ย. 69 (09:00–12:00)",
     applyClose: "2026-09-04",
     ownPrefixes: ["dcd-"],
     hrefOwned: "/course/dcd",
