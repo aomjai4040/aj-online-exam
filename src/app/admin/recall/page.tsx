@@ -144,7 +144,8 @@ function SubmissionRow({
             </div>
           ))}
           <textarea value={eAns} onChange={(e) => setEAns(e.target.value)} rows={2}
-            className={`${EDIT_INPUT} font-exam`} style={EDIT_STYLE} placeholder="เฉลย (ที่น้องตอบ/เดา)" />
+            className={`${EDIT_INPUT} font-exam`} style={EDIT_STYLE}
+            placeholder="คำตอบที่น้องเดา — ไม่ใช่เฉลยจริง (เฉลยจริงใส่กล่อง เฉลย AJ ท้ายข้อ)" />
           <input value={eNote} onChange={(e) => setENote(e.target.value)}
             className={EDIT_INPUT} style={EDIT_STYLE} placeholder="หมายเหตุ" />
           <div className="flex gap-2 pt-0.5">
