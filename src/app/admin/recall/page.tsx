@@ -10,7 +10,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import {
-  clearVerdict, getAllRecalls, getVerdicts, setRecallStatus, setVerdict,
+  clearDcdVerdict, clearVerdict, getAllRecalls, getDcdVerdicts, getVerdicts,
+  setDcdVerdict, setRecallStatus, setVerdict, updateRecallSubmission,
   type RecallStatus, type RecallSubmission, type RecallVerdict,
 } from "@/lib/recall-firestore";
 import {
@@ -26,9 +27,51 @@ type Filter = "pending" | "all" | "newq" | "crowd";
 
 // ─── ใบที่ส่งเข้ามา ───────────────────────────────────────────────────────────
 
+type SubPatch = { text: string; options: string[]; answer: string; note: string };
+
 function SubmissionRow({
-  s, onStatus, showText,
-}: { s: RecallSubmission; onStatus: (id: string, st: RecallStatus) => void; showText?: boolean }) {
+  s, onStatus, showText, onEdited,
+}: {
+  s: RecallSubmission; onStatus: (id: string, st: RecallStatus) => void;
+  showText?: boolean;
+  /** ให้ admin แก้ใบได้ — น้องพิมพ์ผิด/ส่งไม่ครบ (Aj 2026-09-20) */
+  onEdited?: (id: string, patch: SubPatch) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [busy,    setBusy]    = useState(false);
+  const [eText,   setEText]   = useState("");
+  const [eOpts,   setEOpts]   = useState<string[]>(["", "", "", ""]);
+  const [eAns,    setEAns]    = useState("");
+  const [eNote,   setENote]   = useState("");
+
+  function startEdit() {
+    setEText(s.text);
+    setEOpts([0, 1, 2, 3].map((i) => s.options[i] ?? ""));
+    setEAns(s.answer);
+    setENote(s.note);
+    setEditing(true);
+  }
+
+  async function saveEdit() {
+    if (busy || !eText.trim()) return;
+    setBusy(true);
+    const patch: SubPatch = {
+      text:    eText.trim(),
+      options: eOpts.map((o) => o.trim()).filter(Boolean),
+      answer:  eAns.trim(),
+      note:    eNote.trim(),
+    };
+    try {
+      await updateRecallSubmission(s.id, patch);
+      onEdited?.(s.id, patch);
+      setEditing(false);
+    } catch { alert("บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"); }
+    finally { setBusy(false); }
+  }
+
+  const EDIT_INPUT = "w-full rounded-lg px-2.5 py-1.5 text-[13px] bg-white focus:outline-none";
+  const EDIT_STYLE = { border: "1px solid #E0DFDC" } as const;
+
   const tone =
     s.status === "merged"   ? { bg: "#F0FDF4", border: "#BBF7D0" }
     : s.status === "rejected" ? { bg: "#FAFAF8", border: "#EBEBEA" }
@@ -56,33 +99,72 @@ function SubmissionRow({
             })}
           </span>
         )}
+        {onEdited && !editing && (
+          <button onClick={startEdit}
+            className="text-[11.5px] font-semibold ml-auto underline" style={{ color: "#B45309" }}>
+            ✏️ แก้ไข
+          </button>
+        )}
       </div>
 
-      {(s.no === null || showText) && (
-        <p className="font-exam text-[14px] leading-relaxed text-gray-900 mb-1.5">{s.text}</p>
-      )}
-
-      {s.options.length > 0 && (
-        <div className="space-y-0.5 mb-1.5">
-          {s.options.map((o, i) => (
-            <p key={i} className="font-exam text-[13px] text-gray-600 leading-relaxed">
-              {OPT[i]}. {o}
-            </p>
+      {editing ? (
+        <div className="space-y-1.5 mb-2">
+          <textarea value={eText} onChange={(e) => setEText(e.target.value)} rows={3}
+            className={`${EDIT_INPUT} font-exam`} style={EDIT_STYLE} placeholder="โจทย์" />
+          {eOpts.map((o, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <span className="text-[12.5px] font-semibold w-4 flex-shrink-0 text-gray-500">{OPT[i]}.</span>
+              <input value={o}
+                onChange={(e) => setEOpts((p) => p.map((x, j) => (j === i ? e.target.value : x)))}
+                className={`${EDIT_INPUT} font-exam`} style={EDIT_STYLE} placeholder={`ช้อย ${OPT[i]}.`} />
+            </div>
           ))}
+          <input value={eAns} onChange={(e) => setEAns(e.target.value)}
+            className={`${EDIT_INPUT} font-exam`} style={EDIT_STYLE} placeholder="เฉลย (ที่น้องตอบ/เดา)" />
+          <input value={eNote} onChange={(e) => setENote(e.target.value)}
+            className={EDIT_INPUT} style={EDIT_STYLE} placeholder="หมายเหตุ" />
+          <div className="flex gap-2 pt-0.5">
+            <button onClick={saveEdit} disabled={busy || !eText.trim()}
+              className="text-[12px] font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40"
+              style={{ backgroundColor: "#0B6E65", color: "white" }}>
+              {busy ? "กำลังบันทึก…" : "✓ บันทึกการแก้ไข"}
+            </button>
+            <button onClick={() => setEditing(false)} disabled={busy}
+              className="text-[12px] font-medium px-3 py-1.5 rounded-lg"
+              style={{ backgroundColor: "#F5F5F3", color: "#A8A8A6" }}>
+              ยกเลิก
+            </button>
+          </div>
         </div>
-      )}
+      ) : (
+        <>
+          {(s.no === null || showText) && (
+            <p className="font-exam text-[14px] leading-relaxed text-gray-900 mb-1.5">{s.text}</p>
+          )}
 
-      {s.answer && (
-        <p className="font-exam text-[13.5px] leading-relaxed mb-1.5" style={{ color: "#15803D" }}>
-          ✓ {s.answer}
-        </p>
-      )}
+          {s.options.length > 0 && (
+            <div className="space-y-0.5 mb-1.5">
+              {s.options.map((o, i) => (
+                <p key={i} className="font-exam text-[13px] text-gray-600 leading-relaxed">
+                  {OPT[i]}. {o}
+                </p>
+              ))}
+            </div>
+          )}
 
-      {s.note && (
-        <p className="text-[12px] rounded-lg px-2.5 py-1.5 mb-1.5"
-          style={{ backgroundColor: "#F5FAF9", color: "#0B6E65" }}>
-          💬 {s.note}
-        </p>
+          {s.answer && (
+            <p className="font-exam text-[13.5px] leading-relaxed mb-1.5" style={{ color: "#15803D" }}>
+              ✓ {s.answer}
+            </p>
+          )}
+
+          {s.note && (
+            <p className="text-[12px] rounded-lg px-2.5 py-1.5 mb-1.5"
+              style={{ backgroundColor: "#F5FAF9", color: "#0B6E65" }}>
+              💬 {s.note}
+            </p>
+          )}
+        </>
       )}
 
       <div className="flex gap-2">
@@ -282,9 +364,65 @@ function DcdVolunteerPanel() {
 
 // ─── ใบส่งสนาม คร.69 — จัดกลุ่มตามเลขข้อ 1–100 (Aj 2026-09-20) ─────────────────
 
+/** กล่องเฉลยครูอ้อมต่อข้อ (คร.) — เก็บที่ recallVerdicts/dcd-{no} */
+function DcdVerdictBox({
+  no, verdict, onSave, onClear,
+}: {
+  no: number; verdict?: RecallVerdict;
+  onSave: (no: number, answer: string) => Promise<void>;
+  onClear: (no: number) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(verdict?.answer ?? "");
+  const [busy, setBusy]   = useState(false);
+
+  if (verdict?.status === "confirmed") {
+    return (
+      <div className="rounded-xl px-3.5 py-2.5 mt-2.5 flex items-start gap-2 flex-wrap"
+        style={{ backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0" }}>
+        <p className="font-exam text-[13.5px] leading-relaxed flex-1 min-w-0" style={{ color: "#15803D" }}>
+          <b>✓ เฉลยครูอ้อม:</b> {verdict.answer}
+        </p>
+        <button onClick={async () => { setBusy(true); await onClear(no); setBusy(false); }}
+          disabled={busy}
+          className="text-[11.5px] font-medium underline flex-shrink-0" style={{ color: "#A8A8A6" }}>
+          ยกเลิก
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl px-3.5 py-2.5 mt-2.5"
+      style={{ backgroundColor: "#FDF6E9", border: "1px solid #FCD34D" }}>
+      <p className="text-[11.5px] font-bold mb-1" style={{ color: "#B45309" }}>
+        เฉลยครูอ้อมข้อนี้ (พิมพ์แล้วกดยืนยัน)
+      </p>
+      <div className="flex gap-2 items-start">
+        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
+          className="flex-1 rounded-lg px-2.5 py-1.5 text-[13px] font-exam bg-white focus:outline-none"
+          style={{ border: "1px solid #E0DFDC" }}
+          placeholder="เช่น ข. หรือพิมพ์คำตอบเต็ม" />
+        <button
+          onClick={async () => { if (!draft.trim()) return; setBusy(true); await onSave(no, draft); setBusy(false); }}
+          disabled={busy || !draft.trim()}
+          className="text-[12px] font-semibold px-3 py-1.5 rounded-lg flex-shrink-0 disabled:opacity-40"
+          style={{ backgroundColor: "#0B6E65", color: "white" }}>
+          {busy ? "…" : "✓ ยืนยัน"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DcdSubmissionsView({
-  subs, onStatus,
-}: { subs: RecallSubmission[]; onStatus: (id: string, st: RecallStatus) => void }) {
+  subs, onStatus, onEdited, verdicts, onVerdict, onVerdictClear,
+}: {
+  subs: RecallSubmission[];
+  onStatus: (id: string, st: RecallStatus) => void;
+  onEdited: (id: string, patch: SubPatch) => void;
+  verdicts: Record<number, RecallVerdict>;
+  onVerdict: (no: number, answer: string) => Promise<void>;
+  onVerdictClear: (no: number) => Promise<void>;
+}) {
   const [copied, setCopied] = useState(false);
 
   const groups = useMemo(() => {
@@ -320,6 +458,8 @@ function DcdSubmissionsView({
       if (!g.length) continue;
       lines.push(`ข้อ ${no}. (${g.length} ใบ)`);
       g.forEach(dump);
+      const v = verdicts[no];
+      if (v?.status === "confirmed") lines.push(`   ★ เฉลยครูอ้อม (ยืนยันแล้ว): ${v.answer}`);
       lines.push("");
     }
     if (noNumber.length) {
@@ -366,12 +506,20 @@ function DcdSubmissionsView({
               <p className="text-[13px] font-extrabold mb-2" style={{ color: "#B45309" }}>
                 ข้อ {no} <span className="font-medium" style={{ color: "#A8A8A6" }}>
                   · {groups.get(no)!.length} ใบ</span>
+                {verdicts[no]?.status === "confirmed" && (
+                  <span className="ml-1.5 text-[11.5px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
+                    ✓ เฉลยแล้ว
+                  </span>
+                )}
               </p>
               <div className="space-y-2">
                 {groups.get(no)!.map((s) => (
-                  <SubmissionRow key={s.id} s={s} onStatus={onStatus} showText />
+                  <SubmissionRow key={s.id} s={s} onStatus={onStatus} onEdited={onEdited} showText />
                 ))}
               </div>
+              <DcdVerdictBox no={no} verdict={verdicts[no]}
+                onSave={onVerdict} onClear={onVerdictClear} />
             </div>
           ))}
           {noNumber.length > 0 && (
@@ -381,7 +529,7 @@ function DcdSubmissionsView({
               </p>
               <div className="space-y-2">
                 {noNumber.map((s) => (
-                  <SubmissionRow key={s.id} s={s} onStatus={onStatus} showText />
+                  <SubmissionRow key={s.id} s={s} onStatus={onStatus} onEdited={onEdited} showText />
                 ))}
               </div>
             </div>
@@ -402,11 +550,13 @@ export default function AdminRecallPage() {
   // แยกสนามเด็ดขาด — วันนี้โฟกัส คร. เลยเป็นแท็บแรก (Aj 2026-09-20)
   const [fieldTab, setFieldTab] = useState<"dcd" | "moph">("dcd");
 
+  const [dcdVerdicts, setDcdVerdicts] = useState<Record<number, RecallVerdict>>({});
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, v] = await Promise.all([getAllRecalls(), getVerdicts()]);
-      setSubs(s); setVerdicts(v);
+      const [s, v, dv] = await Promise.all([getAllRecalls(), getVerdicts(), getDcdVerdicts()]);
+      setSubs(s); setVerdicts(v); setDcdVerdicts(dv);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -428,6 +578,24 @@ export default function AdminRecallPage() {
   async function removeVerdict(no: number) {
     setVerdicts((p) => { const n = { ...p }; delete n[no]; return n; });
     try { await clearVerdict(no); }
+    catch (e) { console.error(e); load(); }
+  }
+
+  // ── ของสนาม คร. (Aj 2026-09-20) ──
+  function editSub(id: string, patch: SubPatch) {
+    setSubs((p) => p.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }
+
+  async function saveDcdVerdict(no: number, answer: string) {
+    const by = user?.email ?? "admin";
+    setDcdVerdicts((p) => ({ ...p, [no]: { no, status: "confirmed", answer, by, at: new Date() } }));
+    try { await setDcdVerdict(no, "confirmed", answer, by); }
+    catch (e) { console.error(e); load(); }
+  }
+
+  async function removeDcdVerdict(no: number) {
+    setDcdVerdicts((p) => { const n = { ...p }; delete n[no]; return n; });
+    try { await clearDcdVerdict(no); }
     catch (e) { console.error(e); load(); }
   }
 
@@ -561,7 +729,8 @@ export default function AdminRecallPage() {
           <>
             {/* อาสาจำข้อสอบ คร.69 (Aj 2026-09-17) */}
             <DcdVolunteerPanel />
-            <DcdSubmissionsView subs={dcdSubs} onStatus={changeStatus} />
+            <DcdSubmissionsView subs={dcdSubs} onStatus={changeStatus} onEdited={editSub}
+              verdicts={dcdVerdicts} onVerdict={saveDcdVerdict} onVerdictClear={removeDcdVerdict} />
           </>
         )}
 
@@ -652,7 +821,7 @@ export default function AdminRecallPage() {
             <div className="space-y-3">
               {newQuestions.map((s) => (
                 <div key={s.id} className="bg-white rounded-2xl p-4" style={{ border: "1px solid #EBEBEA" }}>
-                  <SubmissionRow s={s} onStatus={changeStatus} />
+                  <SubmissionRow s={s} onStatus={changeStatus} onEdited={editSub} />
                 </div>
               ))}
             </div>
@@ -732,7 +901,7 @@ export default function AdminRecallPage() {
                         style={{ color: "#A8A8A6" }}>
                         คำตอบที่ส่งเข้ามา {g.length} ใบ
                       </p>
-                      {g.map((s) => <SubmissionRow key={s.id} s={s} onStatus={changeStatus} />)}
+                      {g.map((s) => <SubmissionRow key={s.id} s={s} onStatus={changeStatus} onEdited={editSub} />)}
                     </div>
                   )}
                 </div>

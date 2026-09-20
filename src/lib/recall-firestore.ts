@@ -124,6 +124,19 @@ export async function setRecallStatus(id: string, status: RecallStatus): Promise
   await updateDoc(doc(db, COL, id), { status });
 }
 
+/** admin แก้เนื้อหาใบที่ส่งเข้ามา — น้องพิมพ์ผิด/ส่งไม่ครบ Aj เติมให้ได้ (Aj 2026-09-20) */
+export async function updateRecallSubmission(
+  id: string,
+  patch: { text: string; options: string[]; answer: string; note: string },
+): Promise<void> {
+  await updateDoc(doc(db, COL, id), {
+    text:    patch.text.trim(),
+    options: patch.options.map((o) => o.trim()).filter(Boolean),
+    answer:  patch.answer.trim(),
+    note:    patch.note.trim(),
+  });
+}
+
 // ─── คำตัดสินของ Aj ต่อเฉลยรายข้อ ────────────────────────────────────────────
 //
 // recallVerdicts/{no} — เฉลยที่ Aj ตรวจแล้ว (จะเอาไปทำชุดข้อสอบจริงต่อ)
@@ -142,14 +155,20 @@ export interface RecallVerdict {
 
 const VERDICT_COL = "recallVerdicts";
 
-export async function getVerdicts(): Promise<Record<number, RecallVerdict>> {
-  const snap = await getDocs(collection(db, VERDICT_COL));
+/** เฉลยที่ Aj ฟันธง — สป.สธ. ใช้ doc id เป็นเลขล้วน, คร. ใช้ "dcd-{no}" (แชร์ collection เดิม
+ *  เพื่อไม่ต้องแตะ rules — Aj 2026-09-20) */
+function readVerdicts(
+  snap: { forEach: (cb: (d: { id: string; data: () => Record<string, unknown> }) => void) => void },
+  idToNo: (id: string) => number | null,
+): Record<number, RecallVerdict> {
   const out: Record<number, RecallVerdict> = {};
   snap.forEach((d) => {
+    const no = idToNo(d.id);
+    if (no === null) return;
     const x  = d.data();
     const ts = x.at as { toDate?: () => Date } | undefined;
-    out[Number(d.id)] = {
-      no:     Number(d.id),
+    out[no] = {
+      no,
       status: (x.status as VerdictStatus) ?? "confirmed",
       answer: (x.answer as string) ?? "",
       by:     (x.by as string) ?? "",
@@ -157,6 +176,31 @@ export async function getVerdicts(): Promise<Record<number, RecallVerdict>> {
     };
   });
   return out;
+}
+
+export async function getVerdicts(): Promise<Record<number, RecallVerdict>> {
+  const snap = await getDocs(collection(db, VERDICT_COL));
+  return readVerdicts(snap, (id) => (/^\d+$/.test(id) ? Number(id) : null));
+}
+
+export async function getDcdVerdicts(): Promise<Record<number, RecallVerdict>> {
+  const snap = await getDocs(collection(db, VERDICT_COL));
+  return readVerdicts(snap, (id) => {
+    const m = /^dcd-(\d+)$/.exec(id);
+    return m ? Number(m[1]) : null;
+  });
+}
+
+export async function setDcdVerdict(
+  no: number, status: VerdictStatus, answer: string, by: string,
+): Promise<void> {
+  await setDoc(doc(db, VERDICT_COL, `dcd-${no}`), {
+    status, answer: answer.trim(), by, at: serverTimestamp(),
+  });
+}
+
+export async function clearDcdVerdict(no: number): Promise<void> {
+  await deleteDoc(doc(db, VERDICT_COL, `dcd-${no}`));
 }
 
 export async function setVerdict(
