@@ -124,12 +124,13 @@ export async function setRecallStatus(id: string, status: RecallStatus): Promise
   await updateDoc(doc(db, COL, id), { status });
 }
 
-/** admin แก้เนื้อหาใบที่ส่งเข้ามา — น้องพิมพ์ผิด/ส่งไม่ครบ Aj เติมให้ได้ (Aj 2026-09-20) */
+/** admin แก้เนื้อหาใบที่ส่งเข้ามา — น้องพิมพ์ผิด/ส่งไม่ครบ/ส่งผิดข้อ Aj แก้ได้ (Aj 2026-09-20) */
 export async function updateRecallSubmission(
   id: string,
-  patch: { text: string; options: string[]; answer: string; note: string },
+  patch: { no: number | null; text: string; options: string[]; answer: string; note: string },
 ): Promise<void> {
   await updateDoc(doc(db, COL, id), {
+    no:      patch.no,
     text:    patch.text.trim(),
     options: patch.options.map((o) => o.trim()).filter(Boolean),
     answer:  patch.answer.trim(),

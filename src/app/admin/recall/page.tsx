@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 /**
  * /admin/recall — อ่านความจำข้อสอบที่น้อง ๆ ส่งเข้ามา แล้วรวมเป็นเฉลย
  *
@@ -28,7 +28,7 @@ type Filter = "pending" | "all" | "newq" | "crowd";
 
 // ─── ใบที่ส่งเข้ามา ───────────────────────────────────────────────────────────
 
-type SubPatch = { text: string; options: string[]; answer: string; note: string };
+type SubPatch = { no: number | null; text: string; options: string[]; answer: string; note: string };
 
 function SubmissionRow({
   s, onStatus, showText, onEdited,
@@ -40,12 +40,14 @@ function SubmissionRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [busy,    setBusy]    = useState(false);
+  const [eNo,     setENo]     = useState("");
   const [eText,   setEText]   = useState("");
   const [eOpts,   setEOpts]   = useState<string[]>(["", "", "", ""]);
   const [eAns,    setEAns]    = useState("");
   const [eNote,   setENote]   = useState("");
 
   function startEdit() {
+    setENo(s.no === null ? "" : String(s.no));
     setEText(s.text);
     setEOpts([0, 1, 2, 3].map((i) => s.options[i] ?? ""));
     setEAns(s.answer);
@@ -55,8 +57,16 @@ function SubmissionRow({
 
   async function saveEdit() {
     if (busy || !eText.trim()) return;
+    // เลขข้อ: ว่าง = ไม่ระบุ · ต้องเป็นจำนวนเต็ม 1 ขึ้นไป (ย้ายใบที่ส่งผิดข้อได้)
+    const noTrim = eNo.trim();
+    const parsedNo = noTrim === "" ? null : Number(noTrim);
+    if (parsedNo !== null && (!Number.isInteger(parsedNo) || parsedNo < 1)) {
+      alert("เลขข้อต้องเป็นตัวเลข 1 ขึ้นไป หรือเว้นว่าง = ไม่ระบุเลข");
+      return;
+    }
     setBusy(true);
     const patch: SubPatch = {
+      no:      parsedNo,
       text:    eText.trim(),
       options: eOpts.map((o) => o.trim()).filter(Boolean),
       answer:  eAns.trim(),
@@ -110,6 +120,18 @@ function SubmissionRow({
 
       {editing ? (
         <div className="space-y-1.5 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[12.5px] font-semibold flex-shrink-0" style={{ color: "#92400E" }}>
+              เลขข้อ
+            </span>
+            <input value={eNo} onChange={(e) => setENo(e.target.value)}
+              type="number" min={1}
+              className="w-24 rounded-lg px-2.5 py-1.5 text-[13px] bg-white focus:outline-none"
+              style={EDIT_STYLE} placeholder="ไม่ระบุ" />
+            <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>
+              น้องส่งผิดข้อ? แก้เลขตรงนี้แล้วใบจะย้ายไปข้อนั้น
+            </span>
+          </div>
           <textarea value={eText} onChange={(e) => setEText(e.target.value)} rows={3}
             className={`${EDIT_INPUT} font-exam`} style={EDIT_STYLE} placeholder="โจทย์" />
           {eOpts.map((o, i) => (
@@ -371,7 +393,7 @@ function DcdVolunteerPanel() {
 
 const DCD_RECALL_TITLE = "ข้อสอบจริง คร. 69 ฉบับความทรงจำ";
 
-/** จับคู่เฉลยครูอ้อม (เช่น "ข" / "ข." / ข้อความเต็ม) → index 0-3 · -1 = จับคู่ไม่ได้ */
+/** จับคู่เฉลย AJ (เช่น "ข" / "ข." / ข้อความเต็ม) → index 0-3 · -1 = จับคู่ไม่ได้ */
 function dcdAnswerIndex(answer: string, options: string[]): number {
   const a = answer.trim();
   const li = OPT.indexOf(a.replace(/[.\s)()]/g, "").charAt(0));
@@ -412,7 +434,7 @@ function buildDcdQuestions(
       text: `(ข้อจริงข้อที่ ${no}) ${p.text}`,
       options: [p.options[0], p.options[1], p.options[2], p.options[3]],
       correctAnswer: idx,
-      explanation: v.answer.replace(/[.\s)()]/g, "").length > 1 ? `เฉลยครูอ้อม: ${v.answer}` : "",
+      explanation: v.answer.replace(/[.\s)()]/g, "").length > 1 ? `เฉลย AJ: ${v.answer}` : "",
     });
   }
   return { qs, skipped };
@@ -435,7 +457,7 @@ function DcdBuildExamPanel({
       const existing = await findExamByTitle(DCD_RECALL_TITLE, "dcd");
       const form: ExamForm = {
         title: DCD_RECALL_TITLE,
-        description: "รวมจากอาสาจำข้อสอบ 20 ก.ย. 69 — เฉลยโดยครูอ้อม (ฉบับความทรงจำ ไม่ใช่ข้อสอบทางการ)",
+        description: "รวมจากอาสาจำข้อสอบ 20 ก.ย. 69 — เฉลยโดย AJ (ฉบับความทรงจำ ไม่ใช่ข้อสอบทางการ)",
         subject: "MOCK",
         timeLimit: 0,
         isPublished: existing?.isPublished ?? false,
@@ -495,7 +517,7 @@ function DcdBuildExamPanel({
 
 // ─── ใบส่งสนาม คร.69 — จัดกลุ่มตามเลขข้อ 1–100 (Aj 2026-09-20) ─────────────────
 
-/** กล่องเฉลยครูอ้อมต่อข้อ (คร.) — เก็บที่ recallVerdicts/dcd-{no} */
+/** กล่องเฉลย AJ ต่อข้อ (คร.) — เก็บที่ recallVerdicts/dcd-{no} */
 function DcdVerdictBox({
   no, verdict, onSave, onClear,
 }: {
@@ -512,7 +534,7 @@ function DcdVerdictBox({
         style={{ backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0" }}>
         <p className="font-exam text-[13.5px] leading-relaxed flex-1 min-w-0 whitespace-pre-line"
           style={{ color: "#15803D" }}>
-          <b>✓ เฉลยครูอ้อม:</b> {verdict.answer}
+          <b>✓ เฉลย AJ:</b> {verdict.answer}
         </p>
         <button onClick={async () => { setBusy(true); await onClear(no); setBusy(false); }}
           disabled={busy}
@@ -526,7 +548,7 @@ function DcdVerdictBox({
     <div className="rounded-xl px-3.5 py-2.5 mt-2.5"
       style={{ backgroundColor: "#FDF6E9", border: "1px solid #FCD34D" }}>
       <p className="text-[11.5px] font-bold mb-1" style={{ color: "#B45309" }}>
-        เฉลยครูอ้อมข้อนี้ (พิมพ์แล้วกดยืนยัน)
+        เฉลย AJ ข้อนี้ (พิมพ์แล้วกดยืนยัน)
       </p>
       <div className="flex gap-2 items-start">
         <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2}
@@ -591,7 +613,7 @@ function DcdSubmissionsView({
       lines.push(`ข้อ ${no}. (${g.length} ใบ)`);
       g.forEach(dump);
       const v = verdicts[no];
-      if (v?.status === "confirmed") lines.push(`   ★ เฉลยครูอ้อม (ยืนยันแล้ว): ${v.answer}`);
+      if (v?.status === "confirmed") lines.push(`   ★ เฉลย AJ (ยืนยันแล้ว): ${v.answer}`);
       lines.push("");
     }
     if (noNumber.length) {
@@ -780,7 +802,7 @@ export default function AdminRecallPage() {
     const lines: string[] = [
       `ข้อสอบ สป.สธ. 2569 (ฉบับความทรงจำ) — ${RECALL_ALL.length} ข้อ`,
       `ใบที่ส่งเข้ามา ${mophSubs.length} ใบ (ใช้แล้ว ${mophSubs.filter((s) => s.status === "merged").length})`,
-      `เฉลยที่ครูอ้อมยืนยันแล้ว ${Object.values(verdicts).filter((v) => v.status === "confirmed").length} ข้อ`,
+      `เฉลยที่ AJ ยืนยันแล้ว ${Object.values(verdicts).filter((v) => v.status === "confirmed").length} ข้อ`,
       "",
     ];
     for (const item of RECALL_ALL) {

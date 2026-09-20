@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 /**
  * /recall — "ช่วยกันเก็บข้อสอบ 69"
  *
@@ -302,7 +302,7 @@ function ListCard({
       <div className="pl-6 mb-2">
         {confirmed ? (
           <p className="font-exam text-[13.5px] font-semibold" style={{ color: "#15803D" }}>
-            ✓ {verdict.answer} <span className="text-[11.5px] font-normal">· ครูอ้อมตรวจแล้ว</span>
+            ✓ {verdict.answer} <span className="text-[11.5px] font-normal">· AJ ตรวจแล้ว</span>
           </p>
         ) : item.answer ? (
           <p className="font-exam text-[13.5px]" style={{ color: "#15803D" }}>✓ {item.answer}</p>
@@ -438,7 +438,7 @@ function NewQuestionForm({ onSent }: { onSent: () => void }) {
 
       <button onClick={send} disabled={busy || !text.trim()}
         className="btn-primary w-full py-4 text-[16px] disabled:opacity-35">
-        {busy ? "กำลังส่ง…" : "ส่งข้อนี้ให้ครูอ้อม"}
+        {busy ? "กำลังส่ง…" : "ส่งข้อนี้ให้ AJ"}
       </button>
     </div>
   );
@@ -610,7 +610,7 @@ export default function RecallPage() {
           style={{ backgroundColor: "#FAFAF8", border: "1px solid #EBEBEA" }}>
           <p className="text-[12px] leading-relaxed" style={{ color: "#A8A8A6" }}>
             ข้อมูลชุดนี้เป็นการบันทึกจากความทรงจำของผู้เข้าสอบ ไม่ใช่ต้นฉบับข้อสอบ
-            และยังไม่ผ่านการตรวจสอบ — ครูอ้อมจะตรวจทุกใบก่อนนำไปทำเฉลย
+            และยังไม่ผ่านการตรวจสอบ — AJ จะตรวจทุกใบก่อนนำไปทำเฉลย
             เราไม่เผยแพร่ชื่อผู้ที่ส่งเข้ามา
           </p>
         </div>
