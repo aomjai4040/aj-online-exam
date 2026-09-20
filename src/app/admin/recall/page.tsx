@@ -17,6 +17,7 @@ import {
   RECALL_ALL, GAP_LABEL, isComplete, recallProgress, seedBySubject,
   crowdAnswerFor, crowdNoteFor, type RecallSeedItem,
 } from "@/lib/recall-seed";
+import { RV_TOTAL } from "@/lib/recall-volunteer";
 import { BRAND, subjectColor } from "@/lib/subjects";
 import { SUBJECT_DISPLAY } from "@/lib/types";
 
@@ -26,8 +27,8 @@ type Filter = "pending" | "all" | "newq" | "crowd";
 // ─── ใบที่ส่งเข้ามา ───────────────────────────────────────────────────────────
 
 function SubmissionRow({
-  s, onStatus,
-}: { s: RecallSubmission; onStatus: (id: string, st: RecallStatus) => void }) {
+  s, onStatus, showText,
+}: { s: RecallSubmission; onStatus: (id: string, st: RecallStatus) => void; showText?: boolean }) {
   const tone =
     s.status === "merged"   ? { bg: "#F0FDF4", border: "#BBF7D0" }
     : s.status === "rejected" ? { bg: "#FAFAF8", border: "#EBEBEA" }
@@ -57,7 +58,7 @@ function SubmissionRow({
         )}
       </div>
 
-      {s.no === null && (
+      {(s.no === null || showText) && (
         <p className="font-exam text-[14px] leading-relaxed text-gray-900 mb-1.5">{s.text}</p>
       )}
 
@@ -279,6 +280,118 @@ function DcdVolunteerPanel() {
   );
 }
 
+// ─── ใบส่งสนาม คร.69 — จัดกลุ่มตามเลขข้อ 1–100 (Aj 2026-09-20) ─────────────────
+
+function DcdSubmissionsView({
+  subs, onStatus,
+}: { subs: RecallSubmission[]; onStatus: (id: string, st: RecallStatus) => void }) {
+  const [copied, setCopied] = useState(false);
+
+  const groups = useMemo(() => {
+    const map = new Map<number, RecallSubmission[]>();
+    for (const s of subs) {
+      if (s.no === null) continue;
+      if (!map.has(s.no)) map.set(s.no, []);
+      map.get(s.no)!.push(s);
+    }
+    return map;
+  }, [subs]);
+  const noNumber = useMemo(() => subs.filter((s) => s.no === null), [subs]);
+  const gotNos = useMemo(() => [...groups.keys()].sort((a, b) => a - b), [groups]);
+  const missingNos = useMemo(() => {
+    const out: number[] = [];
+    for (let i = 1; i <= RV_TOTAL; i++) if (!groups.has(i)) out.push(i);
+    return out;
+  }, [groups]);
+
+  function copyAll() {
+    const lines: string[] = [
+      `ข้อสอบ คร. 2569 (ฉบับความทรงจำ) — ได้เลขข้อ ${gotNos.length}/${RV_TOTAL} + ไม่ระบุเลข ${noNumber.length} ใบ`,
+      "",
+    ];
+    const dump = (s: RecallSubmission) => {
+      lines.push(`   ${s.text}`);
+      s.options.forEach((o, i) => lines.push(`      ${OPT[i]}. ${o}`));
+      if (s.answer) lines.push(`      เฉลย (${s.confidence === "sure" ? "มั่นใจ" : "ไม่แน่ใจ"}): ${s.answer}`);
+      if (s.note)   lines.push(`      หมายเหตุ: ${s.note}`);
+    };
+    for (const no of gotNos) {
+      const g = groups.get(no)!.filter((s) => s.status !== "rejected");
+      if (!g.length) continue;
+      lines.push(`ข้อ ${no}. (${g.length} ใบ)`);
+      g.forEach(dump);
+      lines.push("");
+    }
+    if (noNumber.length) {
+      lines.push("── ไม่ระบุเลขข้อ ──", "");
+      noNumber.filter((s) => s.status !== "rejected").forEach((s, i) => {
+        lines.push(`N${i + 1}.`); dump(s); lines.push("");
+      });
+    }
+    navigator.clipboard.writeText(lines.join("\n"))
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); })
+      .catch(() => alert("คัดลอกไม่สำเร็จ"));
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <p className="text-[13px] font-semibold" style={{ color: "#6B7280" }}>
+          ได้เลขข้อแล้ว <b style={{ color: "#B45309" }}>{gotNos.length}/{RV_TOTAL}</b>
+          {noNumber.length > 0 && <> · ไม่ระบุเลขอีก <b>{noNumber.length}</b> ใบ</>}
+        </p>
+        <button onClick={copyAll}
+          className="rounded-xl px-3.5 py-2 text-[13px] font-semibold"
+          style={{ backgroundColor: copied ? "#F0FDF4" : "#FDF6E9",
+                   color: copied ? "#15803D" : "#B45309",
+                   border: `1.5px solid ${copied ? "#BBF7D0" : "#FCD34D"}` }}>
+          {copied ? "คัดลอกแล้ว ✓" : "📋 คัดลอกทั้งหมด"}
+        </button>
+      </div>
+
+      {missingNos.length > 0 && missingNos.length < RV_TOTAL && (
+        <p className="text-[12px] mb-3 leading-relaxed" style={{ color: "#DC2626" }}>
+          เลขข้อที่ยังไม่มีใบส่ง: {missingNos.join(", ")}
+        </p>
+      )}
+
+      {subs.length === 0 ? (
+        <p className="text-center text-[13px] py-10" style={{ color: "#A8A8A6" }}>
+          ยังไม่มีใบส่งของสนาม คร. — ฟอร์มเปิดหลังสอบเสร็จ 12:00
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {gotNos.map((no) => (
+            <div key={no} className="bg-white rounded-2xl p-4" style={{ border: "1px solid #EBEBEA" }}>
+              <p className="text-[13px] font-extrabold mb-2" style={{ color: "#B45309" }}>
+                ข้อ {no} <span className="font-medium" style={{ color: "#A8A8A6" }}>
+                  · {groups.get(no)!.length} ใบ</span>
+              </p>
+              <div className="space-y-2">
+                {groups.get(no)!.map((s) => (
+                  <SubmissionRow key={s.id} s={s} onStatus={onStatus} showText />
+                ))}
+              </div>
+            </div>
+          ))}
+          {noNumber.length > 0 && (
+            <div className="bg-white rounded-2xl p-4" style={{ border: "1px solid #EBEBEA" }}>
+              <p className="text-[13px] font-extrabold mb-2" style={{ color: "#7C3AED" }}>
+                ไม่ระบุเลขข้อ · {noNumber.length} ใบ
+              </p>
+              <div className="space-y-2">
+                {noNumber.map((s) => (
+                  <SubmissionRow key={s.id} s={s} onStatus={onStatus} showText />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function AdminRecallPage() {
   const { user } = useAuth();
   const [subs,     setSubs]     = useState<RecallSubmission[]>([]);
@@ -286,6 +399,8 @@ export default function AdminRecallPage() {
   const [loading,  setLoading]  = useState(true);
   const [filter,   setFilter]   = useState<Filter>("crowd");
   const [copied,   setCopied]   = useState(false);
+  // แยกสนามเด็ดขาด — วันนี้โฟกัส คร. เลยเป็นแท็บแรก (Aj 2026-09-20)
+  const [fieldTab, setFieldTab] = useState<"dcd" | "moph">("dcd");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -319,18 +434,22 @@ export default function AdminRecallPage() {
   const progress = useMemo(recallProgress, []);
   const bySubject = useMemo(seedBySubject, []);
 
-  /** จัดใบเข้ากลุ่มตามเลขข้อ */
+  // ใบส่งแยกสนาม — ใบเก่าไม่มี field = สป.สธ.
+  const dcdSubs  = useMemo(() => subs.filter((s) => s.field === "dcd"), [subs]);
+  const mophSubs = useMemo(() => subs.filter((s) => s.field !== "dcd"), [subs]);
+
+  /** จัดใบเข้ากลุ่มตามเลขข้อ (เฉพาะ สป.สธ. — คร. มีมุมมองของตัวเอง) */
   const groups = useMemo(() => {
     const map = new Map<number, RecallSubmission[]>();
-    for (const s of subs) {
+    for (const s of mophSubs) {
       if (s.no === null) continue;
       if (!map.has(s.no)) map.set(s.no, []);
       map.get(s.no)!.push(s);
     }
     return map;
-  }, [subs]);
+  }, [mophSubs]);
 
-  const newQuestions = useMemo(() => subs.filter((s) => s.no === null), [subs]);
+  const newQuestions = useMemo(() => mophSubs.filter((s) => s.no === null), [mophSubs]);
 
   /** ข้อที่จะแสดง
    *  crowd   = มีเฉลยจากกลุ่มรอ Aj ฟันธง (คิวหลักตอนนี้)
@@ -360,7 +479,7 @@ export default function AdminRecallPage() {
   function copyAll() {
     const lines: string[] = [
       `ข้อสอบ สป.สธ. 2569 (ฉบับความทรงจำ) — ${RECALL_ALL.length} ข้อ`,
-      `ใบที่ส่งเข้ามา ${subs.length} ใบ (ใช้แล้ว ${subs.filter((s) => s.status === "merged").length})`,
+      `ใบที่ส่งเข้ามา ${mophSubs.length} ใบ (ใช้แล้ว ${mophSubs.filter((s) => s.status === "merged").length})`,
       `เฉลยที่ครูอ้อมยืนยันแล้ว ${Object.values(verdicts).filter((v) => v.status === "confirmed").length} ข้อ`,
       "",
     ];
@@ -420,16 +539,40 @@ export default function AdminRecallPage() {
           </button>
         </div>
 
-        {/* อาสาจำข้อสอบ คร.69 (Aj 2026-09-17) */}
-        <DcdVolunteerPanel />
+        {/* แท็บสนาม — คร. กับ สป.สธ. แยกกันเด็ดขาด (Aj 2026-09-20) */}
+        <div className="flex gap-2 mb-4">
+          {([
+            { v: "dcd",  label: `🏥 คร. 69 · ${dcdSubs.length} ใบ` },
+            { v: "moph", label: `สป.สธ. 69 · ${mophSubs.length} ใบ` },
+          ] as const).map((t) => (
+            <button key={t.v} onClick={() => setFieldTab(t.v)}
+              className="rounded-xl px-4 py-2.5 text-[13.5px] font-bold"
+              style={{
+                backgroundColor: fieldTab === t.v ? BRAND.primary : "white",
+                color: fieldTab === t.v ? "white" : "#6B7280",
+                border: `1.5px solid ${fieldTab === t.v ? BRAND.primary : "#EBEBEA"}`,
+              }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
 
+        {fieldTab === "dcd" && (
+          <>
+            {/* อาสาจำข้อสอบ คร.69 (Aj 2026-09-17) */}
+            <DcdVolunteerPanel />
+            <DcdSubmissionsView subs={dcdSubs} onStatus={changeStatus} />
+          </>
+        )}
+
+        {fieldTab === "moph" && <>
         {/* สรุป */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           {[
             { label: "ข้อทั้งหมด",       value: progress.total,     color: "#0B6E65" },
             { label: "รอฟันธงเฉลย",      value: crowdPending,       color: "#B45309" },
             { label: "ยืนยันแล้ว",       value: Object.values(verdicts).filter((v) => v.status === "confirmed").length, color: "#16A34A" },
-            { label: "ใบที่สมาชิกส่ง",   value: subs.length,        color: "#7C3AED" },
+            { label: "ใบที่สมาชิกส่ง",   value: mophSubs.length,    color: "#7C3AED" },
           ].map((k) => (
             <div key={k.label} className="bg-white rounded-2xl p-4" style={{ border: "1px solid #EBEBEA" }}>
               <div className="text-[26px] font-extrabold leading-none" style={{ color: k.color }}>
@@ -597,6 +740,7 @@ export default function AdminRecallPage() {
             })}
           </div>
         )}
+        </>}
 
         <Link href="/admin" className="btn-secondary w-full py-3 text-[14px] block text-center mt-5">
           ← กลับ Admin

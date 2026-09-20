@@ -35,6 +35,8 @@ export interface RecallSubmission {
   userName:   string;
   status:     RecallStatus;
   createdAt:  Date | null;
+  /** สนามของใบนี้ — "dcd" = คร.69 · "" = สป.สธ. เดิม (ใบเก่าไม่มี field) */
+  field:      string;
 }
 
 export interface RecallInput {
@@ -188,5 +190,6 @@ function toSubmission(d: {
     userName:   (x.userName as string) ?? "",
     status:     (x.status as RecallStatus) ?? "new",
     createdAt:  ts?.toDate ? ts.toDate() : null,
+    field:      (x.field as string) ?? "",
   };
 }
