@@ -397,15 +397,27 @@ function DcdVolunteerPanel() {
 
 const DCD_RECALL_TITLE = "ข้อสอบจริง คร. 69 ฉบับความทรงจำ";
 
-/** จับคู่เฉลย AJ (เช่น "ข" / "ข." / ข้อความเต็ม) → index 0-3 · -1 = จับคู่ไม่ได้ */
+/** จับคู่เฉลย AJ (เช่น "ข" / "ข." / "ตอบ ง. ...") → index 0-3 · -1 = จับคู่ไม่ได้
+ *
+ *  บั๊กเดิม (Aj เจอ 2026-09-20 ค่ำ): เฉลยยาวที่มีคำอธิบายไล่ช้อย ก. ข. ค. ทุกตัว
+ *  ทำให้ fuzzy match ไปชนช้อยแรกที่ถูกพูดถึง → ติ๊กเฉลยผิดข้อ
+ *  แก้: อ่านเฉพาะ "บรรทัดแรก" + หาตัวอักษร ก-ง เดี่ยว ๆ ก่อน + fuzzy ต้องชนช้อยเดียว */
 function dcdAnswerIndex(answer: string, options: string[]): number {
-  const a = answer.trim();
-  const li = OPT.indexOf(a.replace(/[.\s)()]/g, "").charAt(0));
-  if (li >= 0) return li;
+  const firstLine = (answer.trim().split(/\r?\n/)[0] ?? "").trim();
+  // 1) ตัวอักษร ก-ง ที่ยืนเดี่ยว (มีช่องว่าง/จุด/วงเล็บคั่น) เช่น "ง", "ง.", "ตอบ ง. ..."
+  const m = /(?:^|[\s.()：:])([กขคง])(?=$|[\s.)：:])/.exec(firstLine);
+  if (m) return OPT.indexOf(m[1]);
+  // 2) ข้อความตรงกับช้อยเป๊ะ (เทียบบรรทัดแรก ตัดคำนำหน้า "ตอบ/เฉลย")
   const norm = (s: string) => s.replace(/\s+/g, "").toLowerCase();
-  const exact = options.findIndex((o) => norm(o) === norm(a));
+  const a = norm(firstLine.replace(/^(ตอบ|เฉลย)[\s:：.]*/, ""));
+  if (!a) return -1;
+  const exact = options.findIndex((o) => o && norm(o) === a);
   if (exact >= 0) return exact;
-  return options.findIndex((o) => norm(o).length > 3 && (norm(a).includes(norm(o)) || norm(o).includes(norm(a))));
+  // 3) จับคู่แบบ contain — ต้องชนช้อยเดียวเท่านั้น (หลายช้อย = กำกวม ไม่เดา)
+  const hits = options
+    .map((o, i) => ({ o: norm(o), i }))
+    .filter((x) => x.o.length > 3 && (a.includes(x.o) || x.o.includes(a)));
+  return hits.length === 1 ? hits[0].i : -1;
 }
 
 /** เลือกใบหลักของข้อ: ใบที่กด "ใช้ใบนี้" ก่อน → ช้อยที่มีข้อความมากสุด → มาก่อน */
