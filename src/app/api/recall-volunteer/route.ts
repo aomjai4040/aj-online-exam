@@ -68,16 +68,51 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // ── เลขข้อที่มีใบส่งแล้ว (สมาชิก คร. หรือ admin — ใช้ในหน้าคลังความจำ 100 ข้อ) ──
-  if (req.nextUrl.searchParams.get("nos") === "1") {
+  // ── คลังความจำแบบเห็นเนื้อหา (สมาชิก คร. หรือ admin — หน้า /recall-dcd) ──
+  // โชว์โจทย์+ช้อยที่รวบรวมได้ของแต่ละข้อ ให้น้องเห็นว่าขาดอะไรแล้วเติมตรงจุด
+  // (Aj 2026-09-20 ค่ำ: "เปิดระบบให้น้องเห็นข้อสอบทั้งหมด แล้วช่วยเติม")
+  // ไม่ส่งเฉลย/ชื่อผู้ส่งออกไป — ส่งแค่สถานะว่าข้อนั้นเฉลยยืนยันแล้วหรือยัง
+  if (req.nextUrl.searchParams.get("bank") === "1") {
     if (!isAdmin(user.email) && !(await hasDcd(user.uid))) {
       return NextResponse.json({ error: "no-access" }, { status: 403 });
     }
-    const snap = await db.collection("recallSubmissions")
-      .where("field", "==", "dcd").select("no").get();
-    const filled = new Set<number>();
-    snap.forEach((d) => { const n = Number(d.data().no); if (n >= 1 && n <= RV_TOTAL) filled.add(n); });
-    return NextResponse.json({ filled: [...filled].sort((a, b) => a - b), total: RV_TOTAL });
+    const [subSnap, verSnap] = await Promise.all([
+      db.collection("recallSubmissions").where("field", "==", "dcd").get(),
+      db.collection("recallVerdicts").get(),
+    ]);
+    const verdictNos = new Set<number>();
+    verSnap.forEach((d) => {
+      const m = /^dcd-(\d+)$/.exec(d.id);
+      if (m && d.data().status === "confirmed") verdictNos.add(Number(m[1]));
+    });
+    type Sub = { no?: unknown; text?: unknown; options?: unknown; status?: unknown;
+      createdAt?: { toMillis?: () => number } };
+    const byNo = new Map<number, Sub[]>();
+    subSnap.forEach((d) => {
+      const x = d.data() as Sub;
+      if (x.status === "rejected") return;
+      const no = Number(x.no);
+      if (!Number.isInteger(no) || no < 1 || no > RV_TOTAL) return;
+      if (!byNo.has(no)) byNo.set(no, []);
+      byNo.get(no)!.push(x);
+    });
+    const filledCount = (s: Sub) => (Array.isArray(s.options) ? s.options : []).filter(Boolean).length;
+    const items = [...byNo.entries()].map(([no, g]) => {
+      // ใบหลัก: กติกาเดียวกับตัวสร้างชุดข้อสอบ (merged ก่อน → ช้อยครบสุด → มาก่อน)
+      const p = [...g].sort((a, b) =>
+        Number(b.status === "merged") - Number(a.status === "merged")
+        || filledCount(b) - filledCount(a)
+        || (a.createdAt?.toMillis?.() ?? 0) - (b.createdAt?.toMillis?.() ?? 0))[0];
+      const opts = Array.isArray(p.options) ? p.options : [];
+      return {
+        no,
+        text: String(p.text ?? ""),
+        options: [0, 1, 2, 3].map((i) => String(opts[i] ?? "")),
+        verdict: verdictNos.has(no),
+        count: g.length,
+      };
+    }).sort((a, b) => a.no - b.no);
+    return NextResponse.json({ items, total: RV_TOTAL });
   }
 
   // ── สถานะของฉัน (สมาชิก คร.) ──

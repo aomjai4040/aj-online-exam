@@ -1,14 +1,14 @@
 "use client";
 /**
- * /recall-dcd — คลังความจำข้อสอบ คร.69 ครบ 100 ข้อ (Aj 2026-09-20 บ่าย)
+ * /recall-dcd — คลังความจำข้อสอบ คร.69 ครบ 100 ข้อ (Aj 2026-09-20)
  *
- * ตอบโจทย์: "หน้าข้อสอบมีข้อครบ 100 ข้อ ข้อไหนยังไม่มีข้อมูลก็ขึ้นข้อไว้แต่ว่าง
- * เผื่อมีคนส่งข้อมูลเพิ่ม" — หน้านี้โชว์ตาราง 1-100 ว่าข้อไหนมีความจำแล้ว/ยังว่าง
- * แตะข้อไหนก็ได้เพื่อส่งความจำเพิ่ม → เข้า recallSubmissions (field dcd)
- * ให้ AJ ตรวจที่ /admin/recall แล้วกดอัปเดตชุดข้อสอบจริง
+ * v2 (ค่ำวันสอบ): น้อง "เห็นเนื้อหา" ที่รวบรวมได้ของทุกข้อ — โจทย์ + ช้อยที่มี
+ * พร้อมป้ายบอกว่าข้อไหนขาดอะไร (ช้อยช่องไหนว่าง / ยังไม่มีเฉลย) แล้วเติมตรงจุดได้
+ * ข้อมูลผ่าน /api/recall-volunteer?bank=1 (ไม่เผยเฉลย/ชื่อผู้ส่ง)
  *
- * แยกจากชุดข้อสอบที่ทำเก็บคะแนน (Mock "ฉบับความทรงจำ") — ชุดนั้นมีเฉพาะข้อที่
- * AJ ยืนยันเฉลยแล้ว คะแนนเลยตรงไปตรงมา ข้อว่างมาอยู่หน้านี้แทน
+ * สถานะต่อข้อ: เขียว = ครบ (เฉลยยืนยัน+ช้อยครบ 4) · เหลือง = มีข้อมูลแต่ยังขาด ·
+ * เทา = ยังว่าง · ส่งซ้ำได้ทุกข้อ + ปุ่ม "จำเลขข้อไม่ได้" ด้านล่าง
+ * ช่อง "เฉลย AJ" โผล่เฉพาะบัญชี admin — ยืนยันเฉลยพร้อมส่งในคลิกเดียว
  */
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -23,13 +23,44 @@ const OPT = ["ก", "ข", "ค", "ง"];
 /** ค่า active สำหรับ "จำเลขข้อไม่ได้" — ส่งเป็น no: null */
 const NO_NUMBER = -1;
 
+interface BankItem {
+  no: number;
+  text: string;
+  options: string[];  // 4 ช่องตามตำแหน่ง — "" = ยังขาด
+  verdict: boolean;   // AJ ยืนยันเฉลยแล้ว
+  count: number;      // จำนวนใบที่ส่งเข้ามา
+}
+
+type ItemState = "full" | "partial" | "empty";
+
+function stateOf(item: BankItem | undefined): ItemState {
+  if (!item) return "empty";
+  const optsFull = item.options.filter(Boolean).length === 4;
+  return item.verdict && optsFull && item.text ? "full" : "partial";
+}
+
+function missingOf(item: BankItem): string[] {
+  const out: string[] = [];
+  if (!item.text) out.push("โจทย์");
+  const blank = item.options.map((o, i) => (o ? "" : OPT[i])).filter(Boolean);
+  if (blank.length) out.push(`ช้อย ${blank.join(", ")}`);
+  if (!item.verdict) out.push("เฉลย (AJ จะยืนยัน)");
+  return out;
+}
+
+const STATE_STYLE: Record<ItemState, { bg: string; color: string; border: string }> = {
+  full:    { bg: "#DCFCE7", color: "#15803D", border: "#86EFAC" },
+  partial: { bg: "#FEF3C7", color: "#B45309", border: "#FCD34D" },
+  empty:   { bg: "white",   color: "#A8A8A6", border: "#E0DFDC" },
+};
+
 export default function RecallDcdPage() {
   useLoginGuard();
   const { user } = useAuth();
-  const [filled, setFilled]   = useState<Set<number> | null>(null);
+  const [bank, setBank]       = useState<Map<number, BankItem> | null>(null);
   const [denied, setDenied]   = useState(false);
   const [active, setActive]   = useState<number | null>(null);
-  const [sentNos, setSentNos] = useState<Set<number>>(new Set());
+  const [sentCount, setSentCount] = useState(0);
 
   // ── ฟอร์ม ──
   const [text, setText]       = useState("");
@@ -47,13 +78,15 @@ export default function RecallDcdPage() {
     if (!user) return;
     try {
       const token = await user.getIdToken();
-      const res = await fetch("/api/recall-volunteer?nos=1", {
+      const res = await fetch("/api/recall-volunteer?bank=1", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 403) { setDenied(true); return; }
       if (res.ok) {
         const d = await res.json();
-        setFilled(new Set<number>(d.filled ?? []));
+        const m = new Map<number, BankItem>();
+        (d.items ?? []).forEach((it: BankItem) => m.set(it.no, it));
+        setBank(m);
       }
     } catch {}
   }, [user]);
@@ -64,19 +97,22 @@ export default function RecallDcdPage() {
     setActive(no);
     setText(""); setOptions(["", "", "", ""]); setAnswer(""); setUnsure(false);
     setNote(""); setErr(""); setAjAns("");
-    // เลื่อนให้ฟอร์มโผล่ (อยู่ใต้ตาราง)
     setTimeout(() => document.getElementById("rv-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   }
 
   async function send() {
-    if (!user || busy || active === null || !text.trim()) return;
+    if (!user || busy || active === null) return;
+    // เติมบางส่วนได้ — ขอแค่มีอะไรสักอย่าง (โจทย์ หรือช้อย หรือเฉลย)
+    const hasSomething = text.trim() || options.some((o) => o.trim()) || answer;
+    if (!hasSomething) { setErr("กรอกอย่างน้อย 1 อย่างนะคะ (โจทย์ / ช้อย / เฉลยที่คิดว่าถูก)"); return; }
     setBusy(true); setErr("");
     try {
       const subId = await submitRecall(
         { uid: user.uid, email: user.email, displayName: user.displayName },
         {
           no: active === NO_NUMBER ? null : active,
-          text, options, answer,
+          text: text.trim() || "(เติมเฉพาะช้อย/เฉลย — โจทย์ตามที่มีในคลัง)",
+          options, answer,
           subject: "", confidence: unsure ? "maybe" : "sure",
           note: note.trim(), field: "dcd",
         },
@@ -88,11 +124,9 @@ export default function RecallDcdPage() {
         if (active === NO_NUMBER) await setDcdSubVerdict(subId, "confirmed", ajAns, user.email ?? "admin");
         else                      await setDcdVerdict(active, "confirmed", ajAns, user.email ?? "admin");
       }
-      setSentNos((p) => new Set(p).add(active));
-      if (active !== NO_NUMBER) {
-        setFilled((p) => { const n = new Set(p ?? []); n.add(active); return n; });
-      }
+      setSentCount((c) => c + 1);
       setActive(null);
+      await load();
     } catch { setErr("ส่งไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"); }
     finally { setBusy(false); }
   }
@@ -113,7 +147,9 @@ export default function RecallDcdPage() {
     );
   }
 
-  const filledCount = filled?.size ?? 0;
+  const fullCount    = bank ? [...bank.values()].filter((it) => stateOf(it) === "full").length : 0;
+  const partialCount = bank ? bank.size - fullCount : 0;
+  const activeItem   = active !== null && active !== NO_NUMBER ? bank?.get(active) : undefined;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F5FAF9" }}>
@@ -121,36 +157,37 @@ export default function RecallDcdPage() {
 
         <h1 className="text-[19px] font-bold text-gray-900">คลังความจำข้อสอบ คร. 69</h1>
         <p className="text-[13px] mt-1 leading-relaxed" style={{ color: "#6B7280" }}>
-          ครบทั้ง 100 ข้อ — <b style={{ color: "#15803D" }}>เขียว = มีความจำแล้ว</b> ·
-          เทา = ยังว่าง รอคนช่วยเติม · แตะข้อไหนก็ได้เพื่อส่งความจำเพิ่ม
-          (ข้อที่มีแล้วก็ส่งซ้ำได้ ยิ่งหลายคนยิ่งแม่น) AJ ตรวจทุกใบก่อนอัปเดตเข้าชุดข้อสอบ
+          แตะเลขข้อเพื่อดูว่ารวบรวมได้แค่ไหนแล้ว และช่วยเติมส่วนที่ขาด —
+          <b style={{ color: "#15803D" }}> เขียว = ครบแล้ว</b> ·
+          <b style={{ color: "#B45309" }}> เหลือง = มีบางส่วน ขาดช้อย/เฉลย</b> ·
+          เทา = ยังว่าง
         </p>
 
-        {filled === null ? (
+        {bank === null ? (
           <p className="text-center text-[13px] py-10" style={{ color: "#A8A8A6" }}>กำลังโหลด…</p>
         ) : (
           <>
-            <div className="flex items-center gap-2.5 mt-4 mb-3">
-              <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: "#E7F0EE" }}>
-                <div className="h-full rounded-full transition-all"
-                  style={{ width: `${Math.max(filledCount, 2)}%`, backgroundColor: "#0B6E65" }} />
-              </div>
-              <span className="text-[12px] font-bold flex-shrink-0" style={{ color: BRAND.primary }}>
-                มีความจำแล้ว {filledCount}/{RV_TOTAL} ข้อ
+            <div className="flex items-center gap-3 mt-4 mb-3 text-[12px] font-semibold flex-wrap"
+              style={{ color: "#6B7280" }}>
+              <span style={{ color: "#15803D" }}>ครบ {fullCount}</span>
+              <span style={{ color: "#B45309" }}>ขาดบางส่วน {partialCount}</span>
+              <span>ยังว่าง {RV_TOTAL - fullCount - partialCount}</span>
+              <span className="ml-auto" style={{ color: BRAND.primary }}>
+                รวม {fullCount + partialCount}/{RV_TOTAL}
               </span>
             </div>
 
             <div className="grid grid-cols-10 gap-1.5">
               {Array.from({ length: RV_TOTAL }, (_, i) => i + 1).map((no) => {
-                const has = filled.has(no);
+                const s = STATE_STYLE[stateOf(bank.get(no))];
                 const isActive = active === no;
                 return (
                   <button key={no} onClick={() => open(no)}
                     className="aspect-square rounded-lg text-[12px] font-bold transition-all active:scale-90"
                     style={{
-                      backgroundColor: isActive ? "#B45309" : has ? "#DCFCE7" : "white",
-                      color:           isActive ? "white"   : has ? "#15803D" : "#A8A8A6",
-                      border: `1.5px solid ${isActive ? "#B45309" : has ? "#86EFAC" : "#E0DFDC"}`,
+                      backgroundColor: isActive ? "#B45309" : s.bg,
+                      color:           isActive ? "white"   : s.color,
+                      border: `1.5px solid ${isActive ? "#B45309" : s.border}`,
                     }}>
                     {no}
                   </button>
@@ -158,7 +195,7 @@ export default function RecallDcdPage() {
               })}
             </div>
 
-            {/* จำเลขข้อไม่ได้ก็ส่งได้ — กันข้อมูลตกหล่น (Aj 2026-09-20 ค่ำ) */}
+            {/* จำเลขข้อไม่ได้ก็ส่งได้ — กันข้อมูลตกหล่น */}
             <button onClick={() => open(NO_NUMBER)}
               className="mt-3 w-full py-3 rounded-xl text-[13.5px] font-bold active:scale-[0.98] transition-transform"
               style={active === NO_NUMBER
@@ -174,22 +211,60 @@ export default function RecallDcdPage() {
             style={{ border: "1.5px solid #FCD34D", backgroundColor: "#FFFBEB" }}>
             <div className="flex items-center justify-between gap-2">
               <p className="text-[14.5px] font-bold" style={{ color: "#92400E" }}>
-                {active === NO_NUMBER ? "📝 ส่งความจำ — จำเลขข้อไม่ได้" : `📝 ส่งความจำ — ข้อที่ ${active}`}
-                {active !== NO_NUMBER && filled?.has(active) && !sentNos.has(active) && (
-                  <span className="text-[11.5px] font-semibold ml-1.5" style={{ color: "#B45309" }}>
-                    (มีคนส่งแล้ว ส่งเสริมได้)
-                  </span>
-                )}
+                {active === NO_NUMBER ? "📝 ส่งความจำ — จำเลขข้อไม่ได้" : `ข้อที่ ${active}`}
               </p>
               <button onClick={() => setActive(null)} className="text-[12px] underline" style={{ color: "#B45309" }}>
                 ปิด
               </button>
             </div>
-            <p className="text-[12px] mt-0.5 mb-2" style={{ color: "#B45309" }}>
-              จำได้แค่บางส่วนก็ส่งได้ — โจทย์อย่างเดียว หรือช้อยบางตัวก็มีค่ามากแล้ว
+
+            {/* ── ข้อมูลที่รวบรวมได้แล้วของข้อนี้ ── */}
+            {activeItem ? (
+              <div className="mt-2 rounded-xl px-3 py-2.5 bg-white" style={{ border: "1px solid #EBEBEA" }}>
+                <p className="font-exam text-[14px] leading-relaxed text-gray-900 whitespace-pre-line">
+                  {activeItem.text || "(ยังไม่มีโจทย์ — ช่วยเติมข้างล่าง)"}
+                </p>
+                <div className="mt-1.5 space-y-0.5">
+                  {activeItem.options.map((o, i) => (
+                    <p key={i} className="font-exam text-[13px] leading-relaxed"
+                      style={{ color: o ? "#4B5563" : "#D97706" }}>
+                      {OPT[i]}. {o || "— ยังขาด ช่วยเติมที —"}
+                    </p>
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                  {stateOf(activeItem) === "full" ? (
+                    <span className="text-[11.5px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
+                      ✓ ข้อนี้ครบแล้ว — ส่งเสริม/แย้งได้ถ้าจำต่างจากนี้
+                    </span>
+                  ) : (
+                    missingOf(activeItem).map((g) => (
+                      <span key={g} className="text-[11.5px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>
+                        ขาด{g}
+                      </span>
+                    ))
+                  )}
+                  <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>
+                    · มีคนส่งแล้ว {activeItem.count} ใบ
+                  </span>
+                </div>
+              </div>
+            ) : active !== NO_NUMBER ? (
+              <p className="text-[12.5px] mt-2 rounded-xl px-3 py-2.5"
+                style={{ backgroundColor: "white", border: "1px dashed #E0DFDC", color: "#A8A8A6" }}>
+                ข้อนี้ยังว่างอยู่เลย — จำได้แค่ไหนส่งแค่นั้นก็มีค่ามากค่ะ
+              </p>
+            ) : null}
+
+            <p className="text-[12px] mt-2.5 mb-2" style={{ color: "#B45309" }}>
+              เติมเฉพาะส่วนที่ขาดก็ได้ (เช่น ช้อยที่หาย หรือแค่เฉลย) — ไม่ต้องพิมพ์ซ้ำของที่มีแล้ว
             </p>
             <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
-              placeholder={active === NO_NUMBER ? "โจทย์เท่าที่จำได้ (ไม่ต้องรู้ว่าข้อไหน)…" : `โจทย์ข้อที่ ${active} เท่าที่จำได้…`}
+              placeholder={active === NO_NUMBER ? "โจทย์เท่าที่จำได้ (ไม่ต้องรู้ว่าข้อไหน)…"
+                : activeItem?.text ? "โจทย์ (มีแล้ว — พิมพ์เฉพาะถ้าจำได้ต่าง/ครบกว่า)"
+                : `โจทย์ข้อที่ ${active} เท่าที่จำได้…`}
               className={INPUT} style={INPUT_STYLE} />
             <div className="grid grid-cols-1 gap-2 mt-2">
               {options.map((o, i) => (
@@ -199,7 +274,7 @@ export default function RecallDcdPage() {
                   </span>
                   <input value={o}
                     onChange={(e) => setOptions((p) => p.map((x, j) => (j === i ? e.target.value : x)))}
-                    placeholder="จำไม่ได้เว้นว่างได้"
+                    placeholder={activeItem?.options[i] ? "มีแล้ว — เว้นได้" : "จำไม่ได้เว้นว่างได้"}
                     className={INPUT} style={INPUT_STYLE} />
                 </div>
               ))}
@@ -235,19 +310,19 @@ export default function RecallDcdPage() {
                   className={INPUT} style={{ border: "1px solid #86EFAC" }} />
               </div>
             )}
-            <button onClick={send} disabled={busy || !text.trim()}
+            <button onClick={send} disabled={busy}
               className="mt-3 w-full py-3 rounded-xl text-[14.5px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-40"
               style={{ backgroundColor: BRAND.primary }}>
-              {busy ? "กำลังส่ง…" : active === NO_NUMBER ? "ส่งความจำ 💚" : `ส่งความจำข้อที่ ${active} 💚`}
+              {busy ? "กำลังส่ง…" : active === NO_NUMBER ? "ส่งความจำ 💚" : `ส่งข้อมูลข้อที่ ${active} 💚`}
             </button>
             {err && <p className="text-[12px] mt-2" style={{ color: "#DC2626" }}>{err}</p>}
           </div>
         )}
 
-        {sentNos.size > 0 && active === null && (
+        {sentCount > 0 && active === null && (
           <p className="text-[13px] mt-4 text-center rounded-xl py-2.5"
             style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
-            💚 ขอบคุณมากค่ะ ส่งแล้ว {sentNos.size} ข้อ — แตะข้ออื่นต่อได้เลย
+            💚 ขอบคุณมากค่ะ ส่งแล้ว {sentCount} ใบ — แตะข้ออื่นต่อได้เลย
           </p>
         )}
 
