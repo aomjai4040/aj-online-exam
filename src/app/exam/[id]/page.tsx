@@ -28,6 +28,103 @@ import {
 
 const OPTS = ["ก", "ข", "ค", "ง"] as const;
 
+// ─── ชุด "ฉบับความทรงจำ" คร.69 — ส่งความจำเพิ่มได้จากในตัวข้อสอบ (Aj 2026-09-20) ──
+
+const isMemoryExam = (e: Exam | null) => Boolean(e?.title.includes("ฉบับความทรงจำ"));
+const memoryNoOf = (text: string): number | null => {
+  const m = /\(ข้อจริงข้อที่ (\d+)\)/.exec(text);
+  return m ? Number(m[1]) : null;
+};
+
+function MemoryContribute({ no }: { no: number }) {
+  const { user } = useAuth();
+  const [open, setOpen]       = useState(false);
+  const [text, setText]       = useState("");
+  const [options, setOptions] = useState(["", "", "", ""]);
+  const [answer, setAnswer]   = useState("");
+  const [busy, setBusy]       = useState(false);
+  const [sent, setSent]       = useState(false);
+  const [err, setErr]         = useState("");
+
+  async function send() {
+    if (!user || busy || !text.trim()) return;
+    setBusy(true); setErr("");
+    try {
+      const { submitRecall } = await import("@/lib/recall-firestore");
+      await submitRecall(
+        { uid: user.uid, email: user.email, displayName: user.displayName },
+        {
+          no, text, options, answer,
+          subject: "", confidence: "sure",
+          note: "ส่งจากหน้าข้อสอบฉบับความทรงจำ", field: "dcd",
+        },
+      );
+      setSent(true); setOpen(false);
+    } catch { setErr("ส่งไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"); }
+    finally { setBusy(false); }
+  }
+
+  if (sent) {
+    return (
+      <p className="text-[12.5px] mt-4 rounded-xl px-3 py-2"
+        style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
+        💚 ส่งความจำข้อ {no} แล้ว ขอบคุณมากค่ะ — AJ จะตรวจแล้วอัปเดตชุดนี้ให้แม่นขึ้น
+      </p>
+    );
+  }
+
+  const IN = "w-full rounded-xl px-3 py-2 text-[16px] bg-white focus:outline-none";
+  const IS = { border: "1px solid #E0DFDC" } as const;
+
+  return (
+    <div className="mt-4">
+      <button type="button" onClick={() => setOpen((o) => !o)}
+        className="text-[12.5px] font-semibold underline" style={{ color: "#B45309" }}>
+        {open ? "− ปิดฟอร์มส่งความจำ" : `📝 จำข้อ ${no} ได้ต่าง/ครบกว่านี้? ส่งความจำเพิ่ม`}
+      </button>
+      {open && (
+        <div className="mt-2 rounded-2xl px-3.5 py-3 space-y-2"
+          style={{ backgroundColor: "#FFFBEB", border: "1px solid #FCD34D" }}>
+          <p className="text-[12px] leading-relaxed" style={{ color: "#B45309" }}>
+            เติมเฉพาะที่จำได้ก็พอ (เช่น ช้อยที่ยังขึ้นว่า &quot;จำช้อยนี้ไม่ได้&quot;) —
+            คะแนนของคุณไม่เกี่ยวกับฟอร์มนี้
+          </p>
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2}
+            placeholder={`โจทย์ข้อจริงที่ ${no} ที่จำได้…`} className={`${IN} font-exam`} style={IS} />
+          {options.map((o, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <span className="text-[12.5px] font-bold w-4 flex-shrink-0" style={{ color: "#92400E" }}>
+                {OPTS[i]}.
+              </span>
+              <input value={o}
+                onChange={(e) => setOptions((p) => p.map((x, j) => (j === i ? e.target.value : x)))}
+                placeholder="จำไม่ได้เว้นว่างได้" className={`${IN} font-exam`} style={IS} />
+            </div>
+          ))}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[12px] font-semibold" style={{ color: "#92400E" }}>เฉลยที่คิดว่าถูก:</span>
+            {OPTS.map((o) => (
+              <button key={o} type="button" onClick={() => setAnswer(answer === o ? "" : o)}
+                className="w-8 h-8 rounded-lg text-[13px] font-bold"
+                style={answer === o
+                  ? { backgroundColor: "#0B6E65", color: "white" }
+                  : { backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
+                {o}
+              </button>
+            ))}
+          </div>
+          <button onClick={send} disabled={busy || !text.trim()}
+            className="w-full py-2.5 rounded-xl text-[13.5px] font-bold text-white disabled:opacity-40"
+            style={{ backgroundColor: "#0B6E65" }}>
+            {busy ? "กำลังส่ง…" : "ส่งความจำ 💚"}
+          </button>
+          {err && <p className="text-[12px]" style={{ color: "#DC2626" }}>{err}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function formatTime(s: number) {
   const m = Math.floor(s / 60);
   const sec = s % 60;
@@ -435,6 +532,21 @@ export default function ExamPage() {
             </p>
           )}
 
+          {/* ชุดฉบับความทรงจำ คร.69 — ชวนช่วยเติมข้อที่ยังว่าง (Aj 2026-09-20) */}
+          {isMemoryExam(exam) && (
+            <div className="rounded-2xl p-4 mb-4"
+              style={{ backgroundColor: "#FFFBEB", border: "1px solid #FCD34D" }}>
+              <p className="text-[13px] font-bold mb-0.5" style={{ color: "#92400E" }}>
+                📝 ชุดนี้รวมจากความจำของรุ่นพี่ — อัปเดตเพิ่มเรื่อย ๆ
+              </p>
+              <p className="text-[12.5px] leading-relaxed" style={{ color: "#B45309" }}>
+                ระหว่างทำ ถ้าจำข้อไหนได้ต่าง/ครบกว่า กดส่งความจำใต้ข้อนั้นได้เลย ·
+                ดูครบทั้ง 100 ข้อ + ช่วยเติมข้อที่ยังว่างได้ที่{" "}
+                <Link href="/recall-dcd" className="underline font-semibold">คลังความจำ 100 ข้อ →</Link>
+              </p>
+            </div>
+          )}
+
           {/* Stat row */}
           <div
             className="flex gap-8 py-5 mb-7"
@@ -746,6 +858,13 @@ export default function ExamPage() {
                       {q.explanation}
                     </div>
                   )}
+
+                  {/* ชุดฉบับความทรงจำ: ส่งความจำเพิ่มจากหน้าเฉลยได้ด้วย */}
+                  {isMemoryExam(exam) && memoryNoOf(q.text) !== null && (
+                    <div className="ml-9">
+                      <MemoryContribute no={memoryNoOf(q.text)!} />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -868,6 +987,11 @@ export default function ExamPage() {
             );
           })}
         </div>
+
+        {/* ชุดฉบับความทรงจำ: ส่งความจำเพิ่มได้จากทุกข้อ */}
+        {isMemoryExam(exam) && memoryNoOf(q.text) !== null && (
+          <MemoryContribute key={`memo-${current}`} no={memoryNoOf(q.text)!} />
+        )}
 
         {/* Dot progress navigator */}
         <div className="flex justify-center items-center gap-1.5 mt-8 flex-wrap">

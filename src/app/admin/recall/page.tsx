@@ -168,8 +168,9 @@ function SubmissionRow({
           {s.options.length > 0 && (
             <div className="space-y-0.5 mb-1.5">
               {s.options.map((o, i) => (
-                <p key={i} className="font-exam text-[13px] text-gray-600 leading-relaxed">
-                  {OPT[i]}. {o}
+                <p key={i} className="font-exam text-[13px] leading-relaxed"
+                  style={{ color: o ? "#4B5563" : "#D97706" }}>
+                  {OPT[i]}. {o || "— (จำช้อยนี้ไม่ได้)"}
                 </p>
               ))}
             </div>
@@ -387,8 +388,9 @@ function DcdVolunteerPanel() {
 
 // ─── สร้างชุดข้อสอบจากความจำ คร.69 (Aj 2026-09-20: "นำเข้าให้น้องเข้าตอบ") ────
 //
-// กติกาข้อที่ "พร้อม": Aj กดยืนยันเฉลย (กล่องเหลือง) + ใบหลักมีช้อยครบ 4 +
-// เฉลยจับคู่กับช้อยได้ (ก-ง หรือข้อความตรงกับช้อย) — ที่เหลือรายงานว่าติดอะไร
+// กติกาข้อที่ "พร้อม" (ผ่อนเกณฑ์ Aj 2026-09-20 บ่าย: "เผยแพร่เท่าที่อัพเดต"):
+// ยืนยันเฉลยแล้ว + ช้อยของคำตอบต้องมีข้อความ — ช้อยอื่นที่จำไม่ได้ใส่ป้าย
+// "(จำช้อยนี้ไม่ได้...)" แทน ให้น้องทำได้เลยระหว่างรอเติม
 // สร้างเป็น Mock (packageId dcd-2026) เริ่มแบบยังไม่เผยแพร่ ให้ Aj ตรวจก่อนปล่อย
 
 const DCD_RECALL_TITLE = "ข้อสอบจริง คร. 69 ฉบับความทรงจำ";
@@ -404,13 +406,17 @@ function dcdAnswerIndex(answer: string, options: string[]): number {
   return options.findIndex((o) => norm(o).length > 3 && (norm(a).includes(norm(o)) || norm(o).includes(norm(a))));
 }
 
-/** เลือกใบหลักของข้อ: ใบที่กด "ใช้ใบนี้" ก่อน → ช้อยครบสุด → มาก่อน */
+/** เลือกใบหลักของข้อ: ใบที่กด "ใช้ใบนี้" ก่อน → ช้อยที่มีข้อความมากสุด → มาก่อน */
 function primarySub(g: RecallSubmission[]): RecallSubmission {
+  const filled = (s: RecallSubmission) => s.options.filter(Boolean).length;
   return [...g].sort((a, b) =>
     Number(b.status === "merged") - Number(a.status === "merged")
-    || b.options.length - a.options.length
+    || filled(b) - filled(a)
     || (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0))[0];
 }
+
+/** ป้ายช้อยที่ยังไม่มีใครจำได้ — โชว์ในชุดข้อสอบจริง เชิญชวนให้ส่งความจำเติม */
+const MISSING_OPT = "(จำช้อยนี้ไม่ได้ — ใครจำได้ช่วยส่งความจำเติม)";
 
 function buildDcdQuestions(
   subs: RecallSubmission[], verdicts: Record<number, RecallVerdict>,
@@ -427,12 +433,15 @@ function buildDcdQuestions(
     const v = verdicts[no];
     if (!v || v.status !== "confirmed") { skipped.push({ no, why: "ยังไม่ยืนยันเฉลย" }); continue; }
     const p = primarySub(map.get(no)!);
-    if (p.options.length !== 4) { skipped.push({ no, why: `ช้อยมี ${p.options.length}/4` }); continue; }
-    const idx = dcdAnswerIndex(v.answer, p.options);
+    // เติมช่องที่จำไม่ได้ให้ครบ 4 ตำแหน่ง (ตำแหน่งเดิมไม่เลื่อน — เฉลย ก-ง ตรงเสมอ)
+    const opts = [0, 1, 2, 3].map((i) => p.options[i]?.trim() || "");
+    if (opts.filter(Boolean).length === 0) { skipped.push({ no, why: "ยังไม่มีช้อยเลย" }); continue; }
+    const idx = dcdAnswerIndex(v.answer, opts);
     if (idx < 0) { skipped.push({ no, why: "เฉลยจับคู่กับช้อยไม่ได้" }); continue; }
+    if (!opts[idx]) { skipped.push({ no, why: `เฉลยคือ ${OPT[idx]} แต่ช้อย ${OPT[idx]} ยังว่าง` }); continue; }
     qs.push({
       text: `(ข้อจริงข้อที่ ${no}) ${p.text}`,
-      options: [p.options[0], p.options[1], p.options[2], p.options[3]],
+      options: [opts[0] || MISSING_OPT, opts[1] || MISSING_OPT, opts[2] || MISSING_OPT, opts[3] || MISSING_OPT],
       correctAnswer: idx,
       explanation: v.answer.replace(/[.\s)()]/g, "").length > 1 ? `เฉลย AJ: ${v.answer}` : "",
     });

@@ -54,6 +54,13 @@ export interface RecallInput {
 const COL       = "recallSubmissions";
 const COUNT_COL = "recallCounts";
 
+/** ตัดเฉพาะช่องว่าง "ท้ายลิสต์" — ช่องว่างกลางลิสต์คงไว้เพื่อตรึงตำแหน่ง ก-ง */
+function trimTrailing(opts: string[]): string[] {
+  const out = [...opts];
+  while (out.length && !out[out.length - 1]) out.pop();
+  return out;
+}
+
 function countId(no: number | null): string {
   return no === null ? "new" : String(no);
 }
@@ -66,7 +73,9 @@ export async function submitRecall(
   await addDoc(collection(db, COL), {
     no:         input.no,
     text:       input.text.trim(),
-    options:    input.options.map((o) => o.trim()).filter(Boolean),
+    // ตรึงตำแหน่ง ก-ข-ค-ง — ห้าม filter ช่องว่างทิ้ง ไม่งั้นช้อยที่จำไม่ได้
+    // ทำให้ตัวถัดไปเลื่อนตำแหน่ง เฉลยตัวอักษรเพี้ยนทั้งข้อ (Aj 2026-09-20)
+    options:    trimTrailing(input.options.map((o) => o.trim())),
     answer:     input.answer.trim(),
     subject:    input.subject,
     confidence: input.confidence,
@@ -132,7 +141,7 @@ export async function updateRecallSubmission(
   await updateDoc(doc(db, COL, id), {
     no:      patch.no,
     text:    patch.text.trim(),
-    options: patch.options.map((o) => o.trim()).filter(Boolean),
+    options: trimTrailing(patch.options.map((o) => o.trim())),
     answer:  patch.answer.trim(),
     note:    patch.note.trim(),
   });
