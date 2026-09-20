@@ -234,62 +234,6 @@ export default function RecallDcdPage() {
               ➕ จำเลขข้อไม่ได้ / ไม่แน่ใจว่าข้อไหน — ส่งตรงนี้ได้เลย
             </button>
 
-            {/* ── ข้อที่เริ่มเขียนไว้แต่ยังไม่มีเลขข้อ — ช่วยกันเติมก่อนย้ายเข้าลิสต์ 100 ── */}
-            {extras.length > 0 && (
-              <div className="mt-6">
-                <p className="text-[14px] font-bold text-gray-900">
-                  🧩 ข้อที่ยังไม่มีเลขข้อ · {extras.length} ข้อ
-                </p>
-                <p className="text-[12.5px] mt-0.5 mb-3 leading-relaxed" style={{ color: "#6B7280" }}>
-                  มีข้อมูลบางส่วนแล้ว — ช่วยกันเติมส่วนที่ขาด หรือถ้าจำได้ว่าเป็นข้อที่เท่าไหร่
-                  ช่วยบอกด้วย จะได้ย้ายเข้าลิสต์ 100 ข้อ
-                </p>
-                <div className="space-y-2.5">
-                  {extras.map((x, i) => {
-                    const blank = x.options.map((o, j) => (o ? "" : OPT[j])).filter(Boolean);
-                    return (
-                      <div key={x.id} className="bg-white rounded-2xl px-4 py-3"
-                        style={{ border: extraRef?.id === x.id ? "1.5px solid #B45309" : "1px solid #EBEBEA" }}>
-                        <p className="font-exam text-[13.5px] leading-relaxed text-gray-900 whitespace-pre-line">
-                          <span className="font-bold" style={{ color: "#7C3AED" }}>#{i + 1}</span>{" "}
-                          {x.text || "(ยังไม่มีโจทย์)"}
-                        </p>
-                        {x.options.some(Boolean) && (
-                          <div className="mt-1 space-y-0.5">
-                            {x.options.map((o, j) => o && (
-                              <p key={j} className="font-exam text-[12.5px] text-gray-600">{OPT[j]}. {o}</p>
-                            ))}
-                          </div>
-                        )}
-                        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: "#F3E8FF", color: "#7C3AED" }}>
-                            ยังไม่มีเลขข้อ
-                          </span>
-                          {blank.length > 0 && (
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                              style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>
-                              ขาดช้อย {blank.join(", ")}
-                            </span>
-                          )}
-                          {x.verdict && (
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                              style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
-                              ✓ เฉลยแล้ว
-                            </span>
-                          )}
-                          <button onClick={() => openExtra(x)}
-                            className="ml-auto text-[12px] font-bold px-3 py-1.5 rounded-lg"
-                            style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
-                            ช่วยเติม / บอกเลขข้อ →
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </>
         )}
 
@@ -419,6 +363,77 @@ export default function RecallDcdPage() {
               {busy ? "กำลังส่ง…" : active === NO_NUMBER ? "ส่งความจำ 💚" : `ส่งข้อมูลข้อที่ ${active} 💚`}
             </button>
             {err && <p className="text-[12px] mt-2" style={{ color: "#DC2626" }}>{err}</p>}
+          </div>
+        )}
+
+        {/* ── ข้อที่เริ่มเขียนไว้แต่ยังไม่มีเลขข้อ — อยู่ "ใต้ฟอร์ม" เสมอ น้องกดเติม
+            จากตารางแล้วฟอร์มโผล่ทันที ไม่ต้องไล่ผ่านลิสต์นี้ (Aj 2026-09-20 ดึก) ── */}
+        {bank !== null && extras.length > 0 && (
+          <div className="mt-6">
+            <p className="text-[14px] font-bold text-gray-900">
+              🧩 ข้อที่ยังไม่มีเลขข้อ · {extras.length} ข้อ
+            </p>
+            <p className="text-[12.5px] mt-0.5 mb-3 leading-relaxed" style={{ color: "#6B7280" }}>
+              มีข้อมูลบางส่วนแล้ว — ช่วยกันเติมส่วนที่ขาด หรือถ้าจำได้ว่าเป็นข้อที่เท่าไหร่
+              ช่วยบอกด้วย จะได้ย้ายเข้าลิสต์ 100 ข้อ
+            </p>
+            <div className="space-y-2.5">
+              {extras.map((x, i) => {
+                const blank = x.options.map((o, j) => (o ? "" : OPT[j])).filter(Boolean);
+                return (
+                  <div key={x.id} className="bg-white rounded-2xl px-4 py-3"
+                    style={{ border: extraRef?.id === x.id ? "1.5px solid #B45309" : "1px solid #EBEBEA" }}>
+                    <p className="font-exam text-[13.5px] leading-relaxed text-gray-900 whitespace-pre-line">
+                      <span className="font-bold" style={{ color: "#7C3AED" }}>#{i + 1}</span>{" "}
+                      {x.text || "(ยังไม่มีโจทย์)"}
+                    </p>
+                    {x.options.some(Boolean) && (
+                      <div className="mt-1 space-y-0.5">
+                        {x.options.map((o, j) => o && (
+                          <p key={j} className="font-exam text-[12.5px] text-gray-600">{OPT[j]}. {o}</p>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: "#F3E8FF", color: "#7C3AED" }}>
+                        ยังไม่มีเลขข้อ
+                      </span>
+                      {blank.length > 0 && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>
+                          ขาดช้อย {blank.join(", ")}
+                        </span>
+                      )}
+                      {x.verdict && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
+                          ✓ เฉลยแล้ว
+                        </span>
+                      )}
+                      <button onClick={() => openExtra(x)}
+                        className="ml-auto text-[12px] font-bold px-3 py-1.5 rounded-lg"
+                        style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                        ช่วยเติม / บอกเลขข้อ →
+                      </button>
+                      {/* admin เท่านั้น: ตัดใบที่ซ้ำกับข้อในลิสต์ 100 ออก กันน้องงง */}
+                      {admin && (
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`ลบใบ #${i + 1} ออกจากคลัง? (ใช้กับใบที่ซ้ำกับข้อในลิสต์ 100 แล้ว)`)) return;
+                            await setRecallStatus(x.id, "rejected").catch(() => {});
+                            await load();
+                          }}
+                          className="text-[12px] font-semibold px-2.5 py-1.5 rounded-lg"
+                          style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+                          🗑 ลบ
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
