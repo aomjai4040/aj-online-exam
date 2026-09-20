@@ -10,8 +10,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import {
-  clearDcdVerdict, clearVerdict, getAllRecalls, getDcdVerdicts, getVerdicts,
-  setDcdVerdict, setRecallStatus, setVerdict, updateRecallSubmission,
+  clearDcdSubVerdict, clearDcdVerdict, clearVerdict, getAllRecalls,
+  getDcdSubVerdicts, getDcdVerdicts, getVerdicts,
+  setDcdSubVerdict, setDcdVerdict, setRecallStatus, setVerdict, updateRecallSubmission,
   type RecallStatus, type RecallSubmission, type RecallVerdict,
 } from "@/lib/recall-firestore";
 import {
@@ -419,8 +420,10 @@ function primarySub(g: RecallSubmission[]): RecallSubmission {
 const MISSING_OPT = "(จำช้อยนี้ไม่ได้ — ใครจำได้ช่วยส่งความจำเติม)";
 
 function buildDcdQuestions(
-  subs: RecallSubmission[], verdicts: Record<number, RecallVerdict>,
-): { qs: QuestionForm[]; skipped: { no: number; why: string }[] } {
+  subs: RecallSubmission[],
+  verdicts: Record<number, RecallVerdict>,
+  subVerdicts: Record<string, RecallVerdict>,
+): { qs: QuestionForm[]; skipped: { label: string; why: string }[] } {
   const map = new Map<number, RecallSubmission[]>();
   for (const s of subs) {
     if (s.no === null || s.status === "rejected") continue;
@@ -428,35 +431,55 @@ function buildDcdQuestions(
     map.get(s.no)!.push(s);
   }
   const qs: QuestionForm[] = [];
-  const skipped: { no: number; why: string }[] = [];
-  for (const no of [...map.keys()].sort((a, b) => a - b)) {
-    const v = verdicts[no];
-    if (!v || v.status !== "confirmed") { skipped.push({ no, why: "ยังไม่ยืนยันเฉลย" }); continue; }
-    const p = primarySub(map.get(no)!);
+  const skipped: { label: string; why: string }[] = [];
+
+  /** แปลงใบ+เฉลยเป็นข้อสอบ 1 ข้อ — คืน null พร้อม push เหตุผลถ้ายังไม่พร้อม */
+  const toQuestion = (p: RecallSubmission, v: RecallVerdict, label: string, prefix: string): boolean => {
     // เติมช่องที่จำไม่ได้ให้ครบ 4 ตำแหน่ง (ตำแหน่งเดิมไม่เลื่อน — เฉลย ก-ง ตรงเสมอ)
     const opts = [0, 1, 2, 3].map((i) => p.options[i]?.trim() || "");
-    if (opts.filter(Boolean).length === 0) { skipped.push({ no, why: "ยังไม่มีช้อยเลย" }); continue; }
+    if (opts.filter(Boolean).length === 0) { skipped.push({ label, why: "ยังไม่มีช้อยเลย" }); return false; }
     const idx = dcdAnswerIndex(v.answer, opts);
-    if (idx < 0) { skipped.push({ no, why: "เฉลยจับคู่กับช้อยไม่ได้" }); continue; }
-    if (!opts[idx]) { skipped.push({ no, why: `เฉลยคือ ${OPT[idx]} แต่ช้อย ${OPT[idx]} ยังว่าง` }); continue; }
+    if (idx < 0) { skipped.push({ label, why: "เฉลยจับคู่กับช้อยไม่ได้" }); return false; }
+    if (!opts[idx]) { skipped.push({ label, why: `เฉลยคือ ${OPT[idx]} แต่ช้อย ${OPT[idx]} ยังว่าง` }); return false; }
     qs.push({
-      text: `(ข้อจริงข้อที่ ${no}) ${p.text}`,
+      text: `${prefix} ${p.text}`,
       options: [opts[0] || MISSING_OPT, opts[1] || MISSING_OPT, opts[2] || MISSING_OPT, opts[3] || MISSING_OPT],
       correctAnswer: idx,
       explanation: v.answer.replace(/[.\s)()]/g, "").length > 1 ? `เฉลย AJ: ${v.answer}` : "",
     });
+    return true;
+  };
+
+  for (const no of [...map.keys()].sort((a, b) => a - b)) {
+    const v = verdicts[no];
+    if (!v || v.status !== "confirmed") { skipped.push({ label: `ข้อ ${no}`, why: "ยังไม่ยืนยันเฉลย" }); continue; }
+    toQuestion(primarySub(map.get(no)!), v, `ข้อ ${no}`, `(ข้อจริงข้อที่ ${no})`);
   }
+
+  // ใบไม่ระบุเลขข้อที่ AJ ยืนยันเฉลยรายใบแล้ว → ต่อท้ายชุดเป็นข้อเพิ่มเติม
+  const noNo = subs.filter((s) => s.no === null && s.status !== "rejected");
+  noNo.forEach((s, i) => {
+    const v = subVerdicts[s.id];
+    if (!v || v.status !== "confirmed") return; // ยังไม่เฉลย = ยังไม่เอาเข้าชุด (ไม่นับติดขัด)
+    toQuestion(s, v, `ใบไม่ระบุเลข #${i + 1}`, "(ข้อเพิ่มเติมจากความจำ — ไม่ทราบเลขข้อ)");
+  });
+
   return { qs, skipped };
 }
 
 function DcdBuildExamPanel({
-  subs, verdicts,
-}: { subs: RecallSubmission[]; verdicts: Record<number, RecallVerdict> }) {
+  subs, verdicts, subVerdicts,
+}: {
+  subs: RecallSubmission[];
+  verdicts: Record<number, RecallVerdict>;
+  subVerdicts: Record<string, RecallVerdict>;
+}) {
   const [building, setBuilding] = useState(false);
   const [msg, setMsg] = useState("");
   const [showSkipped, setShowSkipped] = useState(false);
 
-  const { qs, skipped } = useMemo(() => buildDcdQuestions(subs, verdicts), [subs, verdicts]);
+  const { qs, skipped } = useMemo(
+    () => buildDcdQuestions(subs, verdicts, subVerdicts), [subs, verdicts, subVerdicts]);
 
   async function build() {
     if (building || qs.length === 0) return;
@@ -517,7 +540,7 @@ function DcdBuildExamPanel({
       {showSkipped && skipped.length > 0 && (
         <div className="mt-2.5 text-[12px] leading-relaxed rounded-xl px-3 py-2"
           style={{ backgroundColor: "#FFFBEB", color: "#B45309" }}>
-          {skipped.map((s) => <p key={s.no}>ข้อ {s.no} — {s.why}</p>)}
+          {skipped.map((s, i) => <p key={i}>{s.label} — {s.why}</p>)}
         </div>
       )}
     </div>
@@ -526,13 +549,14 @@ function DcdBuildExamPanel({
 
 // ─── ใบส่งสนาม คร.69 — จัดกลุ่มตามเลขข้อ 1–100 (Aj 2026-09-20) ─────────────────
 
-/** กล่องเฉลย AJ ต่อข้อ (คร.) — เก็บที่ recallVerdicts/dcd-{no} */
+/** กล่องเฉลย AJ (คร.) — ข้อมีเลข: recallVerdicts/dcd-{no} · ใบไม่ระบุเลข: dcd-x-{subId} */
 function DcdVerdictBox({
-  no, verdict, onSave, onClear,
+  verdict, onSave, onClear, label,
 }: {
-  no: number; verdict?: RecallVerdict;
-  onSave: (no: number, answer: string) => Promise<void>;
-  onClear: (no: number) => Promise<void>;
+  verdict?: RecallVerdict;
+  onSave: (answer: string) => Promise<void>;
+  onClear: () => Promise<void>;
+  label?: string;
 }) {
   const [draft, setDraft] = useState(verdict?.answer ?? "");
   const [busy, setBusy]   = useState(false);
@@ -545,7 +569,7 @@ function DcdVerdictBox({
           style={{ color: "#15803D" }}>
           <b>✓ เฉลย AJ:</b> {verdict.answer}
         </p>
-        <button onClick={async () => { setBusy(true); await onClear(no); setBusy(false); }}
+        <button onClick={async () => { setBusy(true); await onClear(); setBusy(false); }}
           disabled={busy}
           className="text-[11.5px] font-medium underline flex-shrink-0" style={{ color: "#A8A8A6" }}>
           ยกเลิก
@@ -557,7 +581,7 @@ function DcdVerdictBox({
     <div className="rounded-xl px-3.5 py-2.5 mt-2.5"
       style={{ backgroundColor: "#FDF6E9", border: "1px solid #FCD34D" }}>
       <p className="text-[11.5px] font-bold mb-1" style={{ color: "#B45309" }}>
-        เฉลย AJ ข้อนี้ (พิมพ์แล้วกดยืนยัน)
+        {label ?? "เฉลย AJ ข้อนี้ (พิมพ์แล้วกดยืนยัน)"}
       </p>
       <div className="flex gap-2 items-start">
         <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2}
@@ -565,7 +589,7 @@ function DcdVerdictBox({
           style={{ border: "1px solid #E0DFDC" }}
           placeholder="เช่น ข. หรือพิมพ์คำตอบเต็ม (ขึ้นบรรทัดใหม่ได้)" />
         <button
-          onClick={async () => { if (!draft.trim()) return; setBusy(true); await onSave(no, draft); setBusy(false); }}
+          onClick={async () => { if (!draft.trim()) return; setBusy(true); await onSave(draft); setBusy(false); }}
           disabled={busy || !draft.trim()}
           className="text-[12px] font-semibold px-3 py-1.5 rounded-lg flex-shrink-0 disabled:opacity-40"
           style={{ backgroundColor: "#0B6E65", color: "white" }}>
@@ -578,6 +602,7 @@ function DcdVerdictBox({
 
 function DcdSubmissionsView({
   subs, onStatus, onEdited, verdicts, onVerdict, onVerdictClear,
+  subVerdicts, onSubVerdict, onSubVerdictClear,
 }: {
   subs: RecallSubmission[];
   onStatus: (id: string, st: RecallStatus) => void;
@@ -585,6 +610,9 @@ function DcdSubmissionsView({
   verdicts: Record<number, RecallVerdict>;
   onVerdict: (no: number, answer: string) => Promise<void>;
   onVerdictClear: (no: number) => Promise<void>;
+  subVerdicts: Record<string, RecallVerdict>;
+  onSubVerdict: (subId: string, answer: string) => Promise<void>;
+  onSubVerdictClear: (subId: string) => Promise<void>;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -681,8 +709,8 @@ function DcdSubmissionsView({
                   <SubmissionRow key={s.id} s={s} onStatus={onStatus} onEdited={onEdited} showText />
                 ))}
               </div>
-              <DcdVerdictBox no={no} verdict={verdicts[no]}
-                onSave={onVerdict} onClear={onVerdictClear} />
+              <DcdVerdictBox verdict={verdicts[no]}
+                onSave={(ans) => onVerdict(no, ans)} onClear={() => onVerdictClear(no)} />
             </div>
           ))}
           {noNumber.length > 0 && (
@@ -692,7 +720,16 @@ function DcdSubmissionsView({
               </p>
               <div className="space-y-2">
                 {noNumber.map((s) => (
-                  <SubmissionRow key={s.id} s={s} onStatus={onStatus} onEdited={onEdited} showText />
+                  <div key={s.id}>
+                    <SubmissionRow s={s} onStatus={onStatus} onEdited={onEdited} showText />
+                    {/* เฉลยรายใบ — ไม่รู้เลขข้อก็เฉลยได้ ข้อที่ยืนยันจะต่อท้ายชุดข้อสอบ */}
+                    {s.status !== "rejected" && (
+                      <DcdVerdictBox verdict={subVerdicts[s.id]}
+                        label="เฉลย AJ ใบนี้ (ยืนยันแล้วจะต่อท้ายชุดข้อสอบเป็นข้อเพิ่มเติม)"
+                        onSave={(ans) => onSubVerdict(s.id, ans)}
+                        onClear={() => onSubVerdictClear(s.id)} />
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -714,12 +751,15 @@ export default function AdminRecallPage() {
   const [fieldTab, setFieldTab] = useState<"dcd" | "moph">("dcd");
 
   const [dcdVerdicts, setDcdVerdicts] = useState<Record<number, RecallVerdict>>({});
+  const [dcdSubVerdicts, setDcdSubVerdicts] = useState<Record<string, RecallVerdict>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, v, dv] = await Promise.all([getAllRecalls(), getVerdicts(), getDcdVerdicts()]);
-      setSubs(s); setVerdicts(v); setDcdVerdicts(dv);
+      const [s, v, dv, sv] = await Promise.all([
+        getAllRecalls(), getVerdicts(), getDcdVerdicts(), getDcdSubVerdicts(),
+      ]);
+      setSubs(s); setVerdicts(v); setDcdVerdicts(dv); setDcdSubVerdicts(sv);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -759,6 +799,19 @@ export default function AdminRecallPage() {
   async function removeDcdVerdict(no: number) {
     setDcdVerdicts((p) => { const n = { ...p }; delete n[no]; return n; });
     try { await clearDcdVerdict(no); }
+    catch (e) { console.error(e); load(); }
+  }
+
+  async function saveDcdSubVerdict(subId: string, answer: string) {
+    const by = user?.email ?? "admin";
+    setDcdSubVerdicts((p) => ({ ...p, [subId]: { no: 0, status: "confirmed", answer, by, at: new Date() } }));
+    try { await setDcdSubVerdict(subId, "confirmed", answer, by); }
+    catch (e) { console.error(e); load(); }
+  }
+
+  async function removeDcdSubVerdict(subId: string) {
+    setDcdSubVerdicts((p) => { const n = { ...p }; delete n[subId]; return n; });
+    try { await clearDcdSubVerdict(subId); }
     catch (e) { console.error(e); load(); }
   }
 
@@ -892,9 +945,11 @@ export default function AdminRecallPage() {
           <>
             {/* อาสาจำข้อสอบ คร.69 (Aj 2026-09-17) */}
             <DcdVolunteerPanel />
-            <DcdBuildExamPanel subs={dcdSubs} verdicts={dcdVerdicts} />
+            <DcdBuildExamPanel subs={dcdSubs} verdicts={dcdVerdicts} subVerdicts={dcdSubVerdicts} />
             <DcdSubmissionsView subs={dcdSubs} onStatus={changeStatus} onEdited={editSub}
-              verdicts={dcdVerdicts} onVerdict={saveDcdVerdict} onVerdictClear={removeDcdVerdict} />
+              verdicts={dcdVerdicts} onVerdict={saveDcdVerdict} onVerdictClear={removeDcdVerdict}
+              subVerdicts={dcdSubVerdicts} onSubVerdict={saveDcdSubVerdict}
+              onSubVerdictClear={removeDcdSubVerdict} />
           </>
         )}
 

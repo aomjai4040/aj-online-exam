@@ -201,6 +201,39 @@ export async function getDcdVerdicts(): Promise<Record<number, RecallVerdict>> {
   });
 }
 
+/** เฉลย AJ ของ "ใบที่ไม่ระบุเลขข้อ" (คร.) — ผูกกับ submission id: doc "dcd-x-{subId}"
+ *  (Aj 2026-09-20 เย็น: น้องจำเลขข้อไม่ได้แต่ส่งโจทย์มา ก็ต้องเฉลยได้) */
+export async function getDcdSubVerdicts(): Promise<Record<string, RecallVerdict>> {
+  const snap = await getDocs(collection(db, VERDICT_COL));
+  const out: Record<string, RecallVerdict> = {};
+  snap.forEach((d) => {
+    const m = /^dcd-x-(.+)$/.exec(d.id);
+    if (!m) return;
+    const x  = d.data();
+    const ts = x.at as { toDate?: () => Date } | undefined;
+    out[m[1]] = {
+      no:     0,
+      status: (x.status as VerdictStatus) ?? "confirmed",
+      answer: (x.answer as string) ?? "",
+      by:     (x.by as string) ?? "",
+      at:     ts?.toDate ? ts.toDate() : null,
+    };
+  });
+  return out;
+}
+
+export async function setDcdSubVerdict(
+  subId: string, status: VerdictStatus, answer: string, by: string,
+): Promise<void> {
+  await setDoc(doc(db, VERDICT_COL, `dcd-x-${subId}`), {
+    status, answer: answer.trim(), by, at: serverTimestamp(),
+  });
+}
+
+export async function clearDcdSubVerdict(subId: string): Promise<void> {
+  await deleteDoc(doc(db, VERDICT_COL, `dcd-x-${subId}`));
+}
+
 export async function setDcdVerdict(
   no: number, status: VerdictStatus, answer: string, by: string,
 ): Promise<void> {
