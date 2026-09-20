@@ -14,7 +14,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
-import { submitRecall } from "@/lib/recall-firestore";
+import { setDcdSubVerdict, setDcdVerdict, setRecallStatus, submitRecall } from "@/lib/recall-firestore";
+import { isAdmin } from "@/lib/admin-config";
 import { RV_TOTAL } from "@/lib/recall-volunteer";
 import { BRAND } from "@/lib/subjects";
 
@@ -38,6 +39,9 @@ export default function RecallDcdPage() {
   const [note, setNote]       = useState("");
   const [busy, setBusy]       = useState(false);
   const [err, setErr]         = useState("");
+  // เฉลย AJ — โผล่เฉพาะบัญชี admin: กรอกพร้อมกันแล้วยืนยันให้เลย ไม่ต้องไปติ๊กซ้ำ
+  const admin = isAdmin(user?.email);
+  const [ajAns, setAjAns]     = useState("");
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -59,7 +63,7 @@ export default function RecallDcdPage() {
   function open(no: number) {
     setActive(no);
     setText(""); setOptions(["", "", "", ""]); setAnswer(""); setUnsure(false);
-    setNote(""); setErr("");
+    setNote(""); setErr(""); setAjAns("");
     // เลื่อนให้ฟอร์มโผล่ (อยู่ใต้ตาราง)
     setTimeout(() => document.getElementById("rv-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   }
@@ -68,7 +72,7 @@ export default function RecallDcdPage() {
     if (!user || busy || active === null || !text.trim()) return;
     setBusy(true); setErr("");
     try {
-      await submitRecall(
+      const subId = await submitRecall(
         { uid: user.uid, email: user.email, displayName: user.displayName },
         {
           no: active === NO_NUMBER ? null : active,
@@ -77,6 +81,13 @@ export default function RecallDcdPage() {
           note: note.trim(), field: "dcd",
         },
       );
+      // admin กรอกเฉลยมาด้วย → ยืนยันให้ทันที ข้อนี้พร้อมเข้าชุดข้อสอบเลย
+      // และติ๊ก "ใช้ใบนี้" ให้ใบของ AJ เป็นใบหลัก (เฉลยชี้ช้อยของใบนี้แน่นอน)
+      if (admin && ajAns.trim()) {
+        await setRecallStatus(subId, "merged").catch(() => {});
+        if (active === NO_NUMBER) await setDcdSubVerdict(subId, "confirmed", ajAns, user.email ?? "admin");
+        else                      await setDcdVerdict(active, "confirmed", ajAns, user.email ?? "admin");
+      }
       setSentNos((p) => new Set(p).add(active));
       if (active !== NO_NUMBER) {
         setFilled((p) => { const n = new Set(p ?? []); n.add(active); return n; });
@@ -213,6 +224,17 @@ export default function RecallDcdPage() {
             <input value={note} onChange={(e) => setNote(e.target.value)}
               placeholder="หมายเหตุ (เช่น ชุดข้อสอบ A/B — ไม่มีก็เว้นได้)"
               className={`${INPUT} mt-2`} style={INPUT_STYLE} />
+            {admin && (
+              <div className="mt-2 rounded-xl px-3 py-2.5"
+                style={{ backgroundColor: "#F0FDF4", border: "1px solid #86EFAC" }}>
+                <p className="text-[11.5px] font-bold mb-1" style={{ color: "#15803D" }}>
+                  ⭐ เฉลย AJ (เห็นเฉพาะแอดมิน) — กรอกแล้วยืนยันให้ทันที ไม่ต้องไปติ๊กซ้ำที่ /admin/recall
+                </p>
+                <textarea value={ajAns} onChange={(e) => setAjAns(e.target.value)} rows={2}
+                  placeholder="เช่น ข. หรือพิมพ์คำตอบเต็ม (เว้นว่าง = ยังไม่เฉลย)"
+                  className={INPUT} style={{ border: "1px solid #86EFAC" }} />
+              </div>
+            )}
             <button onClick={send} disabled={busy || !text.trim()}
               className="mt-3 w-full py-3 rounded-xl text-[14.5px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-40"
               style={{ backgroundColor: BRAND.primary }}>

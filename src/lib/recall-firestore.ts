@@ -65,12 +65,13 @@ function countId(no: number | null): string {
   return no === null ? "new" : String(no);
 }
 
-/** ส่งความจำ 1 ใบ + เพิ่มตัวนับสาธารณะของข้อนั้น */
+/** ส่งความจำ 1 ใบ + เพิ่มตัวนับสาธารณะของข้อนั้น — คืน id ของใบ
+ *  (ใช้ผูกเฉลย AJ รายใบตอน admin กรอกเองจาก /recall-dcd) */
 export async function submitRecall(
   user: { uid: string; email: string | null; displayName: string | null },
   input: RecallInput,
-): Promise<void> {
-  await addDoc(collection(db, COL), {
+): Promise<string> {
+  const ref = await addDoc(collection(db, COL), {
     no:         input.no,
     text:       input.text.trim(),
     // ตรึงตำแหน่ง ก-ข-ค-ง — ห้าม filter ช่องว่างทิ้ง ไม่งั้นช้อยที่จำไม่ได้
@@ -89,15 +90,17 @@ export async function submitRecall(
   });
 
   // ตัวนับสาธารณะ — ให้ทุกคนเห็นว่าข้อไหนมีคนช่วยแล้ว (ดันให้ไปช่วยข้อที่ยังว่าง)
-  const ref = doc(db, COUNT_COL, countId(input.no));
+  const countRef = doc(db, COUNT_COL, countId(input.no));
   try {
-    const snap = await getDoc(ref);
-    if (snap.exists()) await updateDoc(ref, { count: increment(1) });
-    else               await setDoc(ref, { count: 1 });
+    const snap = await getDoc(countRef);
+    if (snap.exists()) await updateDoc(countRef, { count: increment(1) });
+    else               await setDoc(countRef, { count: 1 });
   } catch (e) {
     // ตัวนับพลาดไม่ควรทำให้การส่งล้มเหลว — ใบที่ส่งไปแล้วสำคัญกว่า
     console.warn("[recall] count update failed (non-fatal):", e);
   }
+
+  return ref.id;
 }
 
 /** ตัวนับต่อข้อ — { "3": 2, "new": 11 } */
