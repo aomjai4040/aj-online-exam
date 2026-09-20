@@ -4,7 +4,8 @@
  *
  * แสดง 2 ตำแหน่งบนหน้าคอร์ส คร. (slot):
  *   "top"  = การ์ดใหญ่ — เฉพาะตอนต้องตัดสินใจ: ① ยังไม่กดรับ/ไม่ปฏิเสธ (ชวนอาสา)
- *            ② หลังสอบ + อาสาไว้ + ยังไม่ส่ง (ฟอร์มส่ง — ช่วงเก็บของสำคัญสุด)
+ *            ② หลังสอบ + ยังไม่ส่ง (ฟอร์มส่ง — เปิดให้ทุกคนในคอร์ส ไม่ต้องเคยรับเลข
+ *            Aj 2026-09-20; คนกดไม่สะดวกไว้เข้าทางการ์ดเมนูข้างล่างได้)
  *   "menu" = การ์ดเล็กสไตล์เมนู ใต้แผงเมนูหลัก — หลังตัดสินใจแล้ว (รับเลขแล้ว/
  *            กดไม่สะดวก/ส่งแล้ว) ไม่รบกวนสายตาตอนเข้ามาติว (Aj 2026-09-18)
  *            แตะกางดูเลข/ถอนตัว/เปลี่ยนใจร่วมได้
@@ -99,13 +100,14 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
   const [examSet, setExamSet] = useState("");
 
   async function send() {
-    if (!user || busy || !text.trim() || !st?.mine) return;
+    if (!user || busy || !text.trim() || !st) return;
     setBusy(true); setErr("");
     try {
+      // ไม่ได้อาสาไว้ก็ส่งได้ (Aj 2026-09-20) — ใช้เลขจากช่องกรอกแทน
       const parsed = Number(altNo);
-      const no = flexNo
-        ? (Number.isInteger(parsed) && parsed >= 1 && parsed <= st.total ? parsed : null)
-        : st.mine.no;
+      const no = st.mine && !flexNo
+        ? st.mine.no
+        : (Number.isInteger(parsed) && parsed >= 1 && parsed <= st.total ? parsed : null);
       await submitRecall(
         { uid: user.uid, email: user.email, displayName: user.displayName },
         {
@@ -113,7 +115,8 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
           subject: "", confidence: unsure ? "maybe" : "sure",
           note: [
             examSet.trim() ? `ชุดข้อสอบ: ${examSet.trim()}` : "",
-            flexNo ? `อาสาข้อที่ ${st.mine.no} แต่ส่งข้ออื่นแทน` : "",
+            st.mine && flexNo ? `อาสาข้อที่ ${st.mine.no} แต่ส่งข้ออื่นแทน` : "",
+            !st.mine ? "ส่งสมทบ (ไม่ได้รับเลขอาสา)" : "",
           ].filter(Boolean).join(" · "),
           field: "dcd",
         },
@@ -201,20 +204,26 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
     </>
   );
 
-  const submitForm = st.mine && (
+  // ฟอร์มเปิดให้ทุกคนที่มีคอร์ส คร. — ไม่ได้อาสาไว้ก็ส่งสมทบได้ (Aj 2026-09-20)
+  const submitForm = (
     <>
       <p className="text-[14.5px] font-bold" style={{ color: "#92400E" }}>
-        📝 สอบเสร็จแล้ว — ส่งข้อที่ <span className="text-[18px]">{st.mine.no}</span> ที่คุณอาสาจำ
+        {st.mine
+          ? <>📝 สอบเสร็จแล้ว — ส่งข้อที่ <span className="text-[18px]">{st.mine.no}</span> ที่คุณอาสาจำ</>
+          : <>📝 สอบเสร็จแล้ว — ส่งข้อสอบที่จำได้</>}
       </p>
       <p className="text-[12px] mt-0.5 mb-2" style={{ color: "#B45309" }}>
         ไม่ต้องเป๊ะทุกคำ จับใจความได้ก็มีค่ามากแล้ว
+        {!st.mine && " — ไม่ได้รับเลขอาสาไว้ก็ส่งได้เลยค่ะ"}
       </p>
       {/* ทางหนีไฟ: ลืม/จำข้อตัวเองไม่ได้ → ส่งข้ออื่นที่จำได้แทน มีค่าเท่ากัน */}
-      <button type="button" onClick={() => setFlexNo((f) => !f)}
-        className="text-[12px] underline mb-2 block" style={{ color: "#B45309" }}>
-        {flexNo ? "← กลับไปส่งข้อของตัวเอง" : "จำข้อของตัวเองไม่ได้? ส่งข้ออื่นที่จำได้แทน (มีค่าเท่ากัน)"}
-      </button>
-      {flexNo && (
+      {st.mine && (
+        <button type="button" onClick={() => setFlexNo((f) => !f)}
+          className="text-[12px] underline mb-2 block" style={{ color: "#B45309" }}>
+          {flexNo ? "← กลับไปส่งข้อของตัวเอง" : "จำข้อของตัวเองไม่ได้? ส่งข้ออื่นที่จำได้แทน (มีค่าเท่ากัน)"}
+        </button>
+      )}
+      {(flexNo || !st.mine) && (
         <div className="flex items-center gap-2 mb-2">
           <span className="text-[12.5px] font-semibold" style={{ color: "#92400E" }}>ข้อที่จะส่งคือข้อที่</span>
           <input value={altNo} onChange={(e) => setAltNo(e.target.value)}
@@ -235,7 +244,7 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
           style={INPUT_STYLE} />
       </div>
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
-        placeholder={flexNo ? "โจทย์ข้อที่จำได้…" : `โจทย์ข้อที่ ${st.mine.no} ที่จำได้…`}
+        placeholder={st.mine && !flexNo ? `โจทย์ข้อที่ ${st.mine.no} ที่จำได้…` : "โจทย์ข้อที่จำได้…"}
         className={INPUT} style={INPUT_STYLE} />
       <div className="grid grid-cols-2 gap-2 mt-2">
         {options.map((o, i) => (
@@ -264,7 +273,7 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
       <button onClick={send} disabled={busy || !text.trim()}
         className="mt-3 w-full py-3 rounded-xl text-[14.5px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-40"
         style={{ backgroundColor: BRAND.primary }}>
-        {busy ? "กำลังส่ง…" : flexNo ? "ส่งข้อที่จำได้ 💚" : `ส่งข้อที่ ${st.mine.no} 💚`}
+        {busy ? "กำลังส่ง…" : st.mine && !flexNo ? `ส่งข้อที่ ${st.mine.no} 💚` : "ส่งข้อที่จำได้ 💚"}
       </button>
     </>
   );
@@ -282,18 +291,26 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
   // ══ slot: top — โชว์เฉพาะตอนต้องตัดสินใจ ══
   if (slot === "top") {
     if (st.phase === "before" && !st.mine && !dismissed) return fullCard(inviteBody);
-    if (st.phase === "after" && st.mine && !st.submitted) return fullCard(submitForm);
+    // หลังสอบ: เปิดฟอร์มให้ทุกคน ไม่ต้องเคยรับเลข (Aj 2026-09-20) — ยกเว้นคนกดไม่สะดวก
+    if (st.phase === "after" && !st.submitted && !dismissed) return fullCard(submitForm);
     return null;
   }
 
   // ══ slot: menu — การ์ดเล็กหลังตัดสินใจแล้ว (สไตล์เดียวกับเมนู) ══
-  const decided = st.mine !== null || dismissed;
+  const decided = st.mine !== null || dismissed || st.submitted;
   if (!decided) return null;
-  if (st.phase === "after" && st.mine && !st.submitted) return null; // ฟอร์มอยู่ข้างบนแล้ว
+  if (st.phase === "after" && !st.submitted && !dismissed) return null; // ฟอร์มอยู่ข้างบนแล้ว
 
   const mini = (() => {
-    if (st.phase === "after" && st.mine && st.submitted) {
-      return { icon: "💚", title: `ส่งข้อที่ ${st.mine.no} แล้ว`, desc: "ขอบคุณมากค่ะ", expandable: false };
+    if (st.phase === "after" && st.submitted) {
+      return {
+        icon: "💚", title: st.mine ? `ส่งข้อที่ ${st.mine.no} แล้ว` : "ส่งข้อสอบแล้ว",
+        desc: "ขอบคุณมากค่ะ", expandable: false,
+      };
+    }
+    if (st.phase === "after") {
+      // เคยกด "ไม่สะดวก" ไว้ก่อนสอบ — หลังสอบยังเปิดทางส่งเสมอ
+      return { icon: "📝", title: "ส่งข้อสอบที่จำได้", desc: "จำข้อไหนได้ก็ส่งได้ · แตะเพื่อกรอก", expandable: true };
     }
     if (st.mine) {
       return {
@@ -332,7 +349,9 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
 
       {expanded && mini.expandable && (
         <div className="mt-2">
-          {st.mine
+          {st.phase === "after"
+            ? fullCard(submitForm)
+            : st.mine
             ? fullCard(<>{progressBar}{assignedBox}</>)
             : fullCard(inviteBody) /* ในนี้มีปุ่ม "ไม่สะดวกครั้งนี้" อยู่แล้ว = พับกลับ */}
         </div>
