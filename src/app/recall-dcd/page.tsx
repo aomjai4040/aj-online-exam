@@ -31,6 +31,14 @@ interface BankItem {
   count: number;      // จำนวนใบที่ส่งเข้ามา
 }
 
+/** ใบที่ยังไม่มีเลขข้อ — โชว์ใต้ตารางให้ช่วยเติม/บอกเลขข้อ (Aj 2026-09-20 ดึก) */
+interface ExtraItem {
+  id: string;
+  text: string;
+  options: string[];
+  verdict: boolean;
+}
+
 type ItemState = "full" | "partial" | "empty";
 
 function stateOf(item: BankItem | undefined): ItemState {
@@ -58,8 +66,12 @@ export default function RecallDcdPage() {
   useLoginGuard();
   const { user } = useAuth();
   const [bank, setBank]       = useState<Map<number, BankItem> | null>(null);
+  const [extras, setExtras]   = useState<ExtraItem[]>([]);
   const [denied, setDenied]   = useState(false);
   const [active, setActive]   = useState<number | null>(null);
+  // ใบไม่ระบุเลขที่กำลังช่วยเติม (เปิดฟอร์มแบบ prefill เนื้อหาเดิม)
+  const [extraRef, setExtraRef] = useState<ExtraItem | null>(null);
+  const [extraNo, setExtraNo] = useState("");
   const [sentCount, setSentCount] = useState(0);
 
   // ── ฟอร์ม ──
@@ -87,6 +99,7 @@ export default function RecallDcdPage() {
         const m = new Map<number, BankItem>();
         (d.items ?? []).forEach((it: BankItem) => m.set(it.no, it));
         setBank(m);
+        setExtras(d.extras ?? []);
       }
     } catch {}
   }, [user]);
@@ -94,9 +107,17 @@ export default function RecallDcdPage() {
   useEffect(() => { load(); }, [load]);
 
   function open(no: number) {
-    setActive(no);
+    setActive(no); setExtraRef(null); setExtraNo("");
     setText(""); setOptions(["", "", "", ""]); setAnswer(""); setUnsure(false);
     setNote(""); setErr(""); setAjAns("");
+    setTimeout(() => document.getElementById("rv-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  }
+
+  /** ช่วยเติมใบที่ยังไม่มีเลขข้อ — prefill เนื้อหาเดิมให้ เติม/แก้เฉพาะที่รู้เพิ่ม */
+  function openExtra(x: ExtraItem) {
+    setActive(NO_NUMBER); setExtraRef(x); setExtraNo("");
+    setText(x.text); setOptions([0, 1, 2, 3].map((i) => x.options[i] ?? ""));
+    setAnswer(""); setUnsure(false); setNote(""); setErr(""); setAjAns("");
     setTimeout(() => document.getElementById("rv-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   }
 
@@ -107,22 +128,31 @@ export default function RecallDcdPage() {
     if (!hasSomething) { setErr("กรอกอย่างน้อย 1 อย่างนะคะ (โจทย์ / ช้อย / เฉลยที่คิดว่าถูก)"); return; }
     setBusy(true); setErr("");
     try {
+      // โหมดช่วยเติมใบไม่ระบุเลข: ถ้าน้องรู้เลขข้อ ใส่มา → ใบใหม่เข้าเลขนั้นเลย
+      const parsedExtraNo = Number(extraNo);
+      const extraNoOk = Number.isInteger(parsedExtraNo) && parsedExtraNo >= 1 && parsedExtraNo <= RV_TOTAL;
+      const no = active === NO_NUMBER ? (extraNoOk ? parsedExtraNo : null) : active;
       const subId = await submitRecall(
         { uid: user.uid, email: user.email, displayName: user.displayName },
         {
-          no: active === NO_NUMBER ? null : active,
+          no,
           text: text.trim() || "(เติมเฉพาะช้อย/เฉลย — โจทย์ตามที่มีในคลัง)",
           options, answer,
           subject: "", confidence: unsure ? "maybe" : "sure",
-          note: note.trim(), field: "dcd",
+          note: [
+            note.trim(),
+            extraRef ? `เติมให้ใบไม่ระบุเลข (${extraRef.id.slice(0, 8)})` : "",
+            extraRef && extraNoOk ? `น้องระบุว่าเป็นข้อที่ ${parsedExtraNo}` : "",
+          ].filter(Boolean).join(" · "),
+          field: "dcd",
         },
       );
       // admin กรอกเฉลยมาด้วย → ยืนยันให้ทันที ข้อนี้พร้อมเข้าชุดข้อสอบเลย
       // และติ๊ก "ใช้ใบนี้" ให้ใบของ AJ เป็นใบหลัก (เฉลยชี้ช้อยของใบนี้แน่นอน)
       if (admin && ajAns.trim()) {
         await setRecallStatus(subId, "merged").catch(() => {});
-        if (active === NO_NUMBER) await setDcdSubVerdict(subId, "confirmed", ajAns, user.email ?? "admin");
-        else                      await setDcdVerdict(active, "confirmed", ajAns, user.email ?? "admin");
+        if (no === null) await setDcdSubVerdict(subId, "confirmed", ajAns, user.email ?? "admin");
+        else             await setDcdVerdict(no, "confirmed", ajAns, user.email ?? "admin");
       }
       setSentCount((c) => c + 1);
       setActive(null);
@@ -198,11 +228,68 @@ export default function RecallDcdPage() {
             {/* จำเลขข้อไม่ได้ก็ส่งได้ — กันข้อมูลตกหล่น */}
             <button onClick={() => open(NO_NUMBER)}
               className="mt-3 w-full py-3 rounded-xl text-[13.5px] font-bold active:scale-[0.98] transition-transform"
-              style={active === NO_NUMBER
+              style={active === NO_NUMBER && !extraRef
                 ? { backgroundColor: "#B45309", color: "white", border: "1.5px solid #B45309" }
                 : { backgroundColor: "white", color: "#B45309", border: "1.5px dashed #F59E0B" }}>
               ➕ จำเลขข้อไม่ได้ / ไม่แน่ใจว่าข้อไหน — ส่งตรงนี้ได้เลย
             </button>
+
+            {/* ── ข้อที่เริ่มเขียนไว้แต่ยังไม่มีเลขข้อ — ช่วยกันเติมก่อนย้ายเข้าลิสต์ 100 ── */}
+            {extras.length > 0 && (
+              <div className="mt-6">
+                <p className="text-[14px] font-bold text-gray-900">
+                  🧩 ข้อที่ยังไม่มีเลขข้อ · {extras.length} ข้อ
+                </p>
+                <p className="text-[12.5px] mt-0.5 mb-3 leading-relaxed" style={{ color: "#6B7280" }}>
+                  มีข้อมูลบางส่วนแล้ว — ช่วยกันเติมส่วนที่ขาด หรือถ้าจำได้ว่าเป็นข้อที่เท่าไหร่
+                  ช่วยบอกด้วย จะได้ย้ายเข้าลิสต์ 100 ข้อ
+                </p>
+                <div className="space-y-2.5">
+                  {extras.map((x, i) => {
+                    const blank = x.options.map((o, j) => (o ? "" : OPT[j])).filter(Boolean);
+                    return (
+                      <div key={x.id} className="bg-white rounded-2xl px-4 py-3"
+                        style={{ border: extraRef?.id === x.id ? "1.5px solid #B45309" : "1px solid #EBEBEA" }}>
+                        <p className="font-exam text-[13.5px] leading-relaxed text-gray-900 whitespace-pre-line">
+                          <span className="font-bold" style={{ color: "#7C3AED" }}>#{i + 1}</span>{" "}
+                          {x.text || "(ยังไม่มีโจทย์)"}
+                        </p>
+                        {x.options.some(Boolean) && (
+                          <div className="mt-1 space-y-0.5">
+                            {x.options.map((o, j) => o && (
+                              <p key={j} className="font-exam text-[12.5px] text-gray-600">{OPT[j]}. {o}</p>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: "#F3E8FF", color: "#7C3AED" }}>
+                            ยังไม่มีเลขข้อ
+                          </span>
+                          {blank.length > 0 && (
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                              style={{ backgroundColor: "#FEF3C7", color: "#B45309" }}>
+                              ขาดช้อย {blank.join(", ")}
+                            </span>
+                          )}
+                          {x.verdict && (
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                              style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
+                              ✓ เฉลยแล้ว
+                            </span>
+                          )}
+                          <button onClick={() => openExtra(x)}
+                            className="ml-auto text-[12px] font-bold px-3 py-1.5 rounded-lg"
+                            style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
+                            ช่วยเติม / บอกเลขข้อ →
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -211,7 +298,9 @@ export default function RecallDcdPage() {
             style={{ border: "1.5px solid #FCD34D", backgroundColor: "#FFFBEB" }}>
             <div className="flex items-center justify-between gap-2">
               <p className="text-[14.5px] font-bold" style={{ color: "#92400E" }}>
-                {active === NO_NUMBER ? "📝 ส่งความจำ — จำเลขข้อไม่ได้" : `ข้อที่ ${active}`}
+                {extraRef ? "📝 ช่วยเติมข้อที่ยังไม่มีเลข (เนื้อหาเดิมใส่ไว้ให้แล้ว)"
+                  : active === NO_NUMBER ? "📝 ส่งความจำ — จำเลขข้อไม่ได้"
+                  : `ข้อที่ ${active}`}
               </p>
               <button onClick={() => setActive(null)} className="text-[12px] underline" style={{ color: "#B45309" }}>
                 ปิด
@@ -258,6 +347,20 @@ export default function RecallDcdPage() {
               </p>
             ) : null}
 
+            {active === NO_NUMBER && (
+              <div className="flex items-center gap-2 mt-2.5">
+                <span className="text-[12.5px] font-semibold flex-shrink-0" style={{ color: "#92400E" }}>
+                  รู้ว่าเป็นข้อที่
+                </span>
+                <input value={extraNo} onChange={(e) => setExtraNo(e.target.value)}
+                  type="number" min={1} max={RV_TOTAL} placeholder="ไม่รู้เว้นว่าง"
+                  className="w-28 rounded-xl px-3 py-2 text-[16px] bg-white focus:outline-none"
+                  style={INPUT_STYLE} />
+                <span className="text-[11.5px]" style={{ color: "#B45309" }}>
+                  ใส่เลขแล้วข้อนี้จะเข้าลิสต์ 100 ข้อเลย
+                </span>
+              </div>
+            )}
             <p className="text-[12px] mt-2.5 mb-2" style={{ color: "#B45309" }}>
               เติมเฉพาะส่วนที่ขาดก็ได้ (เช่น ช้อยที่หาย หรือแค่เฉลย) — ไม่ต้องพิมพ์ซ้ำของที่มีแล้ว
             </p>

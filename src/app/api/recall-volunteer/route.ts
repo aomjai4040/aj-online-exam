@@ -81,21 +81,38 @@ export async function GET(req: NextRequest) {
       db.collection("recallVerdicts").get(),
     ]);
     const verdictNos = new Set<number>();
+    const verdictSubIds = new Set<string>(); // เฉลยรายใบของใบไม่ระบุเลข (dcd-x-)
     verSnap.forEach((d) => {
+      if (d.data().status !== "confirmed") return;
       const m = /^dcd-(\d+)$/.exec(d.id);
-      if (m && d.data().status === "confirmed") verdictNos.add(Number(m[1]));
+      if (m) { verdictNos.add(Number(m[1])); return; }
+      const mx = /^dcd-x-(.+)$/.exec(d.id);
+      if (mx) verdictSubIds.add(mx[1]);
     });
     type Sub = { no?: unknown; text?: unknown; options?: unknown; status?: unknown;
       createdAt?: { toMillis?: () => number } };
     const byNo = new Map<number, Sub[]>();
+    // ใบที่ยังไม่มีเลขข้อ — โชว์ใต้ตารางให้น้องช่วยเติม/บอกเลขข้อ (Aj 2026-09-20 ดึก)
+    const extras: { id: string; text: string; options: string[]; verdict: boolean; at: number }[] = [];
     subSnap.forEach((d) => {
       const x = d.data() as Sub;
       if (x.status === "rejected") return;
       const no = Number(x.no);
-      if (!Number.isInteger(no) || no < 1 || no > RV_TOTAL) return;
+      if (!Number.isInteger(no) || no < 1 || no > RV_TOTAL) {
+        const opts = Array.isArray(x.options) ? x.options : [];
+        extras.push({
+          id: d.id,
+          text: String(x.text ?? ""),
+          options: [0, 1, 2, 3].map((i) => String(opts[i] ?? "")),
+          verdict: verdictSubIds.has(d.id),
+          at: x.createdAt?.toMillis?.() ?? 0,
+        });
+        return;
+      }
       if (!byNo.has(no)) byNo.set(no, []);
       byNo.get(no)!.push(x);
     });
+    extras.sort((a, b) => a.at - b.at);
     const filledCount = (s: Sub) => (Array.isArray(s.options) ? s.options : []).filter(Boolean).length;
     const items = [...byNo.entries()].map(([no, g]) => {
       // ใบหลัก: กติกาเดียวกับตัวสร้างชุดข้อสอบ (merged ก่อน → ช้อยครบสุด → มาก่อน)
@@ -112,7 +129,10 @@ export async function GET(req: NextRequest) {
         count: g.length,
       };
     }).sort((a, b) => a.no - b.no);
-    return NextResponse.json({ items, total: RV_TOTAL });
+    return NextResponse.json({
+      items, total: RV_TOTAL,
+      extras: extras.map(({ id, text, options, verdict }) => ({ id, text, options, verdict })),
+    });
   }
 
   // ── สถานะของฉัน (สมาชิก คร.) ──
