@@ -213,6 +213,30 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
     </>
   );
 
+  // หลังสอบ: การ์ดพาเข้าคลังความจำ 100 ข้อโดยตรง (Aj 2026-09-20 ค่ำ:
+  // "โผล่มาหน้าลิสต์ข้อ เขียว เหลือง เทา เลย") — ฟอร์มกรอกรวมที่ /recall-dcd ที่เดียว
+  const bankInvite = (
+    <>
+      <p className="text-[14.5px] font-bold" style={{ color: "#92400E" }}>
+        📝 คลังความจำข้อสอบ คร. 69 — ช่วยกันให้ครบ 100 ข้อ
+      </p>
+      <p className="text-[12.5px] mt-1 leading-relaxed" style={{ color: "#B45309" }}>
+        จำข้อไหนได้ส่งข้อนั้น หรือช่วยเติมข้อที่ยังขาดช้อย/เฉลย — ในคลังเห็นเลยว่า
+        ข้อไหน <b>เขียว</b> ครบแล้ว · <b>เหลือง</b> ขาดบางส่วน · เทา ยังว่าง
+      </p>
+      <button onClick={() => { window.location.href = "/recall-dcd"; }}
+        className="mt-3 w-full py-3 rounded-xl text-[14.5px] font-bold text-white active:scale-[0.98] transition-transform"
+        style={{ backgroundColor: "#F59E0B" }}>
+        เปิดคลังความจำ 100 ข้อ →
+      </button>
+      <button onClick={() => dismiss(true)}
+        className="mt-2 w-full py-2 rounded-xl text-[12.5px] font-semibold"
+        style={{ color: "#B45309" }}>
+        ไม่สะดวก — ซ่อนการ์ดไว้ข้างล่าง
+      </button>
+    </>
+  );
+
   // ฟอร์มเปิดให้ทุกคนที่มีคอร์ส คร. — ไม่ได้อาสาไว้ก็ส่งสมทบได้ (Aj 2026-09-20)
   const submitForm = (
     <>
@@ -316,8 +340,8 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
   // ══ slot: top — โชว์เฉพาะตอนต้องตัดสินใจ ══
   if (slot === "top") {
     if (st.phase === "before" && !st.mine && !dismissed) return fullCard(inviteBody);
-    // หลังสอบ: เปิดฟอร์มให้ทุกคน ไม่ต้องเคยรับเลข (Aj 2026-09-20) — ยกเว้นคนกดไม่สะดวก
-    if (st.phase === "after" && !st.submitted && !dismissed) return fullCard(submitForm);
+    // หลังสอบ: การ์ดพาเข้าคลัง 100 ข้อโดยตรง (เขียว/เหลือง/เทา) — ยกเว้นคนกดไม่สะดวก
+    if (st.phase === "after" && !st.submitted && !dismissed) return fullCard(bankInvite);
     return null;
   }
 
@@ -328,36 +352,43 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
 
   const mini = (() => {
     if (st.phase === "after" && st.submitted) {
-      // ส่งได้หลายใบ (Aj 2026-09-20 ค่ำ) — กางกลับมาเป็นฟอร์มส่งเพิ่มได้เสมอ
+      // ส่งแล้วก็ส่งเพิ่ม/เติมข้อที่ขาดได้เสมอ — แตะแล้วพาเข้าคลัง 100 ข้อ
       return {
         icon: "💚", title: st.mine ? `ส่งข้อที่ ${st.mine.no} แล้ว` : "ส่งข้อสอบแล้ว",
-        desc: "ขอบคุณมากค่ะ · แตะเพื่อส่งเพิ่มอีกข้อ", expandable: true,
+        desc: "ขอบคุณมากค่ะ · แตะเปิดคลัง 100 ข้อ ส่งเพิ่ม/เติมข้อที่ขาด",
+        expandable: false, nav: true,
       };
     }
     if (st.phase === "after") {
-      // เคยกด "ไม่สะดวก" ไว้ก่อนสอบ — หลังสอบยังเปิดทางส่งเสมอ
-      return { icon: "📝", title: "ส่งข้อสอบที่จำได้", desc: "จำข้อไหนได้ก็ส่งได้ · แตะเพื่อกรอก", expandable: true };
+      // เคยกด "ไม่สะดวก" ไว้ — หลังสอบยังเปิดทางเข้าคลังเสมอ
+      return {
+        icon: "📝", title: "คลังความจำข้อสอบ 69",
+        desc: "แตะเปิดคลัง 100 ข้อ — ส่งข้อที่จำได้/เติมข้อที่ขาด",
+        expandable: false, nav: true,
+      };
     }
     if (st.mine) {
       return {
         icon: "🙏", title: `อาสาจำข้อที่ ${st.mine.no}`,
         desc: `มีเจ้าภาพแล้ว ${st.mainFilled}/${st.total} · แตะดูรายละเอียด`,
-        expandable: true,
+        expandable: true, nav: false,
       };
     }
     return {
       icon: "🙏", title: "อาสาจำข้อสอบ",
       desc: `มีเจ้าภาพแล้ว ${st.mainFilled}/${st.total} — เปลี่ยนใจร่วมได้ตลอด`,
-      expandable: true,
+      expandable: true, nav: false,
     };
   })();
 
   return (
     <div className="mt-3">
       <button type="button"
-        onClick={() => mini.expandable && setExpanded((e) => !e)}
+        onClick={() => mini.nav
+          ? (window.location.href = "/recall-dcd")
+          : mini.expandable && setExpanded((e) => !e)}
         className={`card-elev px-4 py-4 flex items-center gap-3 w-full text-left ${
-          mini.expandable ? "card-elev-hover active:scale-[0.98]" : ""}`}>
+          mini.expandable || mini.nav ? "card-elev-hover active:scale-[0.98]" : ""}`}>
         <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-[19px]"
           style={{ backgroundColor: "#FDF6E9" }}>
           {mini.icon}
@@ -366,9 +397,9 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
           <p className="font-bold text-[15px] text-gray-900 leading-tight truncate">{mini.title}</p>
           <p className="text-[12.5px] mt-0.5 truncate text-gray-500">{mini.desc}</p>
         </div>
-        {mini.expandable && (
+        {(mini.expandable || mini.nav) && (
           <span className="text-[13px] flex-shrink-0" style={{ color: "#C4C4C0" }}>
-            {expanded ? "▴" : "▾"}
+            {mini.nav ? "→" : expanded ? "▴" : "▾"}
           </span>
         )}
       </button>
