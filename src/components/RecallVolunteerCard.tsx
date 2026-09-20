@@ -98,14 +98,18 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
   const [altNo, setAltNo]     = useState("");
   // เผื่อข้อสอบมีหลายชุดสลับข้อ (Aj 2026-09-19) — ติดไปกับ note ให้ admin แยกชุดได้
   const [examSet, setExamSet] = useState("");
+  // ส่งได้หลายใบ (Aj 2026-09-20 ค่ำ) — นับที่ส่งในรอบนี้ไว้โชว์กำลังใจ
+  const [sentCount, setSentCount] = useState(0);
 
   async function send() {
     if (!user || busy || !text.trim() || !st) return;
     setBusy(true); setErr("");
     try {
+      // ใบที่ 2 เป็นต้นไป (เคยส่งแล้ว) — เลขข้อเอาจากช่องกรอกเสมอ
+      const more = st.submitted;
       // ไม่ได้อาสาไว้ก็ส่งได้ (Aj 2026-09-20) — ใช้เลขจากช่องกรอกแทน
       const parsed = Number(altNo);
-      const no = st.mine && !flexNo
+      const no = !more && st.mine && !flexNo
         ? st.mine.no
         : (Number.isInteger(parsed) && parsed >= 1 && parsed <= st.total ? parsed : null);
       await submitRecall(
@@ -115,12 +119,17 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
           subject: "", confidence: unsure ? "maybe" : "sure",
           note: [
             examSet.trim() ? `ชุดข้อสอบ: ${examSet.trim()}` : "",
-            st.mine && flexNo ? `อาสาข้อที่ ${st.mine.no} แต่ส่งข้ออื่นแทน` : "",
-            !st.mine ? "ส่งสมทบ (ไม่ได้รับเลขอาสา)" : "",
+            !more && st.mine && flexNo ? `อาสาข้อที่ ${st.mine.no} แต่ส่งข้ออื่นแทน` : "",
+            !more && !st.mine ? "ส่งสมทบ (ไม่ได้รับเลขอาสา)" : "",
+            more ? "ส่งเพิ่มเติม" : "",
           ].filter(Boolean).join(" · "),
           field: "dcd",
         },
       );
+      // เคลียร์ฟอร์มรอใบต่อไป (คงชุดข้อสอบไว้ — ใบเดียวกันทั้งรอบ)
+      setText(""); setOptions(["", "", "", ""]); setAnswer("");
+      setUnsure(false); setFlexNo(false); setAltNo("");
+      setSentCount((c) => c + 1);
       await load(); poke();
     } catch { setErr("ส่งไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"); }
     finally { setBusy(false); }
@@ -208,22 +217,32 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
   const submitForm = (
     <>
       <p className="text-[14.5px] font-bold" style={{ color: "#92400E" }}>
-        {st.mine
+        {st.submitted
+          ? <>📝 ส่งเพิ่มอีกข้อ — จำข้อไหนได้ส่งได้เลย</>
+          : st.mine
           ? <>📝 สอบเสร็จแล้ว — ส่งข้อที่ <span className="text-[18px]">{st.mine.no}</span> ที่คุณอาสาจำ</>
           : <>📝 สอบเสร็จแล้ว — ส่งข้อสอบที่จำได้</>}
       </p>
       <p className="text-[12px] mt-0.5 mb-2" style={{ color: "#B45309" }}>
-        ไม่ต้องเป๊ะทุกคำ จับใจความได้ก็มีค่ามากแล้ว
-        {!st.mine && " — ไม่ได้รับเลขอาสาไว้ก็ส่งได้เลยค่ะ"}
+        {st.submitted
+          ? "ส่งกี่ข้อก็ได้ ยิ่งเยอะยิ่งช่วยรุ่นต่อไป 💛"
+          : <>ไม่ต้องเป๊ะทุกคำ จับใจความได้ก็มีค่ามากแล้ว
+            {!st.mine && " — ไม่ได้รับเลขอาสาไว้ก็ส่งได้เลยค่ะ"}</>}
       </p>
+      {sentCount > 0 && (
+        <p className="text-[12px] mb-2 rounded-lg px-2.5 py-1.5"
+          style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}>
+          💚 ส่งแล้ว {sentCount} ใบ ขอบคุณมากค่ะ — ฟอร์มพร้อมรับข้อต่อไป
+        </p>
+      )}
       {/* ทางหนีไฟ: ลืม/จำข้อตัวเองไม่ได้ → ส่งข้ออื่นที่จำได้แทน มีค่าเท่ากัน */}
-      {st.mine && (
+      {st.mine && !st.submitted && (
         <button type="button" onClick={() => setFlexNo((f) => !f)}
           className="text-[12px] underline mb-2 block" style={{ color: "#B45309" }}>
           {flexNo ? "← กลับไปส่งข้อของตัวเอง" : "จำข้อของตัวเองไม่ได้? ส่งข้ออื่นที่จำได้แทน (มีค่าเท่ากัน)"}
         </button>
       )}
-      {(flexNo || !st.mine) && (
+      {(flexNo || !st.mine || st.submitted) && (
         <div className="flex items-center gap-2 mb-2">
           <span className="text-[12.5px] font-semibold" style={{ color: "#92400E" }}>ข้อที่จะส่งคือข้อที่</span>
           <input value={altNo} onChange={(e) => setAltNo(e.target.value)}
@@ -244,7 +263,7 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
           style={INPUT_STYLE} />
       </div>
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
-        placeholder={st.mine && !flexNo ? `โจทย์ข้อที่ ${st.mine.no} ที่จำได้…` : "โจทย์ข้อที่จำได้…"}
+        placeholder={st.mine && !flexNo && !st.submitted ? `โจทย์ข้อที่ ${st.mine.no} ที่จำได้…` : "โจทย์ข้อที่จำได้…"}
         className={INPUT} style={INPUT_STYLE} />
       <div className="grid grid-cols-2 gap-2 mt-2">
         {options.map((o, i) => (
@@ -273,8 +292,14 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
       <button onClick={send} disabled={busy || !text.trim()}
         className="mt-3 w-full py-3 rounded-xl text-[14.5px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-40"
         style={{ backgroundColor: BRAND.primary }}>
-        {busy ? "กำลังส่ง…" : st.mine && !flexNo ? `ส่งข้อที่ ${st.mine.no} 💚` : "ส่งข้อที่จำได้ 💚"}
+        {busy ? "กำลังส่ง…"
+          : st.mine && !flexNo && !st.submitted ? `ส่งข้อที่ ${st.mine.no} 💚`
+          : "ส่งข้อที่จำได้ 💚"}
       </button>
+      <a href="/recall-dcd" className="text-[12px] underline mt-2 block text-center"
+        style={{ color: "#B45309" }}>
+        เปิดคลังความจำ 100 ข้อ — ดูว่าข้อไหนยังว่าง →
+      </a>
     </>
   );
 
@@ -303,9 +328,10 @@ export default function RecallVolunteerCard({ slot }: { slot: "top" | "menu" }) 
 
   const mini = (() => {
     if (st.phase === "after" && st.submitted) {
+      // ส่งได้หลายใบ (Aj 2026-09-20 ค่ำ) — กางกลับมาเป็นฟอร์มส่งเพิ่มได้เสมอ
       return {
         icon: "💚", title: st.mine ? `ส่งข้อที่ ${st.mine.no} แล้ว` : "ส่งข้อสอบแล้ว",
-        desc: "ขอบคุณมากค่ะ", expandable: false,
+        desc: "ขอบคุณมากค่ะ · แตะเพื่อส่งเพิ่มอีกข้อ", expandable: true,
       };
     }
     if (st.phase === "after") {
