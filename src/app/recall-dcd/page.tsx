@@ -19,6 +19,8 @@ import { RV_TOTAL } from "@/lib/recall-volunteer";
 import { BRAND } from "@/lib/subjects";
 
 const OPT = ["ก", "ข", "ค", "ง"];
+/** ค่า active สำหรับ "จำเลขข้อไม่ได้" — ส่งเป็น no: null */
+const NO_NUMBER = -1;
 
 export default function RecallDcdPage() {
   useLoginGuard();
@@ -69,13 +71,16 @@ export default function RecallDcdPage() {
       await submitRecall(
         { uid: user.uid, email: user.email, displayName: user.displayName },
         {
-          no: active, text, options, answer,
+          no: active === NO_NUMBER ? null : active,
+          text, options, answer,
           subject: "", confidence: unsure ? "maybe" : "sure",
           note: note.trim(), field: "dcd",
         },
       );
       setSentNos((p) => new Set(p).add(active));
-      setFilled((p) => { const n = new Set(p ?? []); n.add(active); return n; });
+      if (active !== NO_NUMBER) {
+        setFilled((p) => { const n = new Set(p ?? []); n.add(active); return n; });
+      }
       setActive(null);
     } catch { setErr("ส่งไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"); }
     finally { setBusy(false); }
@@ -141,6 +146,15 @@ export default function RecallDcdPage() {
                 );
               })}
             </div>
+
+            {/* จำเลขข้อไม่ได้ก็ส่งได้ — กันข้อมูลตกหล่น (Aj 2026-09-20 ค่ำ) */}
+            <button onClick={() => open(NO_NUMBER)}
+              className="mt-3 w-full py-3 rounded-xl text-[13.5px] font-bold active:scale-[0.98] transition-transform"
+              style={active === NO_NUMBER
+                ? { backgroundColor: "#B45309", color: "white", border: "1.5px solid #B45309" }
+                : { backgroundColor: "white", color: "#B45309", border: "1.5px dashed #F59E0B" }}>
+              ➕ จำเลขข้อไม่ได้ / ไม่แน่ใจว่าข้อไหน — ส่งตรงนี้ได้เลย
+            </button>
           </>
         )}
 
@@ -149,8 +163,8 @@ export default function RecallDcdPage() {
             style={{ border: "1.5px solid #FCD34D", backgroundColor: "#FFFBEB" }}>
             <div className="flex items-center justify-between gap-2">
               <p className="text-[14.5px] font-bold" style={{ color: "#92400E" }}>
-                📝 ส่งความจำ — ข้อที่ {active}
-                {filled?.has(active) && !sentNos.has(active) && (
+                {active === NO_NUMBER ? "📝 ส่งความจำ — จำเลขข้อไม่ได้" : `📝 ส่งความจำ — ข้อที่ ${active}`}
+                {active !== NO_NUMBER && filled?.has(active) && !sentNos.has(active) && (
                   <span className="text-[11.5px] font-semibold ml-1.5" style={{ color: "#B45309" }}>
                     (มีคนส่งแล้ว ส่งเสริมได้)
                   </span>
@@ -164,7 +178,7 @@ export default function RecallDcdPage() {
               จำได้แค่บางส่วนก็ส่งได้ — โจทย์อย่างเดียว หรือช้อยบางตัวก็มีค่ามากแล้ว
             </p>
             <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
-              placeholder={`โจทย์ข้อที่ ${active} เท่าที่จำได้…`}
+              placeholder={active === NO_NUMBER ? "โจทย์เท่าที่จำได้ (ไม่ต้องรู้ว่าข้อไหน)…" : `โจทย์ข้อที่ ${active} เท่าที่จำได้…`}
               className={INPUT} style={INPUT_STYLE} />
             <div className="grid grid-cols-1 gap-2 mt-2">
               {options.map((o, i) => (
@@ -202,7 +216,7 @@ export default function RecallDcdPage() {
             <button onClick={send} disabled={busy || !text.trim()}
               className="mt-3 w-full py-3 rounded-xl text-[14.5px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-40"
               style={{ backgroundColor: BRAND.primary }}>
-              {busy ? "กำลังส่ง…" : `ส่งความจำข้อที่ ${active} 💚`}
+              {busy ? "กำลังส่ง…" : active === NO_NUMBER ? "ส่งความจำ 💚" : `ส่งความจำข้อที่ ${active} 💚`}
             </button>
             {err && <p className="text-[12px] mt-2" style={{ color: "#DC2626" }}>{err}</p>}
           </div>

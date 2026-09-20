@@ -68,9 +68,11 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // ── เลขข้อที่มีใบส่งแล้ว (สมาชิก คร. — ใช้ในหน้าคลังความจำ 100 ข้อ) ──
+  // ── เลขข้อที่มีใบส่งแล้ว (สมาชิก คร. หรือ admin — ใช้ในหน้าคลังความจำ 100 ข้อ) ──
   if (req.nextUrl.searchParams.get("nos") === "1") {
-    if (!(await hasDcd(user.uid))) return NextResponse.json({ error: "no-access" }, { status: 403 });
+    if (!isAdmin(user.email) && !(await hasDcd(user.uid))) {
+      return NextResponse.json({ error: "no-access" }, { status: 403 });
+    }
     const snap = await db.collection("recallSubmissions")
       .where("field", "==", "dcd").select("no").get();
     const filled = new Set<number>();
