@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getExam, saveResult } from "@/lib/firestore";
-import { fetchExamQuestions, gradeExam, ExamApiError } from "@/lib/exam-client";
+import { fetchExamFull, fetchExamQuestions, gradeExam, ExamApiError } from "@/lib/exam-client";
 import { saveRecord } from "@/lib/exam-history";
 import { saveUserRecord } from "@/lib/user-firestore";
 import { recordExamMistakes } from "@/lib/smart-review";
@@ -155,6 +155,8 @@ export default function ExamPage() {
   const [saved,     setSaved]     = useState<SavedProgress | null>(null);
   const [grading,   setGrading]   = useState(false); // กำลังส่งคำตอบให้ server ตรวจ
   const [hasFull,   setHasFull]   = useState(false); // คอร์สเต็ม → โค้ชลิงก์ชีท/คลิปตรงบทได้
+  // โหมดเฉลยทันที (เฉพาะชุดฉบับความทรงจำ) — qid → เฉลย; null = โหมดปกติ
+  const [answerKey, setAnswerKey] = useState<Map<string, { correctAnswer: number; explanation: string }> | null>(null);
 
   const startRef    = useRef<number>(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -194,6 +196,17 @@ export default function ExamPage() {
       // มีสิทธิ์ → ดึง "โจทย์ไม่มีเฉลย" จาก API (เฉลยอยู่ฝั่ง server จนกว่าจะส่งคำตอบ)
       const qs = await fetchExamQuestions(user, id);
       if (qs.length === 0) { setExam(e); setPhase("error"); return; }
+      // ชุดฉบับความทรงจำ = โหมดเฉลยทันที (Aj 2026-09-21: น้องอยากรู้รายข้อ
+      // ว่าที่ตอบในห้องสอบถูกไหม ไม่ต้องรอทำครบชุด) — ดึงเฉลยมารอไว้เลย
+      // แตะช้อยแล้วล็อกทันที คะแนนตอนส่งจึงยังตรงตามการตอบครั้งแรก
+      if (isMemoryExam(e)) {
+        try {
+          const full = await fetchExamFull(user, id);
+          const key = new Map<string, { correctAnswer: number; explanation: string }>();
+          full.forEach((q) => key.set(q.id, { correctAnswer: q.correctAnswer, explanation: q.explanation }));
+          setAnswerKey(key);
+        } catch { /* ดึงเฉลยไม่ได้ → เล่นโหมดปกติ */ }
+      }
       setExam(e);
       setQuestions(qs);
       answersRef.current = new Array(qs.length).fill(-1);
@@ -271,6 +284,8 @@ export default function ExamPage() {
   }
 
   function select(optIdx: number) {
+    // โหมดเฉลยทันที: ตอบแล้วล็อกเลย (เฉลยโชว์อยู่ เปลี่ยนคำตอบไม่ได้ — คะแนนจึงตรง)
+    if (answerKey && answersRef.current[current] !== -1) return;
     const n = [...answersRef.current];
     n[current] = optIdx;
     setAnswersBoth(n);
@@ -540,7 +555,9 @@ export default function ExamPage() {
                 📝 ชุดนี้รวมจากความจำของรุ่นพี่ — อัปเดตเพิ่มเรื่อย ๆ
               </p>
               <p className="text-[12.5px] leading-relaxed" style={{ color: "#B45309" }}>
-                ระหว่างทำ ถ้าจำข้อไหนได้ต่าง/ครบกว่า กดส่งความจำใต้ข้อนั้นได้เลย ·
+                <b>ชุดนี้เฉลยทันทีทุกข้อ</b> — แตะช้อยแล้วล็อกเลย เห็นถูก/ผิด+คำอธิบายทันที
+                อยากเช็คเฉพาะบางข้อก็เลื่อนไปข้อนั้นได้เลย ·
+                ระหว่างทำ ถ้าจำข้อไหนได้ต่าง/ครบกว่า กดส่งความจำใต้ข้อนั้นได้ ·
                 ดูครบทั้ง 100 ข้อ + ช่วยเติมข้อที่ยังว่างได้ที่{" "}
                 <Link href="/recall-dcd" className="underline font-semibold">คลังความจำ 100 ข้อ →</Link>
               </p>
@@ -951,6 +968,17 @@ export default function ExamPage() {
         <div className="space-y-3">
           {q.options.map((opt, oi) => {
             const selected = answers[current] === oi;
+            // โหมดเฉลยทันที (ชุดฉบับความทรงจำ): ตอบแล้วระบายสีถูก/ผิดเลย
+            const ik = answerKey?.get(q.id);
+            const revealed = Boolean(ik && answers[current] !== -1);
+            const isRight = revealed && oi === ik!.correctAnswer;
+            const isWrongPick = revealed && selected && oi !== ik!.correctAnswer;
+            const bg = isRight ? "#EBF5F3" : isWrongPick ? "#FEF2F2" : selected ? "#EBF5F3" : "white";
+            const border = isRight ? "1.5px solid #0B6E65"
+              : isWrongPick ? "1.5px solid #EF4444"
+              : selected ? "1.5px solid #0B6E65" : "1px solid #EBEBEA";
+            const badgeBg = isRight ? "#0B6E65" : isWrongPick ? "#EF4444"
+              : selected ? "#0B6E65" : "#F5F5F3";
             return (
               <button
                 key={oi}
@@ -958,9 +986,10 @@ export default function ExamPage() {
                 className="w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-2xl
                            transition-all duration-150 active:scale-[0.98]"
                 style={{
-                  backgroundColor: selected ? "#EBF5F3" : "white",
-                  border: selected ? "1.5px solid #0B6E65" : "1px solid #EBEBEA",
-                  boxShadow: selected ? "0 0 0 3px rgba(11,110,101,0.08)" : "none",
+                  backgroundColor: bg,
+                  border,
+                  boxShadow: selected && !revealed ? "0 0 0 3px rgba(11,110,101,0.08)" : "none",
+                  opacity: revealed && !isRight && !isWrongPick ? 0.55 : 1,
                 }}
               >
                 {/* Letter badge */}
@@ -968,17 +997,18 @@ export default function ExamPage() {
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
                              text-[13px] font-bold transition-all duration-150"
                   style={{
-                    backgroundColor: selected ? "#0B6E65" : "#F5F5F3",
-                    color:           selected ? "white"   : "#6B6B6A",
+                    backgroundColor: badgeBg,
+                    color: isRight || isWrongPick || selected ? "white" : "#6B6B6A",
                   }}
                 >
-                  {OPTS[oi]}
+                  {isRight ? "✓" : isWrongPick ? "✗" : OPTS[oi]}
                 </div>
                 <span
                   className="font-exam text-[16px] leading-snug transition-colors duration-150"
                   style={{
-                    color:      selected ? "#0B6E65" : "#374151",
-                    fontWeight: selected ? 600 : 400,
+                    color: isRight ? "#0B6E65" : isWrongPick ? "#DC2626"
+                      : selected ? "#0B6E65" : "#374151",
+                    fontWeight: isRight || selected ? 600 : 400,
                   }}
                 >
                   {opt}
@@ -987,6 +1017,28 @@ export default function ExamPage() {
             );
           })}
         </div>
+
+        {/* โหมดเฉลยทันที: ผลตอบ + คำอธิบายของข้อนี้ */}
+        {answerKey && answers[current] !== -1 && (() => {
+          const ik = answerKey.get(q.id);
+          if (!ik) return null;
+          const right = answers[current] === ik.correctAnswer;
+          return (
+            <div className="mt-4 rounded-2xl px-4 py-3"
+              style={{ backgroundColor: right ? "#F0FDF4" : "#FEF2F2",
+                       border: `1px solid ${right ? "#BBF7D0" : "#FECACA"}` }}>
+              <p className="text-[14px] font-bold" style={{ color: right ? "#15803D" : "#DC2626" }}>
+                {right ? "✓ ถูกต้องค่ะ!" : `✗ ยังไม่ถูก — เฉลยคือข้อ ${OPTS[ik.correctAnswer]}.`}
+              </p>
+              {ik.explanation && (
+                <p className="font-exam text-[13.5px] mt-1.5 leading-relaxed whitespace-pre-line"
+                  style={{ color: "#57534E" }}>
+                  {ik.explanation}
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ชุดฉบับความทรงจำ: ส่งความจำเพิ่มได้จากทุกข้อ */}
         {isMemoryExam(exam) && memoryNoOf(q.text) !== null && (
