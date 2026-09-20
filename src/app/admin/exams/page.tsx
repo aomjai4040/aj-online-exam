@@ -2,15 +2,33 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAllExams, deleteExam, togglePublish } from "@/lib/firestore";
+import { useAuth } from "@/lib/auth-context";
 import type { Exam } from "@/lib/types";
 
+/** จำนวนคนทำ (ไม่ซ้ำ) + จำนวนครั้ง ต่อชุด — จาก /api/admin/exam-stats */
+type ExamStat = { users: number; attempts: number };
+
 export default function AdminExamsPage() {
+  const { user } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
+  const [stats, setStats] = useState<Record<string, ExamStat> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     load();
   }, []);
+
+  // สถิติคนทำต่อชุด (Aj 2026-09-21) — โหลดแยก ไม่บล็อกรายการหลัก
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    user.getIdToken()
+      .then((t) => fetch("/api/admin/exam-stats", { headers: { Authorization: `Bearer ${t}` } }))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d) setStats(d.stats ?? {}); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user]);
 
   async function load() {
     setLoading(true);
@@ -79,6 +97,13 @@ export default function AdminExamsPage() {
                 <p className="text-sm text-gray-500 mt-0.5">
                   {exam.subject} · {exam.questionCount} ข้อ
                   {exam.timeLimit > 0 ? ` · ${exam.timeLimit} นาที` : ""}
+                  {stats && (
+                    stats[exam.id]
+                      ? <span className="font-semibold" style={{ color: "#0B6E65" }}>
+                          {" "}· 👥 {stats[exam.id].users} คน · ทำ {stats[exam.id].attempts} ครั้ง
+                        </span>
+                      : <span style={{ color: "#C4C4C0" }}> · ยังไม่มีคนทำ</span>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
