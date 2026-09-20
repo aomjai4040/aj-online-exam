@@ -19,8 +19,9 @@ import {
   crowdAnswerFor, crowdNoteFor, type RecallSeedItem,
 } from "@/lib/recall-seed";
 import { RV_TOTAL } from "@/lib/recall-volunteer";
+import { createExam, findExamByTitle, updateExam } from "@/lib/firestore";
 import { BRAND, subjectColor } from "@/lib/subjects";
-import { SUBJECT_DISPLAY } from "@/lib/types";
+import { SUBJECT_DISPLAY, type ExamForm, type QuestionForm } from "@/lib/types";
 
 const OPT = ["ก", "ข", "ค", "ง"];
 type Filter = "pending" | "all" | "newq" | "crowd";
@@ -119,7 +120,7 @@ function SubmissionRow({
                 className={`${EDIT_INPUT} font-exam`} style={EDIT_STYLE} placeholder={`ช้อย ${OPT[i]}.`} />
             </div>
           ))}
-          <input value={eAns} onChange={(e) => setEAns(e.target.value)}
+          <textarea value={eAns} onChange={(e) => setEAns(e.target.value)} rows={2}
             className={`${EDIT_INPUT} font-exam`} style={EDIT_STYLE} placeholder="เฉลย (ที่น้องตอบ/เดา)" />
           <input value={eNote} onChange={(e) => setENote(e.target.value)}
             className={EDIT_INPUT} style={EDIT_STYLE} placeholder="หมายเหตุ" />
@@ -139,7 +140,7 @@ function SubmissionRow({
       ) : (
         <>
           {(s.no === null || showText) && (
-            <p className="font-exam text-[14px] leading-relaxed text-gray-900 mb-1.5">{s.text}</p>
+            <p className="font-exam text-[14px] leading-relaxed text-gray-900 mb-1.5 whitespace-pre-line">{s.text}</p>
           )}
 
           {s.options.length > 0 && (
@@ -153,13 +154,13 @@ function SubmissionRow({
           )}
 
           {s.answer && (
-            <p className="font-exam text-[13.5px] leading-relaxed mb-1.5" style={{ color: "#15803D" }}>
+            <p className="font-exam text-[13.5px] leading-relaxed mb-1.5 whitespace-pre-line" style={{ color: "#15803D" }}>
               ✓ {s.answer}
             </p>
           )}
 
           {s.note && (
-            <p className="text-[12px] rounded-lg px-2.5 py-1.5 mb-1.5"
+            <p className="text-[12px] rounded-lg px-2.5 py-1.5 mb-1.5 whitespace-pre-line"
               style={{ backgroundColor: "#F5FAF9", color: "#0B6E65" }}>
               💬 {s.note}
             </p>
@@ -235,7 +236,7 @@ function VerdictBox({
           <p className="text-[12px] font-bold mb-1" style={{ color: "#15803D" }}>
             ✓ ยืนยันแล้ว — สมาชิกเห็นเฉลยนี้ในหน้า /recall
           </p>
-          <p className="font-exam text-[13.5px] leading-relaxed mb-2" style={{ color: "#15803D" }}>
+          <p className="font-exam text-[13.5px] leading-relaxed mb-2 whitespace-pre-line" style={{ color: "#15803D" }}>
             {verdict.answer}
           </p>
           <button onClick={() => onClear(item.no)}
@@ -362,6 +363,136 @@ function DcdVolunteerPanel() {
   );
 }
 
+// ─── สร้างชุดข้อสอบจากความจำ คร.69 (Aj 2026-09-20: "นำเข้าให้น้องเข้าตอบ") ────
+//
+// กติกาข้อที่ "พร้อม": Aj กดยืนยันเฉลย (กล่องเหลือง) + ใบหลักมีช้อยครบ 4 +
+// เฉลยจับคู่กับช้อยได้ (ก-ง หรือข้อความตรงกับช้อย) — ที่เหลือรายงานว่าติดอะไร
+// สร้างเป็น Mock (packageId dcd-2026) เริ่มแบบยังไม่เผยแพร่ ให้ Aj ตรวจก่อนปล่อย
+
+const DCD_RECALL_TITLE = "ข้อสอบจริง คร. 69 ฉบับความทรงจำ";
+
+/** จับคู่เฉลยครูอ้อม (เช่น "ข" / "ข." / ข้อความเต็ม) → index 0-3 · -1 = จับคู่ไม่ได้ */
+function dcdAnswerIndex(answer: string, options: string[]): number {
+  const a = answer.trim();
+  const li = OPT.indexOf(a.replace(/[.\s)()]/g, "").charAt(0));
+  if (li >= 0) return li;
+  const norm = (s: string) => s.replace(/\s+/g, "").toLowerCase();
+  const exact = options.findIndex((o) => norm(o) === norm(a));
+  if (exact >= 0) return exact;
+  return options.findIndex((o) => norm(o).length > 3 && (norm(a).includes(norm(o)) || norm(o).includes(norm(a))));
+}
+
+/** เลือกใบหลักของข้อ: ใบที่กด "ใช้ใบนี้" ก่อน → ช้อยครบสุด → มาก่อน */
+function primarySub(g: RecallSubmission[]): RecallSubmission {
+  return [...g].sort((a, b) =>
+    Number(b.status === "merged") - Number(a.status === "merged")
+    || b.options.length - a.options.length
+    || (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0))[0];
+}
+
+function buildDcdQuestions(
+  subs: RecallSubmission[], verdicts: Record<number, RecallVerdict>,
+): { qs: QuestionForm[]; skipped: { no: number; why: string }[] } {
+  const map = new Map<number, RecallSubmission[]>();
+  for (const s of subs) {
+    if (s.no === null || s.status === "rejected") continue;
+    if (!map.has(s.no)) map.set(s.no, []);
+    map.get(s.no)!.push(s);
+  }
+  const qs: QuestionForm[] = [];
+  const skipped: { no: number; why: string }[] = [];
+  for (const no of [...map.keys()].sort((a, b) => a - b)) {
+    const v = verdicts[no];
+    if (!v || v.status !== "confirmed") { skipped.push({ no, why: "ยังไม่ยืนยันเฉลย" }); continue; }
+    const p = primarySub(map.get(no)!);
+    if (p.options.length !== 4) { skipped.push({ no, why: `ช้อยมี ${p.options.length}/4` }); continue; }
+    const idx = dcdAnswerIndex(v.answer, p.options);
+    if (idx < 0) { skipped.push({ no, why: "เฉลยจับคู่กับช้อยไม่ได้" }); continue; }
+    qs.push({
+      text: `(ข้อจริงข้อที่ ${no}) ${p.text}`,
+      options: [p.options[0], p.options[1], p.options[2], p.options[3]],
+      correctAnswer: idx,
+      explanation: v.answer.replace(/[.\s)()]/g, "").length > 1 ? `เฉลยครูอ้อม: ${v.answer}` : "",
+    });
+  }
+  return { qs, skipped };
+}
+
+function DcdBuildExamPanel({
+  subs, verdicts,
+}: { subs: RecallSubmission[]; verdicts: Record<number, RecallVerdict> }) {
+  const [building, setBuilding] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [showSkipped, setShowSkipped] = useState(false);
+
+  const { qs, skipped } = useMemo(() => buildDcdQuestions(subs, verdicts), [subs, verdicts]);
+
+  async function build() {
+    if (building || qs.length === 0) return;
+    if (!confirm(`สร้าง/อัปเดตชุด "${DCD_RECALL_TITLE}" ${qs.length} ข้อ?`)) return;
+    setBuilding(true); setMsg("");
+    try {
+      const existing = await findExamByTitle(DCD_RECALL_TITLE, "dcd");
+      const form: ExamForm = {
+        title: DCD_RECALL_TITLE,
+        description: "รวมจากอาสาจำข้อสอบ 20 ก.ย. 69 — เฉลยโดยครูอ้อม (ฉบับความทรงจำ ไม่ใช่ข้อสอบทางการ)",
+        subject: "MOCK",
+        timeLimit: 0,
+        isPublished: existing?.isPublished ?? false,
+        isMock: true,
+        packageId: "dcd-2026",
+        questions: qs,
+      };
+      if (existing) await updateExam(existing.id, form);
+      else await createExam(form);
+      setMsg(`✓ บันทึกแล้ว ${qs.length} ข้อ${existing ? " (อัปเดตชุดเดิม — กดซ้ำได้เรื่อย ๆ)" : ""}`
+        + (existing?.isPublished ? " · เผยแพร่อยู่ น้องเห็นเวอร์ชันใหม่ทันที"
+           : " · ยังไม่เผยแพร่ — ตรวจแล้วไปกดเผยแพร่ที่ จัดการข้อสอบ"));
+    } catch (e) {
+      const err = e as Error;
+      setMsg(`✗ ไม่สำเร็จ: ${err.message ?? err}`);
+    } finally { setBuilding(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: "1.5px solid #A7F3D0" }}>
+      <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+        🚀 สร้างเป็นชุดข้อสอบให้น้องทำ
+      </p>
+      <p className="text-[12.5px] leading-relaxed mb-3" style={{ color: "#6B7280" }}>
+        ข้อที่จะเข้าไปในชุด = ข้อที่ <b>ยืนยันเฉลยแล้ว (✓ กล่องเหลือง)</b> และช้อยครบ 4 —
+        ตอนนี้พร้อม <b style={{ color: "#15803D" }}>{qs.length} ข้อ</b>
+        {skipped.length > 0 && <> · ยังติด {skipped.length} ข้อ</>}
+      </p>
+      <div className="flex items-center gap-2 flex-wrap">
+        <button onClick={build} disabled={building || qs.length === 0}
+          className="text-[13px] font-bold px-4 py-2.5 rounded-xl text-white disabled:opacity-40"
+          style={{ backgroundColor: "#0B6E65" }}>
+          {building ? "กำลังบันทึก…" : `สร้าง/อัปเดตชุด (${qs.length} ข้อ)`}
+        </button>
+        {skipped.length > 0 && (
+          <button onClick={() => setShowSkipped((x) => !x)}
+            className="text-[12px] font-semibold underline" style={{ color: "#B45309" }}>
+            {showSkipped ? "ซ่อนข้อที่ยังติด" : "ดูข้อที่ยังติด"}
+          </button>
+        )}
+      </div>
+      {msg && (
+        <p className="text-[12.5px] mt-2.5 leading-relaxed font-semibold"
+          style={{ color: msg.startsWith("✓") ? "#15803D" : "#DC2626" }}>
+          {msg}
+        </p>
+      )}
+      {showSkipped && skipped.length > 0 && (
+        <div className="mt-2.5 text-[12px] leading-relaxed rounded-xl px-3 py-2"
+          style={{ backgroundColor: "#FFFBEB", color: "#B45309" }}>
+          {skipped.map((s) => <p key={s.no}>ข้อ {s.no} — {s.why}</p>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── ใบส่งสนาม คร.69 — จัดกลุ่มตามเลขข้อ 1–100 (Aj 2026-09-20) ─────────────────
 
 /** กล่องเฉลยครูอ้อมต่อข้อ (คร.) — เก็บที่ recallVerdicts/dcd-{no} */
@@ -379,7 +510,8 @@ function DcdVerdictBox({
     return (
       <div className="rounded-xl px-3.5 py-2.5 mt-2.5 flex items-start gap-2 flex-wrap"
         style={{ backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0" }}>
-        <p className="font-exam text-[13.5px] leading-relaxed flex-1 min-w-0" style={{ color: "#15803D" }}>
+        <p className="font-exam text-[13.5px] leading-relaxed flex-1 min-w-0 whitespace-pre-line"
+          style={{ color: "#15803D" }}>
           <b>✓ เฉลยครูอ้อม:</b> {verdict.answer}
         </p>
         <button onClick={async () => { setBusy(true); await onClear(no); setBusy(false); }}
@@ -397,10 +529,10 @@ function DcdVerdictBox({
         เฉลยครูอ้อมข้อนี้ (พิมพ์แล้วกดยืนยัน)
       </p>
       <div className="flex gap-2 items-start">
-        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
+        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2}
           className="flex-1 rounded-lg px-2.5 py-1.5 text-[13px] font-exam bg-white focus:outline-none"
           style={{ border: "1px solid #E0DFDC" }}
-          placeholder="เช่น ข. หรือพิมพ์คำตอบเต็ม" />
+          placeholder="เช่น ข. หรือพิมพ์คำตอบเต็ม (ขึ้นบรรทัดใหม่ได้)" />
         <button
           onClick={async () => { if (!draft.trim()) return; setBusy(true); await onSave(no, draft); setBusy(false); }}
           disabled={busy || !draft.trim()}
@@ -729,6 +861,7 @@ export default function AdminRecallPage() {
           <>
             {/* อาสาจำข้อสอบ คร.69 (Aj 2026-09-17) */}
             <DcdVolunteerPanel />
+            <DcdBuildExamPanel subs={dcdSubs} verdicts={dcdVerdicts} />
             <DcdSubmissionsView subs={dcdSubs} onStatus={changeStatus} onEdited={editSub}
               verdicts={dcdVerdicts} onVerdict={saveDcdVerdict} onVerdictClear={removeDcdVerdict} />
           </>
