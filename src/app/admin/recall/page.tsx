@@ -84,6 +84,25 @@ function SubmissionRow({
   const EDIT_INPUT = "w-full rounded-lg px-2.5 py-1.5 text-[13px] bg-white focus:outline-none";
   const EDIT_STYLE = { border: "1px solid #E0DFDC" } as const;
 
+  // ใบที่กด "ไม่ใช้" ย่อเหลือแถบเดียวกันตาลาย (Aj 2026-09-21) — แตะเพื่อกางดู
+  const [peek, setPeek] = useState(false);
+  if (s.status === "rejected" && !peek) {
+    return (
+      <button type="button" onClick={() => setPeek(true)}
+        className="w-full text-left rounded-xl px-3.5 py-2 flex items-center gap-2"
+        style={{ backgroundColor: "#FAFAF8", border: "1px solid #EBEBEA" }}>
+        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+          style={{ backgroundColor: "#F5F5F3", color: "#A8A8A6" }}>
+          ไม่ใช้
+        </span>
+        <span className="font-exam text-[12px] truncate flex-1" style={{ color: "#A8A8A6" }}>
+          {s.text || s.userName || s.userEmail || "—"}
+        </span>
+        <span className="text-[11px] flex-shrink-0" style={{ color: "#C4C4C0" }}>แตะเพื่อดู ▾</span>
+      </button>
+    );
+  }
+
   const tone =
     s.status === "merged"   ? { bg: "#F0FDF4", border: "#BBF7D0" }
     : s.status === "rejected" ? { bg: "#FAFAF8", border: "#EBEBEA" }
@@ -115,6 +134,12 @@ function SubmissionRow({
           <button onClick={startEdit}
             className="text-[11.5px] font-semibold ml-auto underline" style={{ color: "#B45309" }}>
             ✏️ แก้ไข
+          </button>
+        )}
+        {s.status === "rejected" && !editing && (
+          <button onClick={() => setPeek(false)}
+            className="text-[11.5px] font-medium underline" style={{ color: "#A8A8A6" }}>
+            ย่อเก็บ ▴
           </button>
         )}
       </div>
