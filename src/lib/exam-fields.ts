@@ -48,8 +48,9 @@ export const EXAM_FIELDS: ExamField[] = [
     blurb: "นักวิชาการสาธารณสุขปฏิบัติการ",
     status: "open",
     accent: "#0B6E65",
-    examDate: "2026-09-20",
-    examLabel: "สอบข้อเขียน 20 ก.ย. 69 (09:00–12:00)",
+    // สอบข้อเขียนผ่านไปแล้ว (20 ก.ย.) — นับถอยหลังรอบสัมภาษณ์แทน (Aj 2026-09-27)
+    examDate: "2026-10-14",
+    examLabel: "สอบสัมภาษณ์ 14–20 ต.ค. 69 · ประกาศผู้มีสิทธิ 5 ต.ค.",
     applyClose: "2026-09-04",
     ownPrefixes: ["dcd-"],
     hrefOwned: "/course/dcd",

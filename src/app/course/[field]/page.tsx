@@ -89,14 +89,21 @@ function menuFor(field: ExamFieldKey, extra: { driveUrl: string | null; openLine
   }
   // คร. (Aj 2026-08-23): เอกสาร + กลุ่ม LINE เป็นการ์ดในแผง เรียงตามการใช้งาน
   // App Only คร. (Aj 2026-08-27): สองการ์ดนั้นแทนด้วยปุ่มอัปเกรดจ่ายส่วนต่าง
+  // สอบข้อเขียนจบแล้ว → เมนูภาค ค. ขึ้นก่อนเพื่อน (Aj เปิด 2026-09-27)
+  const dcdInterview = {
+    title: "เตรียมภาค ค.", desc: "ซ้อมสัมภาษณ์ 14–20 ต.ค. · คลังคำถาม คร.",
+    href: "/interview", badge: "ใหม่", icon: ICONS.mic,
+  };
   if (!extra.dcdFull) {
     return [
+      dcdInterview,
       { title: "อัปเกรดติวเข้ม", desc: `คลิป + เอกสาร + LINE · +฿${dcdUpgradePrice()}`,
         href: "/checkout/up-dcd", icon: ICONS.flame, iconBg: "#FDF6E9" },
       video, mock, review, game, me,
     ];
   }
   return [
+    dcdInterview,
     video, mock,
     { title: "เอกสารประกอบ", desc: extra.driveUrl ? "ชีท / ไฟล์เรียนของคอร์ส" : "พี่อ้อมกำลังเตรียม",
       ...(extra.driveUrl ? { href: extra.driveUrl, external: true } : {}), icon: ICONS.docs,
