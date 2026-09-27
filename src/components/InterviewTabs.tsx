@@ -19,16 +19,20 @@ import {
 // ─── คลังคำถาม ────────────────────────────────────────────────────────────────
 
 function HintBox({ hints, title }: { hints: string[]; title: string }) {
+  // โทนโน้ตพี่อ้อมเขียนถึงน้อง — ไม่ใช้ ✓/ลูกศร ให้อ่านเหมือนคำแนะนำ ไม่ใช่แผนผัง
+  // (Aj 2026-09-27: "อยากให้หน้าตาไม่เหมือน AI")
   return (
-    <div className="rounded-xl px-3.5 py-3" style={{ backgroundColor: "#F5FAF9" }}>
-      <p className="text-[12px] font-bold mb-1.5" style={{ color: BRAND.primary }}>{title}</p>
-      <ul className="space-y-1.5">
+    <div className="rounded-xl px-3.5 py-3"
+      style={{ backgroundColor: "#FFFDF5", border: "1px solid #F3EAD3" }}>
+      <p className="text-[12px] font-bold mb-2" style={{ color: "#92400E" }}>💬 {title}</p>
+      <div className="space-y-2">
         {hints.map((h, i) => (
-          <li key={i} className="text-[13px] leading-relaxed text-gray-700 flex gap-2">
-            <span className="flex-shrink-0" style={{ color: BRAND.primary }}>✓</span>{h}
-          </li>
+          <p key={i} className="text-[13px] leading-relaxed text-gray-700 pl-2.5"
+            style={{ borderLeft: "2px solid #F3EAD3" }}>
+            {h}
+          </p>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
@@ -115,7 +119,7 @@ export function QuestionBank({ field }: { field: ExamFieldKey }) {
                     </button>
                     {open && (
                       <div className="px-4 pb-3.5">
-                        <HintBox hints={q.hints} title="แนวทางตอบ" />
+                        <HintBox hints={q.hints} title="พี่อ้อมแนะนำ" />
                       </div>
                     )}
                   </div>
@@ -298,7 +302,7 @@ export function PracticeMode({ field }: { field: ExamFieldKey }) {
       ) : (
         <>
           <div className="mb-4">
-            <HintBox hints={q.hints} title="แนวทางตอบ — คำตอบเรามีประเด็นพวกนี้ครบไหม" />
+            <HintBox hints={q.hints} title="พี่อ้อมแนะนำ — ลองเทียบดูว่าที่เราตอบครบไหม" />
           </div>
           <p className="text-[13px] font-semibold text-gray-600 text-center mb-2.5">
             รอบนี้ตอบได้แค่ไหน (ตามตรงนะ)
