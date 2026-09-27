@@ -13,6 +13,19 @@
 
 import type { ExamFieldKey } from "./exam-fields";
 
+// ─── แจ้งผลภาค ข คร. ก่อนเข้าเมนู (Aj 2026-09-27) ────────────────────────────
+// ก่อนวันประกาศ: เข้าซ้อมได้เลยไม่ต้องรอ (เวลาน้อย) · ตั้งแต่วันประกาศ: ถามผล
+// แตะเดียวแล้วเข้าได้ทุกกรณี — เก็บที่ users/{uid}.dcdPartB69 ให้ Aj นับยอดผ่าน
+
+/** วันประกาศผู้มีสิทธิสัมภาษณ์ คร. (ตามประกาศกรม) */
+export const DCD_RESULT_AT = "2026-10-05T00:00:00+07:00";
+export const DCD_PARTB_KEY = "dcdPartB69";
+export type PartBStatus = "passed" | "failed" | "pending";
+
+export function dcdResultAnnounced(now: Date = new Date()): boolean {
+  return now.getTime() >= new Date(DCD_RESULT_AT).getTime();
+}
+
 // ─── หมวดคำถาม ───────────────────────────────────────────────────────────────
 
 export type InterviewCat = "intro" | "motivation" | "role" | "situation" | "current";

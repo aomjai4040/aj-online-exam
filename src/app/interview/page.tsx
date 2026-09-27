@@ -11,11 +11,14 @@
  */
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
 import { getUserAccess, type UserAccess } from "@/lib/access";
 import { effectiveField } from "@/lib/active-field";
 import { FIELD_SHORT } from "@/lib/exam-fields";
+import { DCD_PARTB_KEY, dcdResultAnnounced, type PartBStatus } from "@/lib/interview";
 import { BRAND } from "@/lib/subjects";
 import { QuestionBank, PracticeMode, Checklist } from "@/components/InterviewTabs";
 import BottomNav from "@/components/BottomNav";
@@ -27,6 +30,9 @@ export default function InterviewPage() {
   const { user } = useAuth();
   const [access, setAccess] = useState<UserAccess | null>(null);
   const [tab, setTab] = useState<Tab>("bank");
+  // ผลภาค ข คร. (Aj 2026-09-27): ตั้งแต่วันประกาศ ถามก่อนเข้าเมนู — ตอบแตะเดียวเข้าได้เลย
+  const [partB, setPartB] = useState<PartBStatus | null | undefined>(undefined);
+  const [partBBusy, setPartBBusy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -34,8 +40,26 @@ export default function InterviewPage() {
     getUserAccess(user.uid)
       .then((a) => { if (!cancelled) setAccess(a); })
       .catch(() => { if (!cancelled) setAccess(null); });
+    getDoc(doc(db, "users", user.uid))
+      .then((d) => { if (!cancelled) setPartB((d.data()?.[DCD_PARTB_KEY] as PartBStatus) ?? null); })
+      .catch(() => { if (!cancelled) setPartB(null); });
     return () => { cancelled = true; };
   }, [user]);
+
+  async function savePartB(v: PartBStatus) {
+    if (!user || partBBusy) return;
+    setPartBBusy(true);
+    try {
+      await setDoc(doc(db, "users", user.uid), {
+        [DCD_PARTB_KEY]: v,
+        [`${DCD_PARTB_KEY}At`]: serverTimestamp(),
+        email: user.email ?? "",
+        displayName: user.displayName ?? "",
+      }, { merge: true });
+      setPartB(v);
+    } catch {}
+    finally { setPartBBusy(false); }
+  }
 
   if (guard !== "allowed" || !access) {
     return (
@@ -67,6 +91,45 @@ export default function InterviewPage() {
   }
 
   const field = effectiveField(access);
+
+  // ── ประตูแจ้งผลภาค ข (คร. เท่านั้น ตั้งแต่วันประกาศ 5 ต.ค.) ──
+  // ยังไม่เคยตอบ → ถามก่อน 1 จอ ตอบอะไรก็เข้าเมนูได้ทันที ("ยังไม่ได้เช็ค" ก็ได้)
+  if (field === "dcd" && dcdResultAnnounced() && partB === null) {
+    return (
+      <div className="min-h-screen bg-stone-50 font-sans pb-28">
+        <div className="max-w-lg mx-auto px-5 pt-12">
+          <div className="rounded-2xl px-5 py-6 text-center"
+            style={{ backgroundColor: "#FFFBEB", border: "1.5px solid #FCD34D" }}>
+            <p className="text-[17px] font-bold" style={{ color: "#92400E" }}>
+              📣 ประกาศผลภาค ข แล้ว
+            </p>
+            <p className="text-[13px] mt-1.5 mb-5 leading-relaxed" style={{ color: "#B45309" }}>
+              ก่อนเข้าซ้อม บอก AJ หน่อยนะคะว่าผลเป็นอย่างไร —
+              จะได้วางแผนติวภาค ค. ให้ตรงกับจำนวนคนจริง
+            </p>
+            <div className="space-y-2.5">
+              <button onClick={() => savePartB("passed")} disabled={partBBusy}
+                className="w-full py-3.5 rounded-xl text-[15px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
+                style={{ backgroundColor: BRAND.primary }}>
+                🎉 ผ่าน — ได้ไปสัมภาษณ์
+              </button>
+              <button onClick={() => savePartB("failed")} disabled={partBBusy}
+                className="w-full py-3 rounded-xl text-[14px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
+                style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
+                ยังไม่ผ่านรอบนี้
+              </button>
+              <button onClick={() => savePartB("pending")} disabled={partBBusy}
+                className="w-full py-2 text-[12.5px] font-medium underline disabled:opacity-50"
+                style={{ color: "#B45309" }}>
+                ยังไม่ได้เช็คผล — ขอเข้าซ้อมก่อน
+              </button>
+            </div>
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
 
   const TABS: { key: Tab; label: string }[] = [
     { key: "bank",     label: "คลังคำถาม" },

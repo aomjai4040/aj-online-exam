@@ -30,6 +30,7 @@ import TodayPlanCard from "@/components/TodayPlanCard";
 import TodayTasksCard from "@/components/TodayTasksCard";
 import CourseProgressCard from "@/components/CourseProgressCard";
 import RecallVolunteerCard from "@/components/RecallVolunteerCard";
+import DcdPartBCard from "@/components/DcdPartBCard";
 import CourseQuickLinks, { LineJoinSheet, useDriveUrl } from "@/components/CourseQuickLinks";
 import {
   LatestCard, LatestSkeleton, PreExamSheetCard, FeedbackCard, RecallCard,
@@ -282,6 +283,9 @@ export default function CoursePage() {
         {/* คร. (Aj 2026-08-23 แบบ A): ลิงก์ด่วนแถวเดียว — กลุ่ม LINE / ชีท
             น้องใหม่ 3 วันแรกที่ยังไม่เข้ากลุ่มเห็นเป็นการ์ดเต็มใบ แล้วหดเป็นชิปถาวร */}
         {field === "dcd" && access.hasDcdFull && <CourseQuickLinks field="dcd" />}
+
+        {/* แจ้งผลภาค ข (โผล่เองตั้งแต่วันประกาศ 5 ต.ค. — Aj 2026-09-27 เก็บยอดผ่าน) */}
+        {field === "dcd" && <DcdPartBCard />}
 
         {/* อาสาจำข้อสอบ คร.69 (Aj 2026-09-17) — การ์ดใหญ่เฉพาะตอนรอตัดสินใจ/ช่วงส่งหลังสอบ
             ตัดสินใจแล้วจะยุบไปเป็นการ์ดเล็กใต้แผงเมนู (slot menu — Aj 2026-09-18) */}
