@@ -8,6 +8,8 @@ interface Insights {
   codeGrants: number;
   paidGrants: number;
   trialUsers: number;
+  interviewUsers?: number;   // เคยเข้าเมนูติวภาค ค. (เริ่มนับ 2 ต.ค. 69)
+  interviewUsers7d?: number;
   revenue: number;
   paid: Record<string, number>; // นับตาม tier: app/review/full/upgrade/up-review/up-full2
   pending: number;
@@ -222,6 +224,10 @@ export default function AdminInsights() {
               <KPICard icon="🎫" label="รับสิทธิ์ด้วยโค้ด" value={data.codeGrants.toLocaleString()} sub="กลุ่มเดิม" color="#2563EB" />
               <KPICard icon="💳" label="ซื้อผ่านเว็บ" value={totalPaidCount.toLocaleString()} sub={`${data.revenue.toLocaleString()} บาท`} color="#16A34A" />
               <KPICard icon="🆓" label="กลุ่มทดลอง" value={data.trialUsers.toLocaleString()} sub="ยังไม่มีสิทธิ์" color="#B45309" />
+              <KPICard icon="🎤" label="ติวภาค ค. (สัมภาษณ์)"
+                value={(data.interviewUsers ?? 0).toLocaleString()}
+                sub={`7 วันล่าสุด ${(data.interviewUsers7d ?? 0).toLocaleString()} คน · เริ่มนับ 2 ต.ค.`}
+                color="#7C3AED" />
             </div>
 
             {/* ── กราฟรายวัน ── */}

@@ -26,11 +26,15 @@ export async function GET(req: NextRequest) {
     const now = Date.now();
     const cutoff = Timestamp.fromMillis(now - DAYS * 86_400_000);
 
-    const [usersCnt, coursesSnap, ordersSnap, resSnap] = await Promise.all([
+    const [usersCnt, coursesSnap, ordersSnap, resSnap, ivAll, iv7d] = await Promise.all([
       db.collection("users").count().get(),
       db.collection("userCourses").get(),
       db.collection("orders").get(),
       db.collection("results").where("submittedAt", ">=", cutoff).get(),
+      // ผู้เข้าใช้เมนูติวภาค ค. (/interview) — สะสม + แอคทีฟ 7 วันล่าสุด
+      db.collection("interviewUsage").count().get(),
+      db.collection("interviewUsage")
+        .where("lastAt", ">=", Timestamp.fromMillis(now - 7 * 86_400_000)).count().get(),
     ]);
 
     // ── สิทธิ์คอร์ส: แยกโค้ด vs ซื้อผ่านเว็บ + เจ้าของ (กันซ้ำ) ──
@@ -120,6 +124,8 @@ export async function GET(req: NextRequest) {
       codeGrants,
       paidGrants,
       trialUsers: Math.max(users - owners.size, 0), // ล็อกอินแต่ยังไม่มีสิทธิ์
+      interviewUsers:   ivAll.data().count,  // เคยเข้าเมนูติวภาค ค. (เริ่มนับ 2 ต.ค. 69)
+      interviewUsers7d: iv7d.data().count,
       revenue,
       paid,
       pending,

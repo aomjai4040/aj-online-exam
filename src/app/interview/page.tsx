@@ -11,7 +11,7 @@
  */
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, increment, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { useLoginGuard } from "@/lib/use-login-guard";
@@ -45,6 +45,21 @@ export default function InterviewPage() {
       .catch(() => { if (!cancelled) setPartB(null); });
     return () => { cancelled = true; };
   }, [user]);
+
+  // นับผู้เข้าใช้เมนูติวภาค ค. — interviewUsage/{uid} (Aj 2026-10-02:
+  // "มีคนเข้าใช้งานกี่คน ดูได้มั้ย") · การ์ด/เช็คลิสต์จำใน localStorage
+  // ไม่ขึ้นเซิร์ฟเวอร์ เลยบันทึกการเข้าหน้าแทน — ดูยอดที่ /admin/insights
+  useEffect(() => {
+    if (!user || !access || (!access.hasAny && !access.hasDcd)) return;
+    setDoc(doc(db, "interviewUsage", user.uid), {
+      userId: user.uid,
+      email:  user.email ?? "",
+      name:   user.displayName ?? "",
+      field:  effectiveField(access),
+      lastAt: serverTimestamp(),
+      visits: increment(1),
+    }, { merge: true }).catch(() => {}); // นับพลาดห้ามกระทบการใช้งาน
+  }, [user, access]);
 
   async function savePartB(v: PartBStatus) {
     if (!user || partBBusy) return;

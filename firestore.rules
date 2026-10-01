@@ -161,6 +161,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ตัวนับผู้เข้าใช้เมนูติวภาค ค. (/interview) — เขียนได้เฉพาะ doc ของตัวเอง
+    // อ่านรวมเป็นสถิติผ่าน /api/admin/insights (Admin SDK) — client อ่านได้แค่ของตัวเอง
+    match /interviewUsage/{userId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
+    }
+
     // ฉบับแก้ของโจทย์ในลิสต์ตั้งต้น — Aj แก้โจทย์/เติมช้อยจาก /admin/recall
     // (ลิสต์อยู่ในโค้ด เก็บ override ที่นี่) อ่านได้ทุกคนที่ login เผื่อหน้า
     // /recall ใช้ฉบับแก้ในอนาคต
