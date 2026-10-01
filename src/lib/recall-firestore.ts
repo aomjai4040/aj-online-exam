@@ -261,6 +261,55 @@ export async function clearVerdict(no: number): Promise<void> {
   await deleteDoc(doc(db, VERDICT_COL, String(no)));
 }
 
+// ─── ฉบับแก้ของโจทย์ในลิสต์ตั้งต้น (สป.สธ.) ─────────────────────────────────
+//
+// recallSeedEdits/{no} — RECALL_SEED อยู่ในโค้ด แก้จากหน้า admin ไม่ได้
+// Aj แก้โจทย์/เติมช้อยที่ขาดจากการ์ดได้เลย (เหมือนใบส่งของ คร.) → เก็บเป็น
+// override ที่นี่ แล้ว merge ทับตอนแสดงผล + ตอนสร้างชุดข้อสอบ (Aj 2026-10-01)
+
+export interface SeedEdit {
+  text:    string;
+  options: string[];
+  by:      string;
+  at:      Date | null;
+}
+
+const SEED_EDIT_COL = "recallSeedEdits";
+
+export async function getSeedEdits(): Promise<Record<number, SeedEdit>> {
+  const snap = await getDocs(collection(db, SEED_EDIT_COL));
+  const out: Record<number, SeedEdit> = {};
+  snap.forEach((d) => {
+    if (!/^\d+$/.test(d.id)) return;
+    const x  = d.data();
+    const ts = x.at as { toDate?: () => Date } | undefined;
+    out[Number(d.id)] = {
+      text:    (x.text as string) ?? "",
+      options: (x.options as string[]) ?? [],
+      by:      (x.by as string) ?? "",
+      at:      ts?.toDate ? ts.toDate() : null,
+    };
+  });
+  return out;
+}
+
+export async function saveSeedEdit(
+  no: number, patch: { text: string; options: string[] }, by: string,
+): Promise<void> {
+  await setDoc(doc(db, SEED_EDIT_COL, String(no)), {
+    text:    patch.text.trim(),
+    // ตรึงตำแหน่ง ก-ง เหมือนใบส่ง — ตัดเฉพาะช่องว่างท้ายลิสต์
+    options: trimTrailing(patch.options.map((o) => o.trim())),
+    by,
+    at: serverTimestamp(),
+  });
+}
+
+/** ลบฉบับแก้ — การ์ดกลับไปใช้ข้อความเดิมจากลิสต์ตั้งต้น */
+export async function clearSeedEdit(no: number): Promise<void> {
+  await deleteDoc(doc(db, SEED_EDIT_COL, String(no)));
+}
+
 function toSubmission(d: {
   id: string; data: () => Record<string, unknown>;
 }): RecallSubmission {

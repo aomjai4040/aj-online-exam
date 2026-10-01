@@ -10,14 +10,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import {
-  clearDcdSubVerdict, clearDcdVerdict, clearVerdict, getAllRecalls,
-  getDcdSubVerdicts, getDcdVerdicts, getVerdicts,
+  clearDcdSubVerdict, clearDcdVerdict, clearSeedEdit, clearVerdict, getAllRecalls,
+  getDcdSubVerdicts, getDcdVerdicts, getSeedEdits, getVerdicts, saveSeedEdit,
   setDcdSubVerdict, setDcdVerdict, setRecallStatus, setVerdict, updateRecallSubmission,
-  type RecallStatus, type RecallSubmission, type RecallVerdict,
+  type RecallStatus, type RecallSubmission, type RecallVerdict, type SeedEdit,
 } from "@/lib/recall-firestore";
 import {
   RECALL_ALL, GAP_LABEL, isComplete, recallProgress, seedBySubject,
-  crowdAnswerFor, crowdNoteFor, type RecallSeedItem,
+  crowdAnswerFor, crowdNoteFor, type RecallGap, type RecallSeedItem,
 } from "@/lib/recall-seed";
 import { RV_TOTAL } from "@/lib/recall-volunteer";
 import { createExam, findExamByTitle, updateExam } from "@/lib/firestore";
@@ -585,6 +585,218 @@ function DcdBuildExamPanel({
   );
 }
 
+// ─── สป.สธ.: แก้โจทย์การ์ด + สร้างชุดข้อสอบ (Aj 2026-10-01:
+//     "อยากได้ปุ่มแก้ไขเหมือนของคอร์ส คร. เพื่อจะทำชุดข้อสอบให้น้องทดลองทำ") ──
+
+type MergedSeed = RecallSeedItem & { edited?: boolean };
+
+/** ทับลิสต์ตั้งต้นด้วยฉบับแก้ของ Aj + คำนวณป้าย "ขาด..." ใหม่ให้ตรงของจริง */
+function applySeedEdit(item: RecallSeedItem, e?: SeedEdit): MergedSeed {
+  if (!e) return item;
+  const gaps: RecallGap[] = [];
+  if (!e.text.trim()) gaps.push("stem");
+  if (e.options.length > 0 && [0, 1, 2, 3].some((i) => !(e.options[i] ?? "").trim())) {
+    gaps.push("options");
+  }
+  if (!item.answer) gaps.push("answer"); // เฉลยยังมาจากลิสต์/คำฟันธง — ฟอร์มนี้ไม่แตะ
+  return { ...item, text: e.text, options: e.options, gaps, edited: true };
+}
+
+/** ฟอร์มแก้โจทย์+ช้อยของการ์ดลิสต์ตั้งต้น — เก็บเป็น override ใน recallSeedEdits */
+function SeedEditForm({
+  item, by, onSaved, onCleared, onClose,
+}: {
+  item: MergedSeed; by: string;
+  onSaved: (no: number, e: SeedEdit) => void;
+  onCleared: (no: number) => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState(item.text);
+  const [opts, setOpts] = useState<string[]>([0, 1, 2, 3].map((i) => item.options[i] ?? ""));
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    if (busy || !text.trim()) return;
+    setBusy(true);
+    const patch = { text: text.trim(), options: opts.map((o) => o.trim()) };
+    try {
+      await saveSeedEdit(item.no, patch, by);
+      onSaved(item.no, { ...patch, by, at: new Date() });
+      onClose();
+    } catch { alert("บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"); }
+    finally { setBusy(false); }
+  }
+
+  async function restore() {
+    if (busy || !confirm(`ข้อ ${item.no}: ลบฉบับแก้ กลับไปใช้ข้อความเดิมจากลิสต์ตั้งต้น?`)) return;
+    setBusy(true);
+    try {
+      await clearSeedEdit(item.no);
+      onCleared(item.no);
+      onClose();
+    } catch { alert("ลบฉบับแก้ไม่สำเร็จ"); }
+    finally { setBusy(false); }
+  }
+
+  const INPUT = "w-full rounded-lg px-2.5 py-1.5 text-[13px] font-exam bg-white focus:outline-none";
+  const STYLE = { border: "1px solid #E0DFDC" } as const;
+
+  return (
+    <div className="rounded-xl px-3.5 py-3 mb-2 space-y-2"
+      style={{ backgroundColor: "#FDF6E9", border: "1.5px solid #FCD34D" }}>
+      <p className="text-[11.5px] font-bold" style={{ color: "#B45309" }}>
+        ✏️ แก้โจทย์/ช้อยของข้อ {item.no} — ใช้ตอนแสดงผลและตอนสร้างชุดข้อสอบ
+      </p>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2}
+        className={INPUT} style={STYLE} placeholder="ตัวโจทย์" />
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-2">
+          <span className="text-[12px] font-bold w-4 flex-shrink-0" style={{ color: "#B45309" }}>
+            {OPT[i]}.
+          </span>
+          <input value={opts[i]}
+            onChange={(e) => setOpts((p) => p.map((o, oi) => (oi === i ? e.target.value : o)))}
+            className={INPUT} style={STYLE} placeholder={`ช้อย ${OPT[i]} (เว้นว่าง = ยังไม่มี)`} />
+        </div>
+      ))}
+      <div className="flex items-center gap-2 flex-wrap pt-0.5">
+        <button onClick={save} disabled={busy || !text.trim()}
+          className="text-[12.5px] font-bold px-3.5 py-2 rounded-lg text-white disabled:opacity-40"
+          style={{ backgroundColor: "#0B6E65" }}>
+          {busy ? "กำลังบันทึก…" : "✓ บันทึกฉบับแก้"}
+        </button>
+        <button onClick={onClose} disabled={busy}
+          className="text-[12.5px] font-semibold px-3 py-2 rounded-lg"
+          style={{ border: "1px solid #E0DFDC", color: "#6B7280" }}>
+          ยกเลิก
+        </button>
+        {item.edited && (
+          <button onClick={restore} disabled={busy}
+            className="text-[12px] font-medium underline ml-auto" style={{ color: "#DC2626" }}>
+            ↩ คืนค่าเดิมจากลิสต์
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// สร้างชุดข้อสอบ สป.สธ. จากการ์ดความจำ — กติกาเดียวกับของ คร.:
+// มีเฉลย (คำฟันธง AJ ก่อน ไม่มีก็ใช้เฉลยในลิสต์) + เฉลยจับคู่ช้อยที่มีข้อความได้
+// สร้างเป็น Mock ไม่ผูกแพ็กเกจ (สมาชิก สป.สธ. ทุก tier เข้าได้) เริ่มแบบยังไม่เผยแพร่
+
+const MOPH_RECALL_TITLE = "ข้อสอบจริง สป.สธ. 69 ฉบับความทรงจำ";
+
+function buildMophQuestions(
+  items: MergedSeed[],
+  verdicts: Record<number, RecallVerdict>,
+): { qs: QuestionForm[]; skipped: { label: string; why: string }[] } {
+  const qs: QuestionForm[] = [];
+  const skipped: { label: string; why: string }[] = [];
+
+  for (const item of [...items].sort((a, b) => a.no - b.no)) {
+    const label = `ข้อ ${item.no}`;
+    const v = verdicts[item.no];
+    if (v?.status === "rejected") { skipped.push({ label, why: "เฉลยกลุ่มถูกตีตก — ยังไม่มีเฉลยที่ใช้ได้" }); continue; }
+    const answer = (v?.status === "confirmed" ? v.answer : item.answer).trim();
+    if (!answer) { skipped.push({ label, why: "ยังไม่มีเฉลย (ฟันธงในกล่องเหลืองก่อน)" }); continue; }
+
+    const opts = [0, 1, 2, 3].map((i) => item.options[i]?.trim() || "");
+    if (opts.filter(Boolean).length === 0) {
+      skipped.push({ label, why: "ยังไม่มีช้อยเลย — กด ✏️ แก้ไข เติมช้อยก่อน" });
+      continue;
+    }
+    const idx = dcdAnswerIndex(answer, opts);
+    if (idx < 0) { skipped.push({ label, why: "เฉลยจับคู่กับช้อยไม่ได้" }); continue; }
+    if (!opts[idx]) { skipped.push({ label, why: `เฉลยคือ ${OPT[idx]} แต่ช้อย ${OPT[idx]} ยังว่าง` }); continue; }
+
+    qs.push({
+      text: `(ข้อจริงข้อที่ ${item.no}) ${item.text}`,
+      options: [opts[0] || MISSING_OPT, opts[1] || MISSING_OPT, opts[2] || MISSING_OPT, opts[3] || MISSING_OPT],
+      correctAnswer: idx,
+      explanation: answer.replace(/[.\s)()]/g, "").length > 1 ? `เฉลย AJ: ${answer}` : "",
+    });
+  }
+  return { qs, skipped };
+}
+
+function MophBuildExamPanel({
+  items, verdicts,
+}: {
+  items: MergedSeed[];
+  verdicts: Record<number, RecallVerdict>;
+}) {
+  const [building, setBuilding] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [showSkipped, setShowSkipped] = useState(false);
+
+  const { qs, skipped } = useMemo(() => buildMophQuestions(items, verdicts), [items, verdicts]);
+
+  async function build() {
+    if (building || qs.length === 0) return;
+    if (!confirm(`สร้าง/อัปเดตชุด "${MOPH_RECALL_TITLE}" ${qs.length} ข้อ?`)) return;
+    setBuilding(true); setMsg("");
+    try {
+      const existing = await findExamByTitle(MOPH_RECALL_TITLE, "moph");
+      const form: ExamForm = {
+        title: MOPH_RECALL_TITLE,
+        description: "รวมจากความจำน้อง ๆ หลังสอบ 15 ส.ค. 69 — เฉลยโดย AJ (ฉบับความทรงจำ ไม่ใช่ข้อสอบทางการ)",
+        subject: "MOCK",
+        timeLimit: 0,
+        isPublished: existing?.isPublished ?? false,
+        isMock: true,
+        questions: qs,
+      };
+      if (existing) await updateExam(existing.id, form);
+      else await createExam(form);
+      setMsg(`✓ บันทึกแล้ว ${qs.length} ข้อ${existing ? " (อัปเดตชุดเดิม — กดซ้ำได้เรื่อย ๆ)" : ""}`
+        + (existing?.isPublished ? " · เผยแพร่อยู่ น้องเห็นเวอร์ชันใหม่ทันที"
+           : " · ยังไม่เผยแพร่ — ตรวจแล้วไปกดเผยแพร่ที่ จัดการข้อสอบ"));
+    } catch (e) {
+      const err = e as Error;
+      setMsg(`✗ ไม่สำเร็จ: ${err.message ?? err}`);
+    } finally { setBuilding(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: "1.5px solid #A7F3D0" }}>
+      <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+        🚀 สร้างเป็นชุดข้อสอบให้น้องทำ
+      </p>
+      <p className="text-[12.5px] leading-relaxed mb-3" style={{ color: "#6B7280" }}>
+        ข้อที่จะเข้าไปในชุด = ข้อที่ <b>มีเฉลย</b> (คำฟันธง AJ หรือเฉลยในลิสต์)
+        และเฉลยจับคู่กับช้อยได้ — ตอนนี้พร้อม <b style={{ color: "#15803D" }}>{qs.length} ข้อ</b>
+        {skipped.length > 0 && <> · ยังติด {skipped.length} ข้อ</>}
+      </p>
+      <div className="flex items-center gap-2 flex-wrap">
+        <button onClick={build} disabled={building || qs.length === 0}
+          className="text-[13px] font-bold px-4 py-2.5 rounded-xl text-white disabled:opacity-40"
+          style={{ backgroundColor: "#0B6E65" }}>
+          {building ? "กำลังบันทึก…" : `สร้าง/อัปเดตชุด (${qs.length} ข้อ)`}
+        </button>
+        {skipped.length > 0 && (
+          <button onClick={() => setShowSkipped((x) => !x)}
+            className="text-[12px] font-semibold underline" style={{ color: "#B45309" }}>
+            {showSkipped ? "ซ่อนข้อที่ยังติด" : "ดูข้อที่ยังติด"}
+          </button>
+        )}
+      </div>
+      {msg && (
+        <p className="text-[12.5px] mt-2.5 leading-relaxed font-semibold"
+          style={{ color: msg.startsWith("✓") ? "#15803D" : "#DC2626" }}>
+          {msg}
+        </p>
+      )}
+      {showSkipped && skipped.length > 0 && (
+        <div className="mt-2.5 text-[12px] leading-relaxed rounded-xl px-3 py-2"
+          style={{ backgroundColor: "#FFFBEB", color: "#B45309" }}>
+          {skipped.map((s, i) => <p key={i}>{s.label} — {s.why}</p>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── ใบส่งสนาม คร.69 — จัดกลุ่มตามเลขข้อ 1–100 (Aj 2026-09-20) ─────────────────
 
 /** กล่องเฉลย AJ (คร.) — ข้อมีเลข: recallVerdicts/dcd-{no} · ใบไม่ระบุเลข: dcd-x-{subId} */
@@ -790,14 +1002,17 @@ export default function AdminRecallPage() {
 
   const [dcdVerdicts, setDcdVerdicts] = useState<Record<number, RecallVerdict>>({});
   const [dcdSubVerdicts, setDcdSubVerdicts] = useState<Record<string, RecallVerdict>>({});
+  // ฉบับแก้โจทย์ของลิสต์ตั้งต้น สป.สธ. + การ์ดที่กำลังกางฟอร์มแก้
+  const [seedEdits, setSeedEdits] = useState<Record<number, SeedEdit>>({});
+  const [editNo,    setEditNo]    = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, v, dv, sv] = await Promise.all([
-        getAllRecalls(), getVerdicts(), getDcdVerdicts(), getDcdSubVerdicts(),
+      const [s, v, dv, sv, se] = await Promise.all([
+        getAllRecalls(), getVerdicts(), getDcdVerdicts(), getDcdSubVerdicts(), getSeedEdits(),
       ]);
-      setSubs(s); setVerdicts(v); setDcdVerdicts(dv); setDcdSubVerdicts(sv);
+      setSubs(s); setVerdicts(v); setDcdVerdicts(dv); setDcdSubVerdicts(sv); setSeedEdits(se);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -873,24 +1088,30 @@ export default function AdminRecallPage() {
 
   const newQuestions = useMemo(() => mophSubs.filter((s) => s.no === null), [mophSubs]);
 
+  /** ลิสต์ตั้งต้นที่ทับด้วยฉบับแก้ของ Aj แล้ว — ใช้ทั้งแสดงผลและสร้างชุดข้อสอบ */
+  const mergedAll = useMemo(
+    () => RECALL_ALL.map((i) => applySeedEdit(i, seedEdits[i.no])),
+    [seedEdits],
+  );
+
   /** ข้อที่จะแสดง
    *  crowd   = มีเฉลยจากกลุ่มรอ Aj ฟันธง (คิวหลักตอนนี้)
    *  pending = ข้อที่ยังขาด หรือมีใบที่ยังไม่ตัดสิน */
   const visible = useMemo(() => {
-    if (filter === "all") return RECALL_ALL;
+    if (filter === "all") return mergedAll;
     if (filter === "crowd") {
-      return RECALL_ALL.filter((i) => crowdAnswerFor(i.no) && !verdicts[i.no])
+      return mergedAll.filter((i) => crowdAnswerFor(i.no) && !verdicts[i.no])
         .sort((a, b) => {
           const ra = crowdAnswerFor(a.no)!.agree === "high" ? 0 : 1;
           const rb = crowdAnswerFor(b.no)!.agree === "high" ? 0 : 1;
           return ra - rb || a.no - b.no;
         });
     }
-    return RECALL_ALL.filter((i) => {
+    return mergedAll.filter((i) => {
       const g = groups.get(i.no) ?? [];
       return !isComplete(i) || g.some((s) => s.status === "new");
     });
-  }, [filter, groups, verdicts]);
+  }, [filter, groups, verdicts, mergedAll]);
 
   const crowdPending = useMemo(
     () => RECALL_ALL.filter((i) => crowdAnswerFor(i.no) && !verdicts[i.no]).length,
@@ -905,7 +1126,7 @@ export default function AdminRecallPage() {
       `เฉลยที่ AJ ยืนยันแล้ว ${Object.values(verdicts).filter((v) => v.status === "confirmed").length} ข้อ`,
       "",
     ];
-    for (const item of RECALL_ALL) {
+    for (const item of mergedAll) {
       lines.push(`${item.no}. ${item.text}`);
       item.options.forEach((o, i) => lines.push(`   ${OPT[i]}. ${o || "(ยังไม่มี)"}`));
       const v = verdicts[item.no];
@@ -992,6 +1213,9 @@ export default function AdminRecallPage() {
         )}
 
         {fieldTab === "moph" && <>
+        {/* สร้างชุดข้อสอบจากการ์ดความจำ สป.สธ. (Aj 2026-10-01) */}
+        <MophBuildExamPanel items={mergedAll} verdicts={verdicts} />
+
         {/* สรุป */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           {[
@@ -1103,7 +1327,22 @@ export default function AdminRecallPage() {
                     <p className="font-exam text-[14.5px] leading-relaxed text-gray-900 flex-1">
                       {item.text}
                     </p>
+                    {/* แก้โจทย์/ช้อยของการ์ดนี้ — แบบเดียวกับใบส่งของ คร. (Aj 2026-10-01) */}
+                    {editNo !== item.no && (
+                      <button onClick={() => setEditNo(item.no)}
+                        className="text-[11.5px] font-semibold underline flex-shrink-0"
+                        style={{ color: "#B45309" }}>
+                        ✏️ แก้ไข
+                      </button>
+                    )}
                   </div>
+
+                  {editNo === item.no && (
+                    <SeedEditForm item={item} by={user?.email ?? "admin"}
+                      onSaved={(no, e) => setSeedEdits((p) => ({ ...p, [no]: e }))}
+                      onCleared={(no) => setSeedEdits((p) => { const n = { ...p }; delete n[no]; return n; })}
+                      onClose={() => setEditNo(null)} />
+                  )}
 
                   {item.options.length > 0 && (
                     <div className="space-y-0.5 mb-1.5 pl-6">
@@ -1137,6 +1376,12 @@ export default function AdminRecallPage() {
                         ขาด{GAP_LABEL[gp]}
                       </span>
                     ))}
+                    {item.edited && (
+                      <span className="text-[11.5px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: "#EBF5F3", color: "#0B6E65" }}>
+                        ✏️ แก้แล้ว
+                      </span>
+                    )}
                     {item.note && (
                       <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>· {item.note}</span>
                     )}

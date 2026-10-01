@@ -14,6 +14,12 @@
       "port": 3470
     },
     {
+      "name": "aj-money",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "C:\\Users\\UNS_CT\\Desktop\\aj-money"],
+      "port": 3100
+    },
+    {
       "name": "thongthin101",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "C:\\Users\\UNS_CT\\Desktop\\thongthin101"],
