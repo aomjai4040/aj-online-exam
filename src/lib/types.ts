@@ -30,9 +30,25 @@ export const DCD_SUBJECTS = [
   { code: "MOCK",    label: "Mock Exam — ข้อสอบเสมือนจริง คละทุกหมวด (เข้าเมนู Mock อัตโนมัติ)" },
 ] as const;
 
+/** หมวดวิชาสนาม อปท. (ท้องถิ่น) — ตามไฟล์ชุดติว "ข้อสอบพร้อมเฉลย" 8 เล่ม
+ *  (Aj 2026-10-04: นำเข้า PDF อปท. · LAWPH/LAWCD ใช้โค้ดร่วมกับ คร. เพราะเป็นกฎหมายฉบับเดียวกัน) */
+export const LOCAL_SUBJECTS = [
+  { code: "LAWPH",    label: "พ.ร.บ.การสาธารณสุข พ.ศ. 2535 และที่แก้ไขเพิ่มเติม" },
+  { code: "LAWCLEAN", label: "พ.ร.บ.รักษาความสะอาดและความเป็นระเบียบเรียบร้อยของบ้านเมือง พ.ศ. 2535" },
+  { code: "LAWCD",    label: "พ.ร.บ.โรคติดต่อ พ.ศ. 2558" },
+  { code: "LAWNHA",   label: "พ.ร.บ.สุขภาพแห่งชาติ พ.ศ. 2550" },
+  { code: "LAWCPA",   label: "พ.ร.บ.คุ้มครองผู้บริโภค พ.ศ. 2522 และที่แก้ไขเพิ่มเติม" },
+  { code: "PHKNOW",   label: "ความรู้ด้านสาธารณสุข (ส่งเสริมสุขภาพ เฝ้าระวัง ป้องกันควบคุมโรค ฟื้นฟู)" },
+  { code: "MCHENV",   label: "การวางแผนครอบครัว อนามัยแม่และเด็ก และอนามัยสิ่งแวดล้อม" },
+  { code: "PHADMIN",  label: "การบริหารงานสาธารณสุข แผนงานโครงการ และลักษณะงานตามตำแหน่ง" },
+  { code: "MOCK",     label: "Mock Exam — ข้อสอบเสมือนจริง คละทุกหมวด (เข้าเมนู Mock อัตโนมัติ)" },
+] as const;
+
 /** หมวดทั้งหมดที่ระบบรู้จัก (ใช้ validate ตอน import) */
 export const ALL_SUBJECTS: ReadonlyArray<{ code: string; label: string }> = [
-  ...SUBJECTS, ...DCD_SUBJECTS.filter((s) => s.code !== "MOCK"),
+  ...SUBJECTS,
+  ...DCD_SUBJECTS.filter((s) => s.code !== "MOCK"),
+  ...LOCAL_SUBJECTS.filter((s) => !["MOCK", "LAWPH", "LAWCD"].includes(s.code)),
 ];
 
 /** หมวดของสนามนั้น — ไว้โชว์ตารางอ้างอิง/ชิปเลือกหมวด */
