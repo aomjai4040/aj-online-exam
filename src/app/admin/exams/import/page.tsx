@@ -17,6 +17,7 @@ const TEMPLATE_HEADER = ["subject", "set_name", "question", "option_a", "option_
 const TEMPLATE_ROW: Record<ExamFieldKey, string[]> = {
   moph: ["APPLIED", "ระบาดวิทยา ชุดที่ 1", "ข้อใดเป็นตัวอย่างของการเฝ้าระวังโรค", "การรักษาผู้ป่วย", "การเก็บข้อมูลโรคอย่างต่อเนื่อง", "การจ่ายยา", "การผ่าตัด", "B", "การเฝ้าระวังโรคคือการเก็บรวบรวม วิเคราะห์ และแปลผลข้อมูลสุขภาพอย่างต่อเนื่อง"],
   dcd:  ["LAWCD", "พ.ร.บ.โรคติดต่อ ชุดที่ 1", "โรคติดต่ออันตรายตาม พ.ร.บ.โรคติดต่อ พ.ศ. 2558 ประกาศโดยผู้ใด", "ปลัดกระทรวงสาธารณสุข", "รัฐมนตรีว่าการกระทรวงสาธารณสุข", "อธิบดีกรมควบคุมโรค", "คณะกรรมการโรคติดต่อจังหวัด", "B", "รัฐมนตรีโดยคำแนะนำของคณะกรรมการโรคติดต่อแห่งชาติ มีอำนาจประกาศชื่อโรคติดต่ออันตราย"],
+  local: ["LAWCLEAN", "อปท. พ.ร.บ.รักษาความสะอาดฯ ชุดที่ 1", "ใครเป็นผู้รักษาการตาม พ.ร.บ.รักษาความสะอาดและความเป็นระเบียบเรียบร้อยของบ้านเมือง พ.ศ. 2535", "รัฐมนตรีว่าการกระทรวงมหาดไทย", "รัฐมนตรีว่าการกระทรวงสาธารณสุข", "ปลัดกระทรวงมหาดไทย", "ถูกทั้ง ก และ ข", "D", "มาตรา 5 ให้รัฐมนตรีว่าการกระทรวงมหาดไทยและรัฐมนตรีว่าการกระทรวงสาธารณสุขรักษาการตามพระราชบัญญัตินี้"],
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -282,14 +283,14 @@ export default function ImportPage() {
       <p className="text-[14px] mb-3" style={{ color: "#4A5568" }}>
         ชุดใหม่ทั้งหมดในไฟล์จะถูกผูกกับสนามนี้ — คนซื้อคอร์สของสนามนั้นถึงจะเห็น/ทำได้
       </p>
-      <div className="grid grid-cols-2 gap-2 max-w-md">
-        {(["moph", "dcd"] as ExamFieldKey[]).map((f) => {
+      <div className="grid grid-cols-3 gap-2 max-w-md">
+        {(["moph", "dcd", "local"] as ExamFieldKey[]).map((f) => {
           const active = field === f;
           return (
             <button key={f} type="button" onClick={() => setField(f)}
               className="py-3 rounded-xl text-[15px] font-bold border transition-all"
               style={{
-                backgroundColor: active ? (f === "dcd" ? "#0B6E65" : "#7C3AED") : "white",
+                backgroundColor: active ? (f === "dcd" ? "#0B6E65" : f === "local" ? "#EF4444" : "#7C3AED") : "white",
                 borderColor:     active ? "transparent" : "#E0DFDC",
                 color:           active ? "white" : "#6B7280",
               }}>
@@ -301,6 +302,8 @@ export default function ImportPage() {
       <p className="text-[13px] mt-2" style={{ color: "#A8A8A6" }}>
         {field === "dcd"
           ? `✅ ผูกกับคอร์สกรมควบคุมโรค (${FIELD_PACKAGE.dcd}) — จะไปแสดงในแท็บสนาม คร.`
+          : field === "local"
+          ? `✅ ผูกกับคอร์ส อปท. (${FIELD_PACKAGE.local}) — จะไปแสดงในแท็บสนาม อปท.`
           : "คลังข้อสอบ สป.สธ. เดิม — สมาชิกคอร์ส สป.สธ. ทุกแพ็กเข้าได้"}
         {" · ถ้าเพิ่มเข้าชุดเดิมที่มีอยู่แล้ว สนามจะคงตามชุดเดิม"}
       </p>

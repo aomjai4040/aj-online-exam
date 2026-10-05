@@ -23,9 +23,13 @@ async function userCourseIds(uid: string): Promise<string[]> {
 /** จำกัดให้เหลือเฉพาะคอร์สของ "สนามที่กำลังเรียน" (Aj 2026-08-21: คนมี 2 คอร์ส
  *  Daily Quiz ต้องไม่สุ่มข้ามสนาม) — ถ้าไม่มีคอร์สสนามนั้นเลย คืนทั้งหมดตามเดิม */
 function forField(courseIds: string[], field: string | null): string[] {
-  if (field !== "dcd" && field !== "moph") return courseIds;
-  const picked = courseIds.filter((id) =>
-    field === "dcd" ? id.toLowerCase().startsWith("dcd-") : !id.toLowerCase().startsWith("dcd-"));
+  if (field !== "dcd" && field !== "moph" && field !== "local") return courseIds;
+  const picked = courseIds.filter((id) => {
+    const low = id.toLowerCase();
+    if (field === "dcd")   return low.startsWith("dcd-");
+    if (field === "local") return low.startsWith("local-");
+    return !low.startsWith("dcd-") && !low.startsWith("local-"); // moph = แพ็กฝั่ง สป.สธ.
+  });
   return picked.length > 0 ? picked : courseIds;
 }
 

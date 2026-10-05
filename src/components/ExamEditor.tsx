@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { DCD_SUBJECTS, SUBJECT_DISPLAY, type ExamForm, type QuestionForm } from "@/lib/types";
+import { DCD_SUBJECTS, LOCAL_SUBJECTS, SUBJECT_DISPLAY, type ExamForm, type QuestionForm } from "@/lib/types";
 import { FIELD_SHORT, FIELD_PACKAGE, examSetField, type ExamFieldKey } from "@/lib/exam-fields";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -319,16 +319,21 @@ export default function ExamEditor({
   const origPackageId = initial?.packageId ?? "";
   const examField: ExamFieldKey = examSetField({ packageId: meta.packageId });
   function setExamField(f: ExamFieldKey) {
+    if (f === "dcd")   { setMetaField("packageId", FIELD_PACKAGE.dcd);   return; }
+    if (f === "local") { setMetaField("packageId", FIELD_PACKAGE.local); return; }
+    // กลับ moph: คืน packageId เดิมถ้าเป็นแพ็กฝั่ง สป.สธ. (เช่น app-2026) — แพ็กสนามอื่นไม่คืน
+    const low = origPackageId.toLowerCase();
     setMetaField("packageId",
-      f === "dcd" ? FIELD_PACKAGE.dcd
-      : (origPackageId.toLowerCase().startsWith("dcd-") ? "" : origPackageId));
+      low.startsWith("dcd-") || low.startsWith("local-") ? "" : origPackageId);
   }
 
   // ชิปหมวดวิชาตามสนาม — สป.สธ. = ชื่อไทยเดิม (แปลงเป็นรหัสตอนแสดงผลอยู่แล้ว)
-  // คร. = รหัสหมวด DCD_SUBJECTS พร้อมชื่อย่อ
+  // คร./อปท. = รหัสหมวดของสนาม พร้อมชื่อย่อ
   const subjectChips: { value: string; label: string; title?: string }[] =
     examField === "dcd"
       ? DCD_SUBJECTS.map((s) => ({ value: s.code, label: `${SUBJECT_DISPLAY[s.code] ?? s.code} · ${s.code}`, title: s.label }))
+      : examField === "local"
+      ? LOCAL_SUBJECTS.map((s) => ({ value: s.code, label: `${SUBJECT_DISPLAY[s.code] ?? s.code} · ${s.code}`, title: s.label }))
       : PRESET_SUBJECTS.map((s) => ({ value: s, label: s }));
 
   const [questions, setQuestions] = useState<QuestionForm[]>(
@@ -550,14 +555,14 @@ export default function ExamEditor({
           <p className="text-[12px] leading-relaxed mb-3" style={{ color: "#A8A8A6" }}>
             ชุดนี้อยู่สนามไหน — กำหนดว่าใครเห็น/ทำได้ (คนซื้อคอร์สของสนามนั้น)
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            {(["moph", "dcd"] as ExamFieldKey[]).map((f) => {
+          <div className="grid grid-cols-3 gap-2">
+            {(["moph", "dcd", "local"] as ExamFieldKey[]).map((f) => {
               const active = examField === f;
               return (
                 <button key={f} type="button" onClick={() => setExamField(f)} disabled={saving}
                   className="py-2.5 rounded-xl text-[13px] font-bold border transition-all"
                   style={{
-                    backgroundColor: active ? (f === "dcd" ? "#0B6E65" : "#7C3AED") : "white",
+                    backgroundColor: active ? (f === "dcd" ? "#0B6E65" : f === "local" ? "#EF4444" : "#7C3AED") : "white",
                     borderColor:     active ? "transparent" : "#E0DFDC",
                     color:           active ? "white" : "#6B7280",
                   }}>
@@ -569,6 +574,8 @@ export default function ExamEditor({
           <p className="text-[12px] mt-2" style={{ color: "#A8A8A6" }}>
             {examField === "dcd"
               ? `✅ ผูกกับคอร์ส คร. (${FIELD_PACKAGE.dcd}) — เฉพาะคนซื้อคอร์สกรมควบคุมโรค`
+              : examField === "local"
+              ? `✅ ผูกกับคอร์ส อปท. (${FIELD_PACKAGE.local}) — เฉพาะคนซื้อคอร์สท้องถิ่น`
               : "คลังข้อสอบ สป.สธ. — สมาชิกคอร์ส สป.สธ. ทุกแพ็กเข้าได้"}
           </p>
         </div>

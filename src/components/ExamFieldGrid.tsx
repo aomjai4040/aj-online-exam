@@ -20,7 +20,7 @@ import { dcdCurrentPrice, PRICING } from "@/lib/pricing";
 
 /** กดการ์ดสนามไหน = เลือกสนามนั้นทั้งแอป (คลังข้อสอบ/Mock ตามไปหมด) */
 function rememberField(field: ExamField) {
-  setActiveField(field.id === "dcd" ? "dcd" : "moph");
+  setActiveField(field.id === "dcd" || field.id === "local" ? field.id : "moph");
 }
 
 function statusChip(field: ExamField, owned: boolean) {

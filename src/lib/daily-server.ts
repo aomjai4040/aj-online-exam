@@ -86,18 +86,24 @@ export async function pickDaily(
 ): Promise<DailyPick | null> {
   const owned     = ownedPackageIds ?? [];
   const hasLegacy = ownedPackageIds === undefined // ไม่ส่งมา = พฤติกรรมเดิม (เผื่อ caller อื่น)
-    || owned.some((id) => !id.toLowerCase().startsWith("dcd-"));
+    || owned.some((id) => {
+      const low = id.toLowerCase();
+      return !low.startsWith("dcd-") && !low.startsWith("local-");
+    });
 
   const snap = await db.collection("exams").where("isPublished", "==", true).get();
   let exams = snap.docs
     .filter((d) => !isMockLike(d.data()) && Number(d.data().questionCount ?? 0) >= 5)
     .filter((d) => {
-      const pid = String(d.data().packageId ?? "");
+      const pid = String(d.data().packageId ?? "").toLowerCase();
       if (!pid) return hasLegacy;
-      if (owned.includes(pid)) return true;
-      // สนาม คร.: ทุกแพ็กของสนามเห็นชุดของสนาม (dcd-app ↔ dcd-2026)
-      return pid.toLowerCase().startsWith("dcd-")
-        && owned.some((id) => id.toLowerCase().startsWith("dcd-"));
+      if (owned.includes(String(d.data().packageId))) return true;
+      // สนาม คร./อปท.: ทุกแพ็กของสนามเห็นชุดของสนามเดียวกัน
+      if (pid.startsWith("dcd-"))
+        return owned.some((id) => id.toLowerCase().startsWith("dcd-"));
+      if (pid.startsWith("local-"))
+        return owned.some((id) => id.toLowerCase().startsWith("local-"));
+      return false;
     })
     .sort((a, b) => a.id.localeCompare(b.id)); // เรียงคงที่ ให้ index เสถียร
   if (exams.length === 0) return null;

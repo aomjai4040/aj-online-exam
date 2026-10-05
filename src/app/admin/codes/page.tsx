@@ -578,8 +578,9 @@ function CodeRow({ code, onToggle, onDelete, onViewUsers }: CodeRowProps) {
 // โค้ดใช้ครั้งเดียว — เลือกคอร์สได้ (สายขายผ่าน Admin AJ แจกทีละคน)
 // เพิ่มคอร์สใหม่ = เติม entry เดียว
 const BULK_COURSES = [
-  { id: "moph69",   name: "คอร์สติว สป.สธ.2569 by AJ",           label: "สป.สธ. คอร์สเต็ม" },
-  { id: "dcd-2026", name: "ติวเข้มกรมควบคุมโรค 2569", label: "กรมควบคุมโรค (คร.)" },
+  { id: "moph69",     name: "คอร์สติว สป.สธ.2569 by AJ",           label: "สป.สธ. คอร์สเต็ม" },
+  { id: "dcd-2026",   name: "ติวเข้มกรมควบคุมโรค 2569", label: "กรมควบคุมโรค (คร.)" },
+  { id: "local-2569", name: "คอร์สข้อสอบ อปท. (ท้องถิ่น) by AJ", label: "อปท. ท้องถิ่น ฿499" },
 ] as const;
 
 function BulkModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {

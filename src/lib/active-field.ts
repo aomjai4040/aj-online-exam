@@ -15,7 +15,8 @@ const KEY = "active-exam-field";
 
 export function getActiveField(): ExamFieldKey {
   if (typeof window === "undefined") return "moph";
-  return localStorage.getItem(KEY) === "dcd" ? "dcd" : "moph";
+  const v = localStorage.getItem(KEY);
+  return v === "dcd" || v === "local" ? v : "moph";
 }
 
 export function setActiveField(field: ExamFieldKey): void {
@@ -27,14 +28,16 @@ export function courseHref(field: ExamFieldKey): string {
   return `/course/${field}`;
 }
 
-/** ผู้ใช้มีสิทธิ์สนามนี้ไหม (สป.สธ. = แพ็กใดก็ได้ที่ไม่ใช่ dcd-) */
+/** ผู้ใช้มีสิทธิ์สนามนี้ไหม (สป.สธ. = แพ็กใดก็ได้ที่ไม่ใช่ dcd-/local-) */
 export function ownsFieldKey(access: UserAccess, field: ExamFieldKey): boolean {
-  return field === "dcd" ? access.hasDcd : access.hasAny;
+  if (field === "dcd")   return access.hasDcd;
+  if (field === "local") return access.hasLocal;
+  return access.hasAny;
 }
 
 /** สนามที่เป็นเจ้าของทั้งหมด เรียง: สนามที่จำไว้ก่อน */
 export function ownedFields(access: UserAccess): ExamFieldKey[] {
-  const all: ExamFieldKey[] = ["moph", "dcd"];
+  const all: ExamFieldKey[] = ["moph", "dcd", "local"];
   const owned = all.filter((f) => ownsFieldKey(access, f));
   const wanted = getActiveField();
   return owned.sort((a, b) => (a === wanted ? -1 : b === wanted ? 1 : 0));

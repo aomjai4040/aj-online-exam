@@ -81,30 +81,39 @@ export const EXAM_FIELDS: ExamField[] = [
     id: "local", code: "อปท.",
     name:  "องค์กรปกครองส่วนท้องถิ่น",
     blurb: "สายงานสาธารณสุขและสิ่งแวดล้อม",
-    status: "soon", accent: "#EF4444",
+    // เปิดขาย 2026-10-04 (Aj): ฿499 ขายผ่านโค้ด Activate ทางแชท — ยังไม่มี checkout
+    // hrefBuy ชี้ /activate (หน้า "ล็อก" ของคอร์สนี้มีปุ่มทักไลน์ + กรอกโค้ดแยกเอง)
+    status: "open", accent: "#EF4444",
+    price: 499,
     ownPrefixes: ["local-"],
-    hrefOwned: "/exams",
+    hrefOwned: "/course/local",
+    hrefBuy:   "/activate",
   },
 ];
 
 /** สนามที่ระบบรู้จักตอนนี้ (ใช้ทั้ง active-field และการกรองชุดข้อสอบ) */
-export type ExamFieldKey = "moph" | "dcd";
+export type ExamFieldKey = "moph" | "dcd" | "local";
 
 export const FIELD_SHORT: Record<ExamFieldKey, string> = {
-  moph: "สป.สธ.",
-  dcd:  "กรมควบคุมโรค",
+  moph:  "สป.สธ.",
+  dcd:   "กรมควบคุมโรค",
+  local: "อปท.",
 };
 
 /** สนามของชุดข้อสอบ — ตัดสินจาก packageId prefix (ไม่มี = คลัง สป.สธ. เดิม) */
 export function examSetField(exam: { packageId?: string }): ExamFieldKey {
-  return String(exam.packageId ?? "").toLowerCase().startsWith("dcd-") ? "dcd" : "moph";
+  const pid = String(exam.packageId ?? "").toLowerCase();
+  if (pid.startsWith("dcd-"))   return "dcd";
+  if (pid.startsWith("local-")) return "local";
+  return "moph";
 }
 
 /** courseId ที่ชุดข้อสอบของแต่ละสนามต้องผูก ("" = ไม่ผูก = คลัง สป.สธ. เดิม ใช้ legacy access)
  *  ใช้ตอน admin สร้าง/import ชุดข้อสอบ — ต้องตรงกับ tierPlan ใน order-types.ts */
 export const FIELD_PACKAGE: Record<ExamFieldKey, string> = {
-  moph: "",
-  dcd:  "dcd-2026",
+  moph:  "",
+  dcd:   "dcd-2026",
+  local: "local-2569",
 };
 
 // ─── Helpers (pure) ───────────────────────────────────────────────────────────

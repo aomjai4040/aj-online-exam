@@ -29,13 +29,20 @@ export async function serverExamAllowed(
   const packageId  = String(exam.packageId ?? "");
   if (packageId) {
     if (packageIds.includes(packageId)) return true;
-    // สนาม คร.: ข้อสอบเปิดให้ทุกแพ็กของสนาม (dcd-app ทำข้อสอบชุด dcd-2026 ได้)
-    return packageId.toLowerCase().startsWith("dcd-")
-      && packageIds.some((id) => id.toLowerCase().startsWith("dcd-"));
+    const pid = packageId.toLowerCase();
+    // สนาม คร./อปท.: ข้อสอบเปิดให้ทุกแพ็กของสนามเดียวกัน
+    if (pid.startsWith("dcd-"))
+      return packageIds.some((id) => id.toLowerCase().startsWith("dcd-"));
+    if (pid.startsWith("local-"))
+      return packageIds.some((id) => id.toLowerCase().startsWith("local-"));
+    return false;
   }
-  // legacy (ไม่ผูก packageId) = คลัง สป.สธ. เดิม — สนามใหม่ (dcd-) ไม่นับ
+  // legacy (ไม่ผูก packageId) = คลัง สป.สธ. เดิม — สนามใหม่ (dcd-/local-) ไม่นับ
   // ตรงกับ hasAny ฝั่ง client (access.ts): แต่ละสนามแยกขาด ซื้อคอร์สไหนได้แค่คอร์สนั้น
-  return packageIds.some((id) => !id.toLowerCase().startsWith("dcd-"));
+  return packageIds.some((id) => {
+    const low = id.toLowerCase();
+    return !low.startsWith("dcd-") && !low.startsWith("local-");
+  });
 }
 
 /** โหลด exam + questions พร้อมตัดสินสิทธิ์ (ใช้ร่วม 3 endpoint) */

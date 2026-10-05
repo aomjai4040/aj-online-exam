@@ -196,7 +196,7 @@ export async function createExamMeta(data: ExamMetaInput): Promise<string> {
  *  (บั๊ก Aj 2026-08-24: import Mock คร. ชื่อ "Mock Exam ชุดที่ 2" ไปต่อท้าย
  *  ชุด สป.สธ. ชื่อเดียวกัน — ห้ามต่อท้ายข้ามสนามอีก) */
 export async function findExamByTitle(
-  title: string, field?: "moph" | "dcd",
+  title: string, field?: "moph" | "dcd" | "local",
 ): Promise<Exam | null> {
   const q = query(collection(db, "exams"), where("title", "==", title), limit(10));
   const snap = await getDocs(q);

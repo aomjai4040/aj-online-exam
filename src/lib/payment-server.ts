@@ -40,10 +40,11 @@ async function serverAccess(uid: string): Promise<{
   const ids  = snap.docs.map((d) => String(d.data().courseId ?? "").toLowerCase());
   const isDcd    = (id: string) => id.startsWith("dcd-");
   const isDcdApp = (id: string) => id.startsWith("dcd-app");
+  const isLocal  = (id: string) => id.startsWith("local-"); // สนาม อปท. — คนละสนามกับ สป.สธ.
   return {
-    hasAny:    ids.some((id) => !isDcd(id)),   // สิทธิ์ฝั่ง สป.สธ. เท่านั้น
+    hasAny:    ids.some((id) => !isDcd(id) && !isLocal(id)),   // สิทธิ์ฝั่ง สป.สธ. เท่านั้น
     hasReview: ids.some((id) => id.startsWith("review-")),
-    hasFull:   ids.some((id) => !id.startsWith("app-") && !id.startsWith("review-") && !isDcd(id)),
+    hasFull:   ids.some((id) => !id.startsWith("app-") && !id.startsWith("review-") && !isDcd(id) && !isLocal(id)),
     hasDcd:    ids.some(isDcd),
     hasDcdFull: ids.some((id) => isDcd(id) && !isDcdApp(id)), // ติวเข้ม คร. (คลิป/LINE/เอกสาร)
     hasDcdApp:  ids.some(isDcdApp),

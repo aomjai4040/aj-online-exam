@@ -6,7 +6,7 @@ import type { Exam } from "@/lib/types";
 import { getSubjectShort, normalizeSubject, isMockExam, subjectsForField } from "@/lib/types";
 import { isFinalLapExam } from "@/lib/final-review";
 import { examSetField, type ExamFieldKey } from "@/lib/exam-fields";
-import { getActiveField, setActiveField } from "@/lib/active-field";
+import { getActiveField, setActiveField, ownedFields } from "@/lib/active-field";
 import FieldSwitcher from "@/components/FieldSwitcher";
 import type { Difficulty } from "@/lib/mock-data";
 import { getHistory, type ExamRecord } from "@/lib/exam-history";
@@ -328,7 +328,7 @@ export default function ExamsPage() {
   useEffect(() => {
     const f = new URLSearchParams(window.location.search).get("field");
     const viewing: ExamFieldKey =
-      f === "dcd" ? "dcd" : f === "moph" ? "moph" : getActiveField();
+      f === "dcd" || f === "moph" || f === "local" ? f : getActiveField();
     setFieldParam(viewing);
     setActiveField(viewing);
     getPublishedExams()
@@ -430,12 +430,13 @@ export default function ExamsPage() {
           </div>
 
           {/* Search input */}
-          {/* สลับสนาม — เห็นเฉพาะคนมีคอร์ส คร. หรือกำลังดูสนาม คร. */}
+          {/* สลับสนาม — โชว์เฉพาะสนามที่มีสิทธิ์ (+สนามที่กำลังดู) และต่อเมื่อมีให้สลับจริง */}
           <FieldSwitcher current={fieldParam}
-            show={access.hasDcd || fieldParam === "dcd"}
+            fields={Array.from(new Set([...ownedFields(access), fieldParam]))}
+            show={new Set([...ownedFields(access), fieldParam]).size > 1}
             onChange={(f) => {
               setFieldParam(f);
-              window.history.replaceState(null, "", f === "dcd" ? "/exams?field=dcd" : "/exams");
+              window.history.replaceState(null, "", f === "moph" ? "/exams" : `/exams?field=${f}`);
             }} />
 
           <div className="relative">

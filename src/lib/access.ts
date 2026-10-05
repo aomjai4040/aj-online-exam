@@ -20,11 +20,12 @@ export interface UserAccess {
   hasFull:    boolean;  // มี "คอร์สเต็ม" → ดูวิดีโอได้ครบ
   hasDcd:     boolean;  // มีคอร์สสนามกรมควบคุมโรค (ตัวไหนก็ได้ — คุมสิทธิ์เข้า "สนาม")
   hasDcdFull: boolean;  // มี "ติวเข้ม คร." (dcd- ที่ไม่ใช่ dcd-app) → คลิป + LINE + เอกสาร
+  hasLocal:   boolean;  // มีคอร์สสนาม อปท. (local-) — คุมสิทธิ์เข้าสนามท้องถิ่น
 }
 
 export const EMPTY_ACCESS: UserAccess = {
   packageIds: [], hasAny: false, hasReview: false, hasFull: false,
-  hasDcd: false, hasDcdFull: false,
+  hasDcd: false, hasDcdFull: false, hasLocal: false,
 };
 
 /**
@@ -50,8 +51,14 @@ export function isDcdCourse(courseId: string): boolean {
 export function isDcdAppCourse(courseId: string): boolean {
   return courseId.toLowerCase().startsWith("dcd-app");
 }
+/** สนาม อปท. (499 — Aj 2026-10-04): ชุดข้อสอบท้องถิ่น ขายผ่านโค้ด Activate */
+export function isLocalCourse(courseId: string): boolean {
+  return courseId.toLowerCase().startsWith("local-");
+}
 export function isFullCourse(courseId: string): boolean {
-  return !isAppOnlyCourse(courseId) && !isReviewCourse(courseId) && !isDcdCourse(courseId);
+  // local- ต้องถูกกันออกเช่นเดียวกับ dcd- — ไม่งั้นคนซื้อ อปท. ได้คอร์สวิดีโอ สป.สธ. ฟรี
+  return !isAppOnlyCourse(courseId) && !isReviewCourse(courseId)
+    && !isDcdCourse(courseId) && !isLocalCourse(courseId);
 }
 
 /** ดึงสิทธิ์ทั้งหมดของผู้ใช้ในครั้งเดียว (แทน checkUserHasAnyAccess เดิม) */
@@ -66,12 +73,13 @@ export async function getUserAccess(uid: string): Promise<UserAccess> {
     packageIds,
     // hasAny = legacy fallback ของ "คลัง สป.สธ. เดิม" (ชุดที่ยังไม่ผูก packageId)
     // Aj ยืนยัน 2026-08-16: แต่ละสนามแยกขาด ซื้อคอร์สไหนได้แค่คอร์สนั้น
-    // → คอร์ส คร. (dcd-) ไม่นับ ไม่งั้นคนซื้อ คร. จะได้คลัง สป.สธ. 68 ชุดไปด้วย
-    hasAny:    packageIds.some((id) => !isDcdCourse(id)),
+    // → คอร์ส คร. (dcd-) และ อปท. (local-) ไม่นับ ไม่งั้นได้คลัง สป.สธ. ไปด้วย
+    hasAny:    packageIds.some((id) => !isDcdCourse(id) && !isLocalCourse(id)),
     hasReview: packageIds.some(isReviewCourse),
     hasFull:   packageIds.some(isFullCourse),
     hasDcd:    packageIds.some(isDcdCourse),
     hasDcdFull: packageIds.some((id) => isDcdCourse(id) && !isDcdAppCourse(id)),
+    hasLocal:  packageIds.some(isLocalCourse),
   };
 }
 
@@ -89,6 +97,8 @@ export function decideExamAccess(
     if (access.packageIds.includes(exam.packageId)) return "allowed";
     // สนาม คร.: ข้อสอบเปิดให้ทุกแพ็กของสนาม (dcd-app ก็ทำได้ — ต่างกันที่คลิป/LINE)
     if (isDcdCourse(exam.packageId) && access.hasDcd) return "allowed";
+    // สนาม อปท.: แพ็กใดของสนามก็เข้าชุดของสนามได้ (ตอนนี้มีแพ็กเดียว local-2569)
+    if (isLocalCourse(exam.packageId) && access.hasLocal) return "allowed";
     return "locked";
   }
   // ยังไม่ผูกแพ็ก → legacy: มีคอร์สอะไรก็ได้ก็เข้าได้

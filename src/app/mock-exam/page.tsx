@@ -10,7 +10,7 @@ import { getUserAccess, decideExamAccess, EMPTY_ACCESS, type UserAccess } from "
 import { PRICING } from "@/lib/pricing";
 import { BRAND } from "@/lib/subjects";
 import { examSetField, FIELD_SHORT, type ExamFieldKey } from "@/lib/exam-fields";
-import { getActiveField } from "@/lib/active-field";
+import { getActiveField, ownedFields } from "@/lib/active-field";
 import FieldSwitcher from "@/components/FieldSwitcher";
 import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 import BottomNav from "@/components/BottomNav";
@@ -69,8 +69,10 @@ export default function MockExamPage() {
 
       <div className="max-w-lg mx-auto px-5 py-5 space-y-4">
 
-        {/* สลับสนาม — เห็นเฉพาะคนมีคอร์ส คร. */}
-        <FieldSwitcher current={field} show={access.hasDcd}
+        {/* สลับสนาม — โชว์เฉพาะสนามที่มีสิทธิ์ และต่อเมื่อมีให้สลับจริง */}
+        <FieldSwitcher current={field}
+          fields={Array.from(new Set([...ownedFields(access), field]))}
+          show={new Set([...ownedFields(access), field]).size > 1}
           onChange={setField} />
 
         {/* วิธีใช้ให้ได้ผล */}

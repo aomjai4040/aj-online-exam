@@ -23,7 +23,7 @@ import {
   EXAM_FIELDS, FIELD_SHORT, examSetField, type ExamFieldKey,
 } from "@/lib/exam-fields";
 import { setActiveField, ownsFieldKey, ownedFields, courseHref } from "@/lib/active-field";
-import { dcdCurrentPrice, dcdUpgradePrice, PRICING } from "@/lib/pricing";
+import { dcdCurrentPrice, dcdUpgradePrice, PRICING, CONTACT_URL } from "@/lib/pricing";
 import BottomNav from "@/components/BottomNav";
 import { OtherCourses } from "@/components/ExamFieldGrid";
 import TodayPlanCard from "@/components/TodayPlanCard";
@@ -88,6 +88,10 @@ function menuFor(field: ExamFieldKey, extra: { driveUrl: string | null; openLine
       { title: "Checklist วิดีโอ", desc: "ติดตามวิดีโอที่ดู", href: "https://jade-fenglisu-32fb47.netlify.app", external: true, icon: ICONS.check },
     ];
   }
+  // อปท. (Aj 2026-10-04): ชุดข้อสอบอย่างเดียว — ยังไม่มีคลิป/สัมภาษณ์/โค้งสุดท้าย
+  if (field === "local") {
+    return [mock, review, game, me];
+  }
   // คร. (Aj 2026-08-23): เอกสาร + กลุ่ม LINE เป็นการ์ดในแผง เรียงตามการใช้งาน
   // App Only คร. (Aj 2026-08-27): สองการ์ดนั้นแทนด้วยปุ่มอัปเกรดจ่ายส่วนต่าง
   // สอบข้อเขียนจบแล้ว → เมนูภาค ค. ขึ้นก่อนเพื่อน (Aj เปิด 2026-09-27)
@@ -123,7 +127,8 @@ export default function CoursePage() {
   const { user, loading: authLoading } = useAuth();
 
   const field: ExamFieldKey | null =
-    params.field === "dcd" ? "dcd" : params.field === "moph" ? "moph" : null;
+    params.field === "dcd" || params.field === "moph" || params.field === "local"
+      ? params.field : null;
   const meta = EXAM_FIELDS.find((f) => f.id === field);
 
   const [access, setAccess]   = useState<UserAccess | null>(null);
@@ -193,7 +198,24 @@ export default function CoursePage() {
                   </p>
                 </div>
               </div>
-              {meta.status === "open" && meta.hrefBuy ? (
+              {field === "local" && meta.status === "open" ? (
+                // อปท. ขายผ่านโค้ด Activate ทางแชท (Aj 2026-10-04) — ยังไม่มี checkout
+                <>
+                  <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
+                    className="block w-full text-center py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98] transition-transform"
+                    style={{ backgroundColor: "#07C160" }}>
+                    ทักไลน์สมัครคอร์ส{meta.code}{price ? ` · ฿${price}` : ""}
+                  </a>
+                  <p className="text-[12px] text-center mt-2 mb-1" style={{ color: "#A8A8A6" }}>
+                    โอนแล้วรับโค้ดจากพี่อ้อม นำมากรอกที่นี่
+                  </p>
+                  <Link href="/activate"
+                    className="block w-full text-center py-3 rounded-2xl text-[14px] font-semibold active:scale-[0.98] transition-transform"
+                    style={{ border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
+                    มีโค้ดแล้ว — กรอกโค้ดปลดล็อก
+                  </Link>
+                </>
+              ) : meta.status === "open" && meta.hrefBuy ? (
                 <>
                   <Link href={meta.hrefBuy}
                     className="block w-full text-center py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98] transition-transform"
@@ -245,7 +267,7 @@ export default function CoursePage() {
 
   const canSwitch = ownedFields(access).length > 1;
   const latest = exams.slice(0, 5);
-  const examsHref = field === "dcd" ? "/exams?field=dcd" : "/exams";
+  const examsHref = field === "moph" ? "/exams" : `/exams?field=${field}`;
   const menu = menuFor(field, { driveUrl, openLine: () => setLineOpen(true), dcdFull: access.hasDcdFull });
 
   return (

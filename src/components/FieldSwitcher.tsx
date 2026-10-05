@@ -11,16 +11,18 @@ import { setActiveField } from "@/lib/active-field";
 import { BRAND } from "@/lib/subjects";
 
 export default function FieldSwitcher({
-  current, show, onChange,
+  current, show, onChange, fields,
 }: {
   current: ExamFieldKey;
   show: boolean;
   onChange: (f: ExamFieldKey) => void;
+  /** สนามที่ให้สลับได้ — ไม่ส่งมา = ทุกสนาม (มี 3 สนามแล้ว อย่าโชว์สนามที่ผู้ใช้ไม่มีสิทธิ์) */
+  fields?: ExamFieldKey[];
 }) {
   if (!show) return null;
   return (
     <div className="flex gap-2 mb-4">
-      {(Object.keys(FIELD_SHORT) as ExamFieldKey[]).map((f) => {
+      {(fields ?? (Object.keys(FIELD_SHORT) as ExamFieldKey[])).map((f) => {
         const sel = current === f;
         return (
           <button key={f}

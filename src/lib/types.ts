@@ -52,8 +52,10 @@ export const ALL_SUBJECTS: ReadonlyArray<{ code: string; label: string }> = [
 ];
 
 /** หมวดของสนามนั้น — ไว้โชว์ตารางอ้างอิง/ชิปเลือกหมวด */
-export function subjectsForField(field: "moph" | "dcd"): ReadonlyArray<{ code: string; label: string }> {
-  return field === "dcd" ? DCD_SUBJECTS : SUBJECTS;
+export function subjectsForField(field: "moph" | "dcd" | "local"): ReadonlyArray<{ code: string; label: string }> {
+  if (field === "dcd")   return DCD_SUBJECTS;
+  if (field === "local") return LOCAL_SUBJECTS;
+  return SUBJECTS;
 }
 
 export function getSubjectLabel(code: string): string {
@@ -81,6 +83,13 @@ export const SUBJECT_DISPLAY: Record<string, string> = {
   EPI:     "ระบาด/สถิติ",
   DISEASE: "ควบคุมโรค",
   RISKCOM: "สื่อสารความเสี่ยง",
+  // สนาม อปท. (LAWPH/LAWCD ใช้ร่วมกับ คร. อยู่แล้วด้านบน)
+  LAWCLEAN: "รักษาความสะอาด",
+  LAWNHA:   "สุขภาพแห่งชาติ",
+  LAWCPA:   "คุ้มครองผู้บริโภค",
+  PHKNOW:   "ความรู้ สธ.",
+  MCHENV:   "แม่เด็ก/สิ่งแวดล้อม",
+  PHADMIN:  "บริหาร/ลักษณะงาน",
 };
 
 // Legacy Thai subject names → new subject codes (backward compat)
