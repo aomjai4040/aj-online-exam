@@ -46,7 +46,7 @@ function DcdPartBPanel() {
         const { db } = await import("@/lib/firebase");
         const snap = await getDocs(query(
           collection(db, "users"),
-          where("dcdPartB69", "in", ["passed", "failed", "pending"]),
+          where("dcdPartB69", "in", ["passed", "failed", "pending", "absent"]),
         ));
         if (cancelled) return;
         setRows(snap.docs.map((d) => {
@@ -67,7 +67,10 @@ function DcdPartBPanel() {
   const passed  = rows.filter((r) => r.status === "passed");
   const failed  = rows.filter((r) => r.status === "failed");
   const pending = rows.filter((r) => r.status === "pending");
-  const LABEL: Record<string, string> = { passed: "🎉 ผ่าน", failed: "ไม่ผ่าน", pending: "รอเช็คผล" };
+  const absent  = rows.filter((r) => r.status === "absent");
+  const LABEL: Record<string, string> = {
+    passed: "🎉 ผ่าน", failed: "ไม่ผ่าน", pending: "รอเช็คผล", absent: "ไม่ได้สอบ",
+  };
 
   return (
     <div className="bg-white rounded-2xl p-5" style={{ border: "1.5px solid #FCD34D" }}>
@@ -82,11 +85,12 @@ function DcdPartBPanel() {
           </button>
         )}
       </div>
-      <div className="grid grid-cols-3 gap-3 mt-3">
+      <div className="grid grid-cols-4 gap-3 mt-3">
         {[
           { l: "ผ่าน ได้สัมภาษณ์", v: passed.length, c: "#15803D" },
           { l: "ยังไม่ผ่าน", v: failed.length, c: "#DC2626" },
           { l: "ยังไม่ได้เช็ค/รอผล", v: pending.length, c: "#B45309" },
+          { l: "ไม่ได้ไปสอบ", v: absent.length, c: "#6B7280" },
         ].map((k) => (
           <div key={k.l}>
             <div className="text-[22px] font-extrabold leading-none" style={{ color: k.c }}>{k.v}</div>
@@ -101,7 +105,7 @@ function DcdPartBPanel() {
       )}
       {open && rows.length > 0 && (
         <div className="mt-3 max-h-72 overflow-y-auto rounded-xl" style={{ border: "1px solid #F3F2F0" }}>
-          {[...passed, ...pending, ...failed].map((r, i) => (
+          {[...passed, ...pending, ...failed, ...absent].map((r, i) => (
             <div key={`${r.email}-${i}`} className="flex items-center gap-2.5 px-3 py-2 text-[12.5px]"
               style={{ borderTop: i > 0 ? "1px solid #F7F6F4" : "none" }}>
               <span className="flex-1 truncate" style={{ color: "#6B7280" }}>
@@ -109,7 +113,8 @@ function DcdPartBPanel() {
               </span>
               <span className="flex-shrink-0" style={{ color: "#A8A8A6" }}>{r.at}</span>
               <span className="flex-shrink-0 font-semibold w-16 text-right"
-                style={{ color: r.status === "passed" ? "#15803D" : r.status === "failed" ? "#DC2626" : "#B45309" }}>
+                style={{ color: r.status === "passed" ? "#15803D" : r.status === "failed" ? "#DC2626"
+                  : r.status === "absent" ? "#6B7280" : "#B45309" }}>
                 {LABEL[r.status]}
               </span>
             </div>

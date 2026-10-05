@@ -71,16 +71,17 @@ export default function DcdPartBCard() {
     );
   }
 
-  // ── ตอบ "ไม่ผ่าน" (เพิ่งตอบ) → ให้กำลังใจสั้น ๆ ครั้งเดียวแล้วไม่กวนอีก ──
-  if (status === "failed") {
+  // ── ตอบ "ไม่ผ่าน" / "ไม่ได้ไปสอบ" (เพิ่งตอบ) → ขอบคุณสั้น ๆ ครั้งเดียวแล้วไม่กวนอีก ──
+  if (status === "failed" || status === "absent") {
     if (!justAnswered) return null;
     return (
       <div className="rounded-2xl px-4 py-3.5 mb-4"
         style={{ backgroundColor: "#F5FAF9", border: "1px solid #E7F0EE" }}>
         <p className="text-[13.5px] font-bold text-gray-800">ขอบคุณที่แจ้งนะคะ 💚</p>
         <p className="text-[12.5px] mt-0.5 leading-relaxed text-gray-500">
-          รอบนี้ยังไม่ใช่ของเรา แต่ความรู้ที่ติวมาไม่หายไปไหน —
-          คลังข้อสอบและคลิปยังอยู่ให้ทบทวนสำหรับสนามต่อไปเสมอค่ะ
+          {status === "absent"
+            ? "ไม่ได้ไปสอบรอบนี้ไม่เป็นไรค่ะ — คลังข้อสอบและคลิปยังอยู่ให้ทบทวน เตรียมพร้อมสำหรับสนามต่อไปได้เสมอ"
+            : "รอบนี้ยังไม่ใช่ของเรา แต่ความรู้ที่ติวมาไม่หายไปไหน — คลังข้อสอบและคลิปยังอยู่ให้ทบทวนสำหรับสนามต่อไปเสมอค่ะ"}
         </p>
       </div>
     );
@@ -109,6 +110,11 @@ export default function DcdPartBCard() {
           ยังไม่ผ่าน
         </button>
       </div>
+      <button onClick={() => answer("absent")} disabled={busy}
+        className="mt-2 w-full py-2.5 rounded-xl text-[13px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
+        style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
+        ไม่ได้ไปสอบรอบนี้
+      </button>
       {status !== "pending" && (
         <button onClick={() => answer("pending")} disabled={busy}
           className="mt-2 w-full py-1.5 text-[12px] font-medium underline"

@@ -133,6 +133,11 @@ export default function InterviewPage() {
                 style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
                 ยังไม่ผ่านรอบนี้
               </button>
+              <button onClick={() => savePartB("absent")} disabled={partBBusy}
+                className="w-full py-3 rounded-xl text-[14px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
+                style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
+                ไม่ได้ไปสอบรอบนี้
+              </button>
               <button onClick={() => savePartB("pending")} disabled={partBBusy}
                 className="w-full py-2 text-[12.5px] font-medium underline disabled:opacity-50"
                 style={{ color: "#B45309" }}>

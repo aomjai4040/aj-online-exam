@@ -20,7 +20,7 @@ import type { ExamFieldKey } from "./exam-fields";
 /** วันประกาศผู้มีสิทธิสัมภาษณ์ คร. (ตามประกาศกรม) */
 export const DCD_RESULT_AT = "2026-10-05T00:00:00+07:00";
 export const DCD_PARTB_KEY = "dcdPartB69";
-export type PartBStatus = "passed" | "failed" | "pending";
+export type PartBStatus = "passed" | "failed" | "pending" | "absent";
 
 export function dcdResultAnnounced(now: Date = new Date()): boolean {
   return now.getTime() >= new Date(DCD_RESULT_AT).getTime();
