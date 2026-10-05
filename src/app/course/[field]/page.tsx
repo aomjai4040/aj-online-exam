@@ -192,7 +192,9 @@ export default function CoursePage() {
                     {locked === "guest" ? "เข้าสู่ระบบแล้วสมัครคอร์สนี้ก่อนนะคะ" : "คุณยังไม่ได้สมัครคอร์สนี้"}
                   </p>
                   <p className="text-[13px] mt-1 leading-relaxed" style={{ color: "#6B7280" }}>
-                    คลังข้อสอบ · Mock Exam · คลิปติว · กลุ่ม LINE ของสนาม {meta.code}{" "}
+                    {field === "local"
+                      ? "คลังข้อสอบพร้อมเฉลยละเอียด · Mock Exam · Daily Quiz เจาะจุดอ่อน ของสนาม อปท. "
+                      : `คลังข้อสอบ · Mock Exam · คลิปติว · กลุ่ม LINE ของสนาม ${meta.code} `}
                     เปิดให้เฉพาะผู้ที่สมัครคอร์ส{meta.name}
                     {other.length > 0 && ` — คอร์สที่คุณมีอยู่คือ ${other.map((f) => FIELD_SHORT[f]).join(", ")} ถ้ากดมาผิด กลับไปคอร์สของคุณได้เลย`}
                   </p>
