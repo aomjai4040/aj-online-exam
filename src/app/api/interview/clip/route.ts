@@ -20,8 +20,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const EXT: Record<string, string> = { video: "mp4", poster: "jpg", captions: "vtt" };
-// รหัสคำถาม + เวอร์ชันคลิป (-2..-9): ข้อเดียวอัดหลายแบบได้ เช่น SPS-C-001-2 (Aj 2026-10-17)
-const CODE_RE = /^[A-Z]{3}-[A-Z]-\d{3}(-[2-9])?$/;
+// รหัสคำถาม + เวอร์ชันคลิป: ข้อเดียวอัดหลายแบบได้ เช่น SPS-C-001-V2 (ไฟล์ -v2)
+// รูปแบบเก่า -2..-9 ยังรับ (Aj 2026-10-18)
+const CODE_RE = /^[A-Z]{3}-[A-Z]-\d{3}(-V?[2-9])?$/;
 
 async function isMember(uid: string): Promise<boolean> {
   const snap = await adminDb().collection("userCourses")

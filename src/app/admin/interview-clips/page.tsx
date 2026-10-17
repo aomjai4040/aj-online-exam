@@ -65,11 +65,11 @@ export default function AdminInterviewClipsPage() {
     const token = await user.getIdToken();
 
     for (const file of Array.from(files)) {
-      // รหัส + เวอร์ชัน (ไม่บังคับ): SPS-C-001.mp4 = แบบแรก · SPS-C-001-2.mp4 = แบบที่สอง
-      const m = /^([A-Z]{3}-[A-Z]-\d{3}(?:-[2-9])?)\.(\w+)$/i.exec(file.name.trim());
-      if (!m) { log(file.name, "ชื่อไฟล์ไม่ตรงรูปแบบ รหัส.นามสกุล เช่น SPS-C-001.mp4 หรือ SPS-C-001-2.mp4", false); continue; }
+      // รหัส + เวอร์ชัน (ไม่บังคับ): SPS-C-001.mp4 = แบบแรก · SPS-C-001-v2.mp4 = แบบที่สอง
+      const m = /^([A-Z]{3}-[A-Z]-\d{3}(?:-V?[2-9])?)\.(\w+)$/i.exec(file.name.trim());
+      if (!m) { log(file.name, "ชื่อไฟล์ไม่ตรงรูปแบบ รหัส.นามสกุล เช่น SPS-C-001.mp4 หรือ SPS-C-001-v2.mp4", false); continue; }
       const code = m[1].toUpperCase();
-      const baseCode = code.replace(/-[2-9]$/, "");
+      const baseCode = code.replace(/-V?[2-9]$/, "");
       const kind = KIND_OF_EXT[m[2].toLowerCase()];
       if (!kind) { log(file.name, "รองรับเฉพาะ .mp4 (คลิป) .jpg (ปก) .vtt (ซับ)", false); continue; }
       // รับทั้งรหัสคำถาม (SPS-C/DCD-C) และคลิปจี้ห้องกดดัน (PRS-P-001..005)
@@ -168,10 +168,10 @@ export default function AdminInterviewClipsPage() {
     ];
   }, []);
 
-  // นับเป็น "ข้อ" — เวอร์ชันสำรอง (-2..-9) ของข้อเดียวกันไม่นับเพิ่ม
+  // นับเป็น "ข้อ" — เวอร์ชันสำรอง (-v2..-v9) ของข้อเดียวกันไม่นับเพิ่ม
   const haveVideo = new Set(
     [...clips.values()].filter((c) => c.videoPath)
-      .map((c) => c.code.replace(/-[2-9]$/, ""))
+      .map((c) => c.code.replace(/-V?[2-9]$/, ""))
   ).size;
   const freeCount = [...clips.values()].filter((c) => c.isFreePreview).length;
 
@@ -186,7 +186,7 @@ export default function AdminInterviewClipsPage() {
       <p className="text-[13px] text-gray-500 mb-4">
         มีคลิปแล้ว {haveVideo}/{QUESTIONS.length} ข้อ · ทดลองฟรี {freeCount} ข้อ
         (ควรมี ~3 ข้อ) · ตั้งชื่อไฟล์ = รหัสข้อ เช่น <b>SPS-C-001.mp4</b> แล้วเลือกได้ทีละหลายไฟล์
-        · ข้อเดียวอัดหลายแบบได้ ตั้งชื่อ <b>SPS-C-001-2.mp4</b> ถึง <b>-9</b> ระบบสุ่มสลับให้เอง
+        · ข้อเดียวอัดหลายแบบได้ ตั้งชื่อ <b>SPS-C-001-v2.mp4</b> ถึง <b>-v9</b> ระบบสุ่มสลับให้เอง
       </p>
 
       {/* อัปโหลด */}
@@ -222,16 +222,17 @@ export default function AdminInterviewClipsPage() {
           <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">{g.title}</p>
           <div className="card divide-y divide-gray-100">
             {g.list.map((q) => {
-              // ข้อที่อัดหลายแบบ (เช่น แนะนำตัว): ไฟล์ -2..-9 โผล่เป็นแถวย่อยใต้ข้อหลัก
+              // ข้อที่อัดหลายแบบ (เช่น แนะนำตัว): ไฟล์ -v2..-v9 โผล่เป็นแถวย่อยใต้ข้อหลัก
+              const variantCodes = Array.from({ length: 8 }, (_, k) => k + 2)
+                .flatMap((n) => [`${q.code}-V${n}`, `${q.code}-${n}`])
+                .filter((vc) => clips.has(vc));
               const rows = [
                 { code: q.code, text: q.text, sub: q.sub, subColor: q.subColor, isVariant: false },
-                ...Array.from({ length: 8 }, (_, k) => `${q.code}-${k + 2}`)
-                  .filter((vc) => clips.has(vc))
-                  .map((vc) => ({
-                    code: vc,
-                    text: `แบบที่ ${vc.slice(-1)} ของข้อนี้ — ระบบสุ่มสลับกับแบบอื่นให้เอง`,
-                    sub: "เวอร์ชันสำรอง", subColor: "#7C3AED", isVariant: true,
-                  })),
+                ...variantCodes.map((vc) => ({
+                  code: vc,
+                  text: `แบบที่ ${vc.slice(-1)} ของข้อนี้ — ระบบสุ่มสลับกับแบบอื่นให้เอง`,
+                  sub: "เวอร์ชันสำรอง", subColor: "#7C3AED", isVariant: true,
+                })),
               ];
               return (
                 <div key={q.code}>

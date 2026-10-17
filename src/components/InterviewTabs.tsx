@@ -20,7 +20,7 @@ import {
   INTERVIEW_CATS, catOf, questionsForField, pickPracticeSet,
   loadPracticeStats, recordPracticeRating, practiceProgress,
   ANSWER_PRINCIPLES, INTERVIEW_CHECKLIST, PRACTICE_CONFIG,
-  PRESSURE_PROMPTS, PRESSURE_CLIPS,
+  PRESSURE_PROMPTS, PRESSURE_CLIPS, CLIP_VARIANT_META,
   type InterviewQuestion, type PracticeRating,
 } from "@/lib/interview";
 import { fetchClipUrl, type InterviewClip } from "@/lib/interview-clips";
@@ -38,8 +38,10 @@ const playableClip = (c?: InterviewClip) =>
 
 // ── คลิปหลายเวอร์ชันต่อข้อ (Aj 2026-10-17: ข้อแนะนำตัวอัดหลายแบบ
 //    กันน้องซ้อมหลายรอบเจอคลิปเดิมทุกครั้ง) ──
-// ตั้งชื่อไฟล์: SPS-C-001.mp4 = แบบแรก · SPS-C-001-2.mp4 ถึง -9 = แบบถัดไป
-// ทุกเวอร์ชันแชร์รหัสคำถามเดิม — ตัวสุ่มเลือกให้เอง ไม่ซ้ำแบบที่เพิ่งเจอ
+// ตั้งชื่อไฟล์: SPS-C-001.mp4 = แบบแรก · SPS-C-001-v2.mp4 ถึง -v9 = แบบถัดไป
+// (รูปแบบเก่า -2..-9 ก็ยังรับ) ทุกเวอร์ชันแชร์รหัสคำถามเดิม —
+// ตัวสุ่มเลือกให้เอง ไม่ซ้ำแบบที่เพิ่งเจอ · เวอร์ชันที่มีบทพูดต่างจากข้อหลัก
+// ใส่ข้อความ/เวลาตอบไว้ใน CLIP_VARIANT_META (lib/interview.ts)
 
 /** ทุกเวอร์ชันที่เล่นได้ของข้อนี้ (freeOnly = เอาเฉพาะข้อ 🎁 สำหรับ guest) */
 function clipVariants(
@@ -50,7 +52,10 @@ function clipVariants(
     if (playableClip(c) && (!freeOnly || c!.isFreePreview)) out.push(c!);
   };
   keep(clips.get(code));
-  for (let i = 2; i <= 9; i++) keep(clips.get(`${code}-${i}`));
+  for (let i = 2; i <= 9; i++) {
+    keep(clips.get(`${code}-V${i}`)); // ชื่อไฟล์ -v2 → รหัสเก็บเป็นตัวใหญ่ V2
+    keep(clips.get(`${code}-${i}`));
+  }
   return out;
 }
 
@@ -355,6 +360,10 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   // ห้องกดดัน: คำจี้ของข้อปัจจุบัน + เวลาตอบช่วงแรก (ไว้รวมเวลาใช้จริง)
   const [pressureText, setPressureText] = useState("");
   const answerUsedRef = useRef<number | null>(null);
+  // เวอร์ชันคลิปที่สุ่มได้ของขั้นนี้ — บทพูดต่างจากข้อหลัก = ข้อความ/เวลาตอบเปลี่ยนตาม
+  const [variantMeta, setVariantMeta] = useState<{ q: string; answerSeconds?: number } | null>(null);
+  // เวลาที่จัดให้ขั้นนี้จริง (เวอร์ชัน v4 ให้ 30 วิ ไม่ใช่ค่ามาตรฐานของขั้น)
+  const allotRef = useRef<number>(PRACTICE_CONFIG.answerSeconds);
   const pressureCountRef = useRef(0);
   // guest: ทดลองห้องซ้อมจริงฟรี 1 รอบ
   const [simTrialUsed, setSimTrialUsed] = useState(false);
@@ -515,7 +524,6 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const beginStep = useCallback(async (list: Step[], i: number) => {
     const step = list[i];
     setIdx(i);
-    setSecs(stepSeconds(step));
     setClipMedia(null);
     setPreCount(null);
     setPressureText("");
@@ -523,6 +531,11 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     // สุ่มเวอร์ชันคลิปของข้อนี้ (ข้อที่อัดหลายแบบ เช่น แนะนำตัว จะไม่เจอแบบเดิมซ้ำ)
     // guest เล่นได้เฉพาะเวอร์ชัน 🎁 — ข้อล็อกเป็นการ์ดข้อความตามเดิม
     const clip = step.q ? pickClipVariant(clips, step.q.code, !isMember) : undefined;
+    // เวอร์ชันที่บทพูดต่างจากข้อหลัก: ข้อความใต้คลิป + เวลาตอบ เปลี่ยนตามปากกรรมการ
+    const meta = clip ? CLIP_VARIANT_META[clip.code] : undefined;
+    setVariantMeta(meta ?? null);
+    allotRef.current = meta?.answerSeconds ?? stepSeconds(step);
+    setSecs(allotRef.current);
     if (clip && step.q) {
       setSub("listen");
       playClip(clip.code);
@@ -554,12 +567,30 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       const all = questionsForField(field);
       const intro = all.find((q) => q.id === "intro-self");
       const stats = loadPracticeStats(field);
-      const clipQs = all.filter((q) => q.id !== "intro-self" && clipVariants(clips, q.code).length > 0);
-      const textQs = all.filter((q) => q.id !== "intro-self" && clipVariants(clips, q.code).length === 0);
-      const rest = pickPracticeSet(field, CFG.simQuestionCount, stats, clipQs);
+      const pickFrom = (n: number, fromPool: InterviewQuestion[]) => {
+        const clipQs = fromPool.filter((q) => clipVariants(clips, q.code).length > 0);
+        const textQs = fromPool.filter((q) => clipVariants(clips, q.code).length === 0);
+        const out = pickPracticeSet(field, n, stats, clipQs);
+        if (out.length < n) out.push(...pickPracticeSet(field, n - out.length, stats, textQs));
+        return out;
+      };
+      const base = all.filter((q) => q.id !== "intro-self");
+      let rest = pickFrom(CFG.simQuestionCount, base);
+      // ภาษาอังกฤษไม่เกิน 1 ข้อต่อรอบจำลอง (Aj 2026-10-18) —
+      // กันห้องซ้อม 5 นาทีกลายเป็นห้องสอบภาษา ข้อที่เกินตัดออกแล้วเติมหมวดอื่นแทน
+      let engSeen = 0;
+      rest = rest.filter((q) => q.cat !== "english" || ++engSeen <= 1);
       if (rest.length < CFG.simQuestionCount) {
-        rest.push(...pickPracticeSet(field, CFG.simQuestionCount - rest.length, stats, textQs));
+        const got = new Set(rest.map((q) => q.id));
+        rest.push(...pickFrom(CFG.simQuestionCount - rest.length,
+          base.filter((q) => q.cat !== "english" && !got.has(q.id))));
       }
+      // "มีอะไรอยากถามกรรมการไหม" (SPS-C-014) ถ้าสุ่มติดมา ต้องเป็นข้อปิดท้าย
+      // เสมอเหมือนห้องจริง — กรรมการไม่ถามข้อนี้กลางวง
+      rest = [
+        ...rest.filter((q) => q.code !== "SPS-C-014"),
+        ...rest.filter((q) => q.code === "SPS-C-014"),
+      ];
       list = [
         { kind: "intro", q: intro, title: "แนะนำตัวเอง" },
         ...rest.map((q) => ({ kind: "question" as const, q, title: q.q })),
@@ -608,7 +639,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     // เวลาใช้จริง: ข้อที่โดนจี้ = เวลาตอบหลัก + เวลาตอบคำจี้
     const timeUsed = answerUsedRef.current !== null
       ? answerUsedRef.current + (CFG.pressureSeconds - secs)
-      : stepSeconds(step) - secs;
+      : allotRef.current - secs;
     setUsed((p) => [...p, timeUsed]);
     if (idx + 1 >= steps.length) {
       // guest จบรอบจำลองห้อง = ใช้สิทธิ์ทดลองฟรี 1 รอบแล้ว
@@ -634,7 +665,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     const shouldPress = mode === "pressure" && answerUsedRef.current === null &&
       (Math.random() < CFG.pressureChance || (isLast && pressureCountRef.current === 0));
     if (shouldPress) {
-      answerUsedRef.current = stepSeconds(step) - secs;
+      answerUsedRef.current = allotRef.current - secs;
       pressureCountRef.current += 1;
       // มีคลิปจี้อวตาร์ → เล่นคลิปก่อน นาฬิกา 30 วิเริ่มเมื่อกรรมการพูดจบ
       // ยังไม่มีคลิป → การ์ดข้อความจี้ นาฬิกาเริ่มทันทีแบบเดิม
@@ -855,9 +886,10 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       </div>
 
       <p className="text-[17px] font-bold text-gray-900 leading-snug mb-4">
-        {step.kind === "intro"
-          ? `เชิญแนะนำตัวเองให้คณะกรรมการรู้จักค่ะ (${Math.round(CFG.simIntroSeconds / 60)} นาที)`
-          : q!.q}
+        {/* เวอร์ชันคลิปที่บทพูดต่าง → โชว์ตามปากกรรมการ ไม่ใช่ข้อความกลางของข้อ */}
+        {variantMeta?.q ?? (step.kind === "intro"
+          ? "เชิญแนะนำตัวเองให้คณะกรรมการรู้จักค่ะ (ไม่เกิน 1 นาที)"
+          : q!.q)}
       </p>
 
       {/* กำลังเชิญกรรมการ (โหลดคลิป) — เล่นต่อเองทันทีที่พร้อม */}
