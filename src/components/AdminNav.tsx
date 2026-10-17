@@ -33,6 +33,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { href: "/admin/exams",      label: "ข้อสอบ" },
       { href: "/admin/videos",     label: "คอร์สวิดีโอ" },
+      { href: "/admin/interview-clips", label: "คลิปสัมภาษณ์ภาค ค" },
       { href: "/admin/flashcards", label: "Flash Card" },
       { href: "/admin/recall",     label: "คลังความจำผู้สอบ" },
       { href: "/admin/moph-focus", label: "เนื้อหารายสนาม" },
