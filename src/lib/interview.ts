@@ -744,11 +744,12 @@ function weightedSample(
  *   1) ข้อที่ยังไม่เคยเจอมาก่อนเสมอ (คละหมวด round-robin) — วนจนครบคลังก่อนค่อยเริ่มซ้ำ
  *   2) ถ้าไม่พอ เติมจากข้อที่เคยเจอ ถ่วงน้ำหนักตามผลครั้งล่าสุด (ตะกุกตะกัก > พอได้ > ลื่น)
  * pure เมื่อส่ง stats เข้ามา — เทสได้โดยไม่แตะ localStorage
+ * ส่ง fromPool มาเพื่อจำกัดคลังที่สุ่ม (เช่น เฉพาะข้อที่มีคลิปอวตาร์ — Aj 2026-10-17)
  */
 export function pickPracticeSet(
-  field: ExamFieldKey, n = 5, stats: PracticeStats = {}
+  field: ExamFieldKey, n = 5, stats: PracticeStats = {}, fromPool?: InterviewQuestion[]
 ): InterviewQuestion[] {
-  const pool = questionsForField(field);
+  const pool = fromPool ?? questionsForField(field);
   const unseen = pool.filter((q) => !stats[q.id]);
   const seen   = pool.filter((q) => stats[q.id]);
 

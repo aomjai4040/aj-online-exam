@@ -270,6 +270,75 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
   const totalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // ── อัดเสียงคำตอบไว้ฟังทบทวน (handoff 2.8) ──
+  // เก็บเฉพาะในหน่วยความจำของรอบนี้ ไม่อัปโหลดขึ้นเซิร์ฟเวอร์เด็ดขาด (ข้อมูลส่วนบุคคล)
+  // ขอไมค์เมื่อผู้ใช้กดเองเท่านั้น · iOS Safari ใช้ audio/mp4 · Chrome ใช้ audio/webm
+  // ไม่ได้สิทธิ์ก็ซ้อมต่อได้ตามปกติ
+  const [recEnabled, setRecEnabled] = useState(false);
+  const [recDenied, setRecDenied] = useState(false);
+  const [recLive, setRecLive] = useState(false);
+  const [recordings, setRecordings] = useState<Record<number, string>>({});
+  const recordingsRef = useRef<Record<number, string>>({});
+  const streamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const startRec = useCallback(() => {
+    const stream = streamRef.current;
+    if (!stream || typeof MediaRecorder === "undefined") return;
+    try {
+      const mime = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "audio/webm";
+      const rec = new MediaRecorder(stream, { mimeType: mime });
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      rec.start();
+      recorderRef.current = rec;
+      setRecLive(true);
+    } catch { setRecLive(false); }
+  }, []);
+
+  const stopRec = useCallback((saveIdx: number | null) => {
+    const rec = recorderRef.current;
+    setRecLive(false);
+    if (!rec || rec.state === "inactive") return;
+    rec.onstop = () => {
+      if (saveIdx !== null && chunksRef.current.length > 0) {
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType });
+        const url = URL.createObjectURL(blob);
+        recordingsRef.current = { ...recordingsRef.current, [saveIdx]: url };
+        setRecordings(recordingsRef.current);
+      }
+      chunksRef.current = [];
+    };
+    try { rec.stop(); } catch {}
+  }, []);
+
+  async function enableRec() {
+    try {
+      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setRecEnabled(true);
+      setRecDenied(false);
+      if (phase === "run" && sub === "answer") startRec();
+    } catch {
+      setRecDenied(true);
+    }
+  }
+
+  // เริ่มอัดอัตโนมัติเมื่อเข้าช่วงตอบ (ถ้าเปิดอัดไว้แล้ว) — ข้อถัดไปไม่ต้องกดซ้ำ
+  useEffect(() => {
+    if (phase === "run" && sub === "answer" && recEnabled && !recLive) startRec();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, sub, idx, recEnabled]);
+
+  // จบรอบ/ออกจากซ้อม → คืนไมค์ให้เครื่อง (ไฟล์เสียงที่อัดไว้ยังฟังได้จนกว่าจะเริ่มรอบใหม่)
+  useEffect(() => {
+    if (phase === "run") return;
+    stopRec(null);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setRecEnabled(false);
+  }, [phase, stopRec]);
+
   // คลังที่ซ้อมได้: สมาชิก = ทั้งสนาม · ทดลองฟรี = เฉพาะข้อ 🎁 ที่มีคลิปเผยแพร่
   const pool = useMemo(() => {
     const all = questionsForField(field);
@@ -319,13 +388,25 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clips]);
 
-  const start = (m: Mode) => {
+  /** สุ่มแบบ "ข้อที่มีคลิปมาก่อนเสมอ" (Aj 2026-10-17) — คลิปไม่พอค่อยเติมการ์ดข้อความ
+   *  Aj ผลิตคลิปเพิ่มเรื่อย ๆ ระบบจะดึงข้อใหม่ที่มีคลิปเข้ารอบซ้อมเองอัตโนมัติ */
+  const pickWithClipsFirst = useCallback((n: number, exclude: string[] = []) => {
     const stats = loadPracticeStats(field);
+    const ok = (q: InterviewQuestion) => !exclude.includes(q.id);
+    const clipQs = pool.filter((q) => ok(q) && playableClip(clips.get(q.code)));
+    const textQs = pool.filter((q) => ok(q) && !playableClip(clips.get(q.code)));
+    const picked = pickPracticeSet(field, n, stats, clipQs);
+    if (picked.length < n) {
+      picked.push(...pickPracticeSet(field, n - picked.length, stats, textQs));
+    }
+    return picked.slice(0, n);
+  }, [field, pool, clips]);
+
+  const start = (m: Mode) => {
     let list: Step[];
     if (m === "sim") {
       const intro = pool.find((q) => q.id === "intro-self");
-      const rest = pickPracticeSet(field, CFG.simQuestionCount + 1, stats)
-        .filter((q) => q.id !== "intro-self").slice(0, CFG.simQuestionCount);
+      const rest = pickWithClipsFirst(CFG.simQuestionCount, ["intro-self"]);
       list = [
         { kind: "intro", q: intro, title: "แนะนำตัวเอง" },
         ...rest.map((q) => ({ kind: "question" as const, q, title: q.q })),
@@ -333,11 +414,15 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
     } else {
       // ทดลองฟรี: คลังเล็ก สุ่มจากที่มี (อาจน้อยกว่า 5)
       const picked = isMember
-        ? pickPracticeSet(field, 5, stats)
+        ? pickWithClipsFirst(5)
         : [...pool].sort(() => Math.random() - 0.5).slice(0, 5);
       list = picked.map((q) => ({ kind: "question" as const, q, title: q.q }));
     }
     if (list.length === 0) return;
+    // รอบใหม่ — ล้างไฟล์เสียงรอบก่อน (เก็บเฉพาะในหน่วยความจำ ไม่อัปโหลด)
+    Object.values(recordingsRef.current).forEach((u) => { if (u) URL.revokeObjectURL(u); });
+    recordingsRef.current = {};
+    setRecordings({});
     setMode(m);
     setSteps(list);
     setRatings([]);
@@ -497,6 +582,23 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
             </div>
           )}
           <p className="text-[13.5px] text-gray-600 text-center leading-relaxed mb-5">{msg}</p>
+          {Object.keys(recordings).length > 0 && (
+            <div className="mb-5">
+              <p className="text-[13px] font-bold text-gray-700 mb-2">
+                🎧 เสียงคำตอบของเรารอบนี้ <span className="font-normal text-gray-400">(อยู่ในเครื่องเท่านั้น หายเมื่อเริ่มรอบใหม่)</span>
+              </p>
+              <div className="space-y-2">
+                {steps.map((s, i) => recordings[i] ? (
+                  <div key={i} className="rounded-xl px-3 py-2" style={{ backgroundColor: "#F5FAF9" }}>
+                    <p className="text-[12px] text-gray-600 truncate mb-1">
+                      {s.kind === "intro" ? "แนะนำตัว" : s.q?.q}
+                    </p>
+                    <audio controls src={recordings[i]} className="w-full" style={{ height: 36 }} />
+                  </div>
+                ) : null)}
+              </div>
+            </div>
+          )}
           <button type="button" onClick={() => setPhase("idle")}
             className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98]"
             style={{ backgroundColor: BRAND.primary }}>
@@ -597,8 +699,31 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
                 : "พูดตอบออกเสียงเลย เหมือนกรรมการนั่งอยู่ตรงหน้า"}
             </p>
           </div>
+          {/* อัดเสียงคำตอบ — ขอไมค์เมื่อผู้ใช้กดเองเท่านั้น เก็บในเครื่อง ไม่อัปโหลด */}
+          {!recEnabled && !recDenied && (
+            <button type="button" onClick={enableRec}
+              className="w-full py-2.5 mb-2.5 rounded-xl text-[12.5px] font-semibold"
+              style={{ backgroundColor: "white", border: "1px dashed #D4D4D0", color: "#6B7280" }}>
+              🎙 อัดเสียงคำตอบไว้ฟังทบทวน (เก็บในเครื่อง ไม่ส่งขึ้นระบบ)
+            </button>
+          )}
+          {recLive && (
+            <p className="text-[12px] font-semibold text-center mb-2.5" style={{ color: "#B91C1C" }}>
+              <span className="inline-block w-2 h-2 rounded-full mr-1.5 animate-pulse"
+                style={{ backgroundColor: "#B91C1C" }} />
+              กำลังอัดเสียง — จะหยุดเองตอนกดตอบจบ
+            </p>
+          )}
+          {recDenied && (
+            <p className="text-[11.5px] text-center mb-2.5 text-gray-400">
+              ไม่ได้รับสิทธิ์ไมค์ — ซ้อมต่อได้ตามปกติ (เปิดสิทธิ์ได้ในตั้งค่าเบราว์เซอร์)
+            </p>
+          )}
           <button type="button"
-            onClick={() => (step.kind === "intro" ? finishStep(null) : setSub("revealed"))}
+            onClick={() => {
+              if (recEnabled) stopRec(idx);
+              if (step.kind === "intro") finishStep(null); else setSub("revealed");
+            }}
             className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98]"
             style={{ backgroundColor: BRAND.primary }}>
             ตอบจบแล้ว → {step.kind === "intro" ? "ไปข้อถัดไป" : "เปิดแนวทาง"}
@@ -608,6 +733,14 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
 
       {sub === "revealed" && q && (
           <>
+            {recordings[idx] && (
+              <div className="mb-3 rounded-xl px-3 py-2.5" style={{ backgroundColor: "#F5FAF9" }}>
+                <p className="text-[12px] font-semibold mb-1.5" style={{ color: BRAND.primary }}>
+                  🎧 ฟังเสียงคำตอบของเราก่อนเทียบแนวทาง
+                </p>
+                <audio controls src={recordings[idx]} className="w-full" style={{ height: 36 }} />
+              </div>
+            )}
             <div className="mb-4">
               <HintBox hints={q.hints} title="พี่อ้อมแนะนำ — ลองเทียบดูว่าที่เราตอบครบไหม" />
             </div>
