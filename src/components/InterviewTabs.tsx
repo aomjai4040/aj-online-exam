@@ -306,6 +306,11 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const totalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  // player คุมเอง — ไม่ใช้แถบควบคุมของเบราว์เซอร์ (ปุ่มหยุด/±10 วิ ของ iOS
+  // ลอยบังหน้ากรรมการตอนคำถามกำลังถาม — Aj แจ้ง 2026-10-17)
+  // คลิปเล่นอยู่ = จอโล่งทั้งใบ · หยุด/เล่นไม่ได้ = ปุ่ม ▶ กลางจอปุ่มเดียว
+  const [clipPaused, setClipPaused] = useState(true);
+  const [clipEnded, setClipEnded] = useState(false);
 
   // ── อัดเสียงคำตอบไว้ฟังทบทวน (handoff 2.8) ──
   // เก็บเฉพาะในหน่วยความจำของรอบนี้ ไม่อัปโหลดขึ้นเซิร์ฟเวอร์เด็ดขาด (ข้อมูลส่วนบุคคล)
@@ -432,6 +437,8 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     setClipLoading(false);
     if (!media) { setSub("answer"); return; } // โหลดคลิปไม่ได้ → ใช้การ์ดข้อความ ไม่พัง flow
     setClipMedia(media);
+    setClipPaused(true);
+    setClipEnded(false);
     // หน่วง 3 วิ ให้ตั้งสติก่อนกรรมการถาม (Aj 2026-10-17) แล้วค่อยเล่นเอง —
     // ถ้าเครื่องไหนบล็อก autoplay น้องเห็นตัวเล่นพร้อมปุ่ม play จิ้มเองได้ ไม่ค้าง
     setPreCount(PRACTICE_CONFIG.preClipDelaySeconds);
@@ -514,6 +521,14 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     if (!v) return;
     v.currentTime = 0;
     v.play().catch(() => {});
+  }
+
+  /** แตะที่คลิป = สลับเล่น/หยุด (จบแล้วแตะ = เล่นใหม่ตั้งแต่ต้น) */
+  function toggleClip() {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.ended) { v.currentTime = 0; v.play().catch(() => {}); return; }
+    if (v.paused) v.play().catch(() => {}); else v.pause();
   }
 
   const finishStep = (r: Rating | null) => {
@@ -787,16 +802,39 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       )}
       {clipMedia && (
         <div className="mb-4">
-          <video ref={videoRef} controls playsInline preload="metadata"
-            poster={clipMedia.posterUrl}
-            onEnded={() => { if (sub === "listen") setSub("answer"); }}
-            className="w-full rounded-2xl bg-black"
-            style={{ maxHeight: "60vh" }}>
-            <source src={clipMedia.videoUrl} type="video/mp4" />
-            {clipMedia.captionsUrl && (
-              <track src={clipMedia.captionsUrl} kind="subtitles" srcLang="th" label="ไทย" default />
+          <div className="relative">
+            <video ref={videoRef} playsInline preload="metadata"
+              poster={clipMedia.posterUrl}
+              onClick={toggleClip}
+              onPlay={() => { setClipPaused(false); setClipEnded(false); }}
+              onPause={(e) => {
+                // ตอนคลิปจบ event pause มาก่อน ended — เซ็ต ended ตรงนี้ด้วย
+                // กันปุ่ม ▶ แวบขึ้นหนึ่งเฟรมก่อนเปลี่ยนไปช่วงตอบ
+                setClipPaused(true);
+                if (e.currentTarget.ended) setClipEnded(true);
+              }}
+              onEnded={() => { setClipEnded(true); if (sub === "listen") setSub("answer"); }}
+              className="w-full rounded-2xl bg-black"
+              style={{ maxHeight: "60vh" }}>
+              <source src={clipMedia.videoUrl} type="video/mp4" />
+              {clipMedia.captionsUrl && (
+                <track src={clipMedia.captionsUrl} kind="subtitles" srcLang="th" label="ไทย" default />
+              )}
+            </video>
+            {/* ปุ่มเล่นโผล่เฉพาะตอนคลิปหยุดจริง ๆ (ไม่โผล่ช่วงนับ 3..2..1 ตั้งสติ) —
+                เครื่องที่บล็อก autoplay น้องแตะปุ่มนี้เริ่มเองได้ ไม่ค้าง */}
+            {clipPaused && !clipEnded && preCount === null && (
+              <button type="button" onClick={toggleClip} aria-label="เล่นคลิปคำถาม"
+                className="absolute inset-0 flex items-center justify-center">
+                <span className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "rgba(0,0,0,0.45)" }}>
+                  <svg viewBox="0 0 24 24" fill="white" className="w-8 h-8 ml-1">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+              </button>
             )}
-          </video>
+          </div>
           {sub === "listen" && (
             <button type="button" onClick={() => setSub("answer")}
               className="w-full py-2 mt-2 text-[12.5px] font-semibold underline" style={{ color: "#6B7280" }}>
