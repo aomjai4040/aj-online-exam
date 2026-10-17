@@ -977,7 +977,8 @@ export const PRACTICE_CONFIG: {
   simIntroSeconds: number;
   /** โหมดจำลองห้อง: จำนวนคำถามสุ่ม */
   simQuestionCount: number;
-  /** หน่วงก่อนคลิปคำถามเล่น (วินาที) — เว้นจังหวะให้ตั้งสติเหมือนห้องจริง (Aj 2026-10-17) */
+  /** หน่วงก่อนคลิปคำถามเล่น (วินาที) — เว้นจังหวะสั้น ๆ พอให้จอพร้อม
+   *  (Aj 2026-10-18: 3 วิทำให้ซ้อมไม่สมูท ลดเหลือ 1 วิแล้วเล่นเลย) */
   preClipDelaySeconds: number;
   /** ห้องกดดัน: เวลาตอบคำถามจี้ (วินาที) */
   pressureSeconds: number;
@@ -988,7 +989,7 @@ export const PRACTICE_CONFIG: {
   warnAtSeconds: 15,
   simIntroSeconds: 60,
   simQuestionCount: 3,
-  preClipDelaySeconds: 3,
+  preClipDelaySeconds: 1,
   pressureSeconds: 30,
   pressureChance: 0.6,
 };

@@ -504,7 +504,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     setClipMedia(media);
     setClipPaused(true);
     setClipEnded(false);
-    // หน่วง 3 วิ ให้ตั้งสติก่อนกรรมการถาม (Aj 2026-10-17) แล้วค่อยเล่นเอง —
+    // หน่วงสั้น ๆ 1 วิ แล้วเล่นเลย (Aj 2026-10-18: 3 วิทำให้ซ้อมไม่สมูท) —
     // ถ้าเครื่องไหนบล็อก autoplay น้องเห็นตัวเล่นพร้อมปุ่ม play จิ้มเองได้ ไม่ค้าง
     setPreCount(PRACTICE_CONFIG.preClipDelaySeconds);
   }, [getToken]);
@@ -904,11 +904,11 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
         </div>
       )}
 
-      {/* หน่วงตั้งสติ 3..2..1 ก่อนกรรมการถาม */}
+      {/* จังหวะสั้น ๆ ก่อนกรรมการถาม (1 วิ — Aj 2026-10-18: หน่วงนานแล้วไม่สมูท) */}
       {preCount !== null && preCount > 0 && (
-        <p className="text-[12.5px] font-semibold text-center mb-2 tabular-nums"
+        <p className="text-[12.5px] font-semibold text-center mb-2"
           style={{ color: BRAND.primary }}>
-          หายใจลึก ๆ … กรรมการจะถามในอีก {preCount}
+          กรรมการกำลังจะถาม หายใจลึก ๆ ค่ะ
         </p>
       )}
       {clipMedia && (
