@@ -1054,6 +1054,24 @@ export const CLIP_VARIANT_META: Record<string, { q: string; answerSeconds?: numb
   "SPS-C-001-V6": { q: "เล่าให้กรรมการฟังว่าคุณเป็นใคร มาจากไหน และเรียนจบอะไรมา" },
 };
 
+/** หาเมทาของเวอร์ชันคลิป — Aj อัปจริงด้วยชื่อแบบเก่า SPS-C-001-2 (ไม่มีตัว v)
+ *  ให้จับคู่บทพูด/เวลาเดียวกับรหัสแบบ -V2 ได้ด้วย (เช็คพบ 2026-10-18) */
+export function clipVariantMeta(code: string): { q: string; answerSeconds?: number } | undefined {
+  return CLIP_VARIANT_META[code] ?? CLIP_VARIANT_META[code.replace(/-([2-9])$/, "-V$1")];
+}
+
+/** คลิปติวก่อนซ้อม (Aj 2026-10-18) — พี่อ้อมติวหลักการตอบก่อนเข้าห้องซ้อม
+ *  แยกสนาม · อัปไฟล์ชื่อตามรหัส (เช่น SPS-T-001.mp4) ที่หน้า admin เดิม
+ *  ยังไม่มีคลิปเผยแพร่ = การ์ด "กำลังอัด อัปให้เร็ว ๆ นี้" โผล่แทน */
+export const TUTOR_CLIPS: { code: string; field: ExamFieldKey; title: string }[] = [
+  { code: "SPS-T-001", field: "moph", title: "ติวก่อนซ้อม ตอนที่ 1 — หลักการตอบสัมภาษณ์" },
+  { code: "SPS-T-002", field: "moph", title: "ติวก่อนซ้อม ตอนที่ 2" },
+  { code: "SPS-T-003", field: "moph", title: "ติวก่อนซ้อม ตอนที่ 3" },
+  { code: "DCD-T-001", field: "dcd",  title: "ติวก่อนซ้อม ตอนที่ 1 — หลักการตอบสัมภาษณ์ (คร.)" },
+  { code: "DCD-T-002", field: "dcd",  title: "ติวก่อนซ้อม ตอนที่ 2" },
+  { code: "DCD-T-003", field: "dcd",  title: "ติวก่อนซ้อม ตอนที่ 3" },
+];
+
 /** เวลาแนะนำต่อ 1 คำตอบในโหมดซ้อม (วินาที) — ชี้ไป config กลาง */
 export const PRACTICE_SECONDS = PRACTICE_CONFIG.answerSeconds;
 

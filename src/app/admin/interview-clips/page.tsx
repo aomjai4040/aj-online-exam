@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { QUESTIONS, PRESSURE_CLIPS, catOf } from "@/lib/interview";
+import { QUESTIONS, PRESSURE_CLIPS, TUTOR_CLIPS, catOf } from "@/lib/interview";
 import {
   loadClips, removeClipDoc, saveClip, type InterviewClip,
 } from "@/lib/interview-clips";
@@ -72,9 +72,10 @@ export default function AdminInterviewClipsPage() {
       const baseCode = code.replace(/-V?[2-9]$/, "");
       const kind = KIND_OF_EXT[m[2].toLowerCase()];
       if (!kind) { log(file.name, "รองรับเฉพาะ .mp4 (คลิป) .jpg (ปก) .vtt (ซับ)", false); continue; }
-      // รับทั้งรหัสคำถาม (SPS-C/DCD-C) และคลิปจี้ห้องกดดัน (PRS-P-001..005)
+      // รับรหัสคำถาม (SPS-C/DCD-C) คลิปจี้ (PRS-P) และคลิปติวก่อนซ้อม (SPS-T/DCD-T)
       if (!QUESTIONS.some((q) => q.code === baseCode)
-        && !PRESSURE_CLIPS.some((p) => p.code === baseCode)) {
+        && !PRESSURE_CLIPS.some((p) => p.code === baseCode)
+        && !TUTOR_CLIPS.some((t) => t.code === baseCode)) {
         log(file.name, `ไม่พบคำถามรหัส ${baseCode} ในคลัง`, false); continue;
       }
       try {
@@ -161,10 +162,13 @@ export default function AdminInterviewClipsPage() {
       .sort((a, b) => a.code.localeCompare(b.code)).map(row);
     const prs = PRESSURE_CLIPS.map((p) =>
       ({ code: p.code, text: p.label, sub: "ห้องกดดัน", subColor: "#DC2626" }));
+    const tut = TUTOR_CLIPS.map((t) =>
+      ({ code: t.code, text: t.title, sub: t.field === "dcd" ? "ติวก่อนซ้อม · คร." : "ติวก่อนซ้อม · สป.สธ.", subColor: "#0B6E65" }));
     return [
       { title: "สป.สธ. + คำถามกลาง (SPS-C)", list: sps },
       { title: "กรมควบคุมโรค (DCD-C)", list: dcd },
       { title: "คลิปจี้ห้องกดดัน (PRS-P) — ระหว่างรอคลิป ระบบใช้ข้อความจี้แทน", list: prs },
+      { title: "คลิปติวก่อนซ้อม (SPS-T / DCD-T) — ยังไม่อัป เมนูขึ้นการ์ดอัปเร็ว ๆ นี้ให้เอง", list: tut },
     ];
   }, []);
 

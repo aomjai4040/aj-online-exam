@@ -20,7 +20,7 @@ import {
   INTERVIEW_CATS, catOf, questionsForField, pickPracticeSet,
   loadPracticeStats, recordPracticeRating, practiceProgress,
   ANSWER_PRINCIPLES, INTERVIEW_CHECKLIST, PRACTICE_CONFIG,
-  PRESSURE_JABS, PRESSURE_CLIPS, CLIP_VARIANT_META,
+  PRESSURE_JABS, PRESSURE_CLIPS, clipVariantMeta, TUTOR_CLIPS,
   type InterviewCat, type InterviewQuestion, type PracticeRating,
 } from "@/lib/interview";
 import { fetchClipUrl, type InterviewClip } from "@/lib/interview-clips";
@@ -111,6 +111,101 @@ export function JoinCta({ field }: { field: ExamFieldKey }) {
       <p className="text-[11.5px] mt-3" style={{ color: "#B45309", opacity: 0.75 }}>
         น้องที่อยู่คอร์สหลักกับพี่อ้อมอยู่แล้ว เมนูนี้ใช้ฟรีเลย แค่เข้าสู่ระบบค่ะ
       </p>
+    </div>
+  );
+}
+
+// ─── คลิปติวจากพี่อ้อม (ก่อนเข้าห้องซ้อม — Aj 2026-10-18) ─────────────────────
+// ยังไม่มีคลิปเผยแพร่ของสนามนั้น = การ์ด "กำลังอัด อัปให้เร็ว ๆ นี้"
+// คลิปติวยาว ใช้ controls ของเบราว์เซอร์ได้ (ต้องเลื่อนดูย้อนได้ ไม่เหมือนคลิปคำถาม)
+
+export function TutorClips({ ctx }: { ctx: TabCtx }) {
+  const { field, isMember, clips, getToken } = ctx;
+  const [playingCode, setPlayingCode] = useState<string | null>(null);
+  const [media, setMedia] = useState<{ videoUrl: string; posterUrl?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const slots = TUTOR_CLIPS.filter((t) => t.field === field);
+  const avail = slots.filter((t) => playableClip(clips.get(t.code)));
+
+  async function open(code: string) {
+    if (busy) return;
+    setBusy(true); setErr(""); setPlayingCode(code); setMedia(null);
+    const m = await fetchClipUrl(code, await getToken());
+    setBusy(false);
+    if (!m) { setErr("เปิดคลิปไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"); return; }
+    setMedia(m);
+  }
+
+  return (
+    <div className="card-elev px-4 py-4">
+      <div className="flex items-center gap-2.5 mb-1">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-[17px]"
+          style={{ background: "linear-gradient(135deg, #10857A, #0B6E65)" }}>
+          🎬
+        </div>
+        <div className="min-w-0">
+          <p className="text-[15px] font-bold text-gray-900">คลิปติวจากพี่อ้อม</p>
+          <p className="text-[12px]" style={{ color: "#A8A8A6" }}>ดูก่อนเข้าห้องซ้อม จะตอบเป็นระบบขึ้นเยอะ</p>
+        </div>
+      </div>
+
+      {avail.length === 0 ? (
+        // ยังไม่มีคลิป — บอกน้องตรง ๆ ว่ากำลังมา (Aj สั่ง 2026-10-18)
+        <div className="rounded-xl px-3.5 py-3 mt-2.5"
+          style={{ backgroundColor: "#FFFDF5", border: "1px dashed #E8D9B5" }}>
+          <p className="text-[13px] leading-relaxed" style={{ color: "#92400E" }}>
+            พี่อ้อมกำลังอัดคลิปติวชุดนี้อยู่ อัปให้เร็ว ๆ นี้ค่ะ —
+            ระหว่างนี้เปิดแนวทางตอบรายข้อในคลังคำถาม แล้วเข้าห้องซ้อมได้เลย ไม่ต้องรอ
+          </p>
+        </div>
+      ) : (
+        <div className="mt-2.5 space-y-2">
+          {avail.map((t) => {
+            const c = clips.get(t.code)!;
+            const active = playingCode === t.code;
+            return (
+              <div key={t.code}>
+                <button type="button" onClick={() => (isMember ? open(t.code) : undefined)}
+                  className="w-full text-left rounded-xl px-3.5 py-3 flex items-center gap-3 active:scale-[0.99] transition-transform"
+                  style={{
+                    backgroundColor: active ? "#EBF5F3" : "#FAFAF8",
+                    border: `1.5px solid ${active ? BRAND.primary : "#EBEBEA"}`,
+                    opacity: isMember ? 1 : 0.75,
+                  }}>
+                  <span className="text-[16px] flex-shrink-0">{isMember ? "▶" : "🔒"}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[13.5px] font-semibold text-gray-900 leading-snug">{t.title}</span>
+                    {c.durationSec ? (
+                      <span className="text-[11.5px]" style={{ color: "#A8A8A6" }}>
+                        {Math.ceil(c.durationSec / 60)} นาที
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+                {active && busy && (
+                  <p className="text-[12px] text-center py-2" style={{ color: "#A8A8A6" }}>กำลังเปิดคลิป…</p>
+                )}
+                {active && err && (
+                  <p className="text-[12px] text-center py-2" style={{ color: "#DC2626" }}>{err}</p>
+                )}
+                {active && media && (
+                  <video controls playsInline autoPlay preload="metadata"
+                    poster={media.posterUrl} src={media.videoUrl}
+                    className="w-full rounded-xl bg-black mt-2"
+                    style={{ maxHeight: "60vh" }} />
+                )}
+              </div>
+            );
+          })}
+          {!isMember && (
+            <p className="text-[11.5px]" style={{ color: "#A8A8A6" }}>
+              คลิปติวเปิดให้สมาชิกค่ะ — ปลดล็อกแพ็กซ้อมภาค ค แล้วดูได้ทันที
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -545,7 +640,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     // guest เล่นได้เฉพาะเวอร์ชัน 🎁 — ข้อล็อกเป็นการ์ดข้อความตามเดิม
     const clip = step.q ? pickClipVariant(clips, step.q.code, !isMember) : undefined;
     // เวอร์ชันที่บทพูดต่างจากข้อหลัก: ข้อความใต้คลิป + เวลาตอบ เปลี่ยนตามปากกรรมการ
-    const meta = clip ? CLIP_VARIANT_META[clip.code] : undefined;
+    const meta = clip ? clipVariantMeta(clip.code) : undefined;
     setVariantMeta(meta ?? null);
     allotRef.current = meta?.answerSeconds ?? stepSeconds(step);
     setSecs(allotRef.current);

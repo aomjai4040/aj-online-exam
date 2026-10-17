@@ -21,7 +21,7 @@ import { FIELD_SHORT, type ExamFieldKey } from "@/lib/exam-fields";
 import { partBAnnounced, partBAnswered, partBKeyOf, type PartBStatus } from "@/lib/interview";
 import { loadClips, type InterviewClip } from "@/lib/interview-clips";
 import { BRAND } from "@/lib/subjects";
-import { QuestionBank, PracticeMode, Checklist, JoinCta, type TabCtx } from "@/components/InterviewTabs";
+import { QuestionBank, PracticeMode, Checklist, JoinCta, TutorClips, type TabCtx } from "@/components/InterviewTabs";
 import BottomNav from "@/components/BottomNav";
 
 type Tab = "bank" | "practice" | "check";
@@ -238,12 +238,12 @@ export default function InterviewPage() {
             onExit={() => { setTab("check"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
         )}
         {tab === "check"    && (
-          isMember
-            ? <Checklist field={field} />
-            : <div className="space-y-4">
-                <Checklist field={field} />
-                <JoinCta field={field} />
-              </div>
+          <div className="space-y-4">
+            {/* คลิปติวจากพี่อ้อมอยู่บนสุดของหน้าแรก (Aj 2026-10-18) */}
+            <TutorClips ctx={ctx} />
+            <Checklist field={field} />
+            {!isMember && <JoinCta field={field} />}
+          </div>
         )}
       </div>
 
