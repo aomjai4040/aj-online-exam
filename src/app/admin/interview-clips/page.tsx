@@ -65,15 +65,17 @@ export default function AdminInterviewClipsPage() {
     const token = await user.getIdToken();
 
     for (const file of Array.from(files)) {
-      const m = /^([A-Z]{3}-[A-Z]-\d{3})\.(\w+)$/i.exec(file.name.trim());
-      if (!m) { log(file.name, "ชื่อไฟล์ไม่ตรงรูปแบบ รหัส.นามสกุล เช่น SPS-C-001.mp4", false); continue; }
+      // รหัส + เวอร์ชัน (ไม่บังคับ): SPS-C-001.mp4 = แบบแรก · SPS-C-001-2.mp4 = แบบที่สอง
+      const m = /^([A-Z]{3}-[A-Z]-\d{3}(?:-[2-9])?)\.(\w+)$/i.exec(file.name.trim());
+      if (!m) { log(file.name, "ชื่อไฟล์ไม่ตรงรูปแบบ รหัส.นามสกุล เช่น SPS-C-001.mp4 หรือ SPS-C-001-2.mp4", false); continue; }
       const code = m[1].toUpperCase();
+      const baseCode = code.replace(/-[2-9]$/, "");
       const kind = KIND_OF_EXT[m[2].toLowerCase()];
       if (!kind) { log(file.name, "รองรับเฉพาะ .mp4 (คลิป) .jpg (ปก) .vtt (ซับ)", false); continue; }
       // รับทั้งรหัสคำถาม (SPS-C/DCD-C) และคลิปจี้ห้องกดดัน (PRS-P-001..005)
-      if (!QUESTIONS.some((q) => q.code === code)
-        && !PRESSURE_CLIPS.some((p) => p.code === code)) {
-        log(file.name, `ไม่พบคำถามรหัส ${code} ในคลัง`, false); continue;
+      if (!QUESTIONS.some((q) => q.code === baseCode)
+        && !PRESSURE_CLIPS.some((p) => p.code === baseCode)) {
+        log(file.name, `ไม่พบคำถามรหัส ${baseCode} ในคลัง`, false); continue;
       }
       try {
         log(file.name, "กำลังอัปโหลด…", null);
@@ -166,7 +168,11 @@ export default function AdminInterviewClipsPage() {
     ];
   }, []);
 
-  const haveVideo = [...clips.values()].filter((c) => c.videoPath).length;
+  // นับเป็น "ข้อ" — เวอร์ชันสำรอง (-2..-9) ของข้อเดียวกันไม่นับเพิ่ม
+  const haveVideo = new Set(
+    [...clips.values()].filter((c) => c.videoPath)
+      .map((c) => c.code.replace(/-[2-9]$/, ""))
+  ).size;
   const freeCount = [...clips.values()].filter((c) => c.isFreePreview).length;
 
   return (
@@ -180,6 +186,7 @@ export default function AdminInterviewClipsPage() {
       <p className="text-[13px] text-gray-500 mb-4">
         มีคลิปแล้ว {haveVideo}/{QUESTIONS.length} ข้อ · ทดลองฟรี {freeCount} ข้อ
         (ควรมี ~3 ข้อ) · ตั้งชื่อไฟล์ = รหัสข้อ เช่น <b>SPS-C-001.mp4</b> แล้วเลือกได้ทีละหลายไฟล์
+        · ข้อเดียวอัดหลายแบบได้ ตั้งชื่อ <b>SPS-C-001-2.mp4</b> ถึง <b>-9</b> ระบบสุ่มสลับให้เอง
       </p>
 
       {/* อัปโหลด */}
@@ -215,44 +222,61 @@ export default function AdminInterviewClipsPage() {
           <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-2">{g.title}</p>
           <div className="card divide-y divide-gray-100">
             {g.list.map((q) => {
-              const c = clips.get(q.code);
+              // ข้อที่อัดหลายแบบ (เช่น แนะนำตัว): ไฟล์ -2..-9 โผล่เป็นแถวย่อยใต้ข้อหลัก
+              const rows = [
+                { code: q.code, text: q.text, sub: q.sub, subColor: q.subColor, isVariant: false },
+                ...Array.from({ length: 8 }, (_, k) => `${q.code}-${k + 2}`)
+                  .filter((vc) => clips.has(vc))
+                  .map((vc) => ({
+                    code: vc,
+                    text: `แบบที่ ${vc.slice(-1)} ของข้อนี้ — ระบบสุ่มสลับกับแบบอื่นให้เอง`,
+                    sub: "เวอร์ชันสำรอง", subColor: "#7C3AED", isVariant: true,
+                  })),
+              ];
               return (
-                <div key={q.code} className="px-4 py-2.5 flex items-center gap-3">
-                  <span className="text-[12px] font-mono font-bold flex-shrink-0 w-20"
-                    style={{ color: c?.videoPath ? "#15803D" : "#A8A8A6" }}>
-                    {q.code}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-gray-800 truncate">{q.text}</p>
-                    <p className="text-[11px]" style={{ color: q.subColor }}>{q.sub}
-                      {c?.durationSec ? <span className="text-gray-400"> · {c.durationSec} วิ</span> : null}
-                      {c?.posterPath ? <span className="text-gray-400"> · มีปก</span> : null}
-                      {c?.status === "draft" ? <span style={{ color: "#B45309" }}> · ร่าง</span> : null}
-                    </p>
-                  </div>
-                  {c?.videoPath ? (
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button onClick={() => toggleFree(q.code)}
-                        className="text-[11px] font-semibold px-2 py-1 rounded-lg"
-                        style={c.isFreePreview
-                          ? { backgroundColor: "#F0FDF4", color: "#15803D", border: "1px solid #86EFAC" }
-                          : { backgroundColor: "#F5F5F3", color: "#A8A8A6", border: "1px solid #E0DFDC" }}>
-                        {c.isFreePreview ? "🎁 ฟรี" : "ล็อก"}
-                      </button>
-                      <button onClick={() => toggleStatus(q.code)}
-                        className="text-[11px] font-semibold px-2 py-1 rounded-lg"
-                        style={{ backgroundColor: "#F5F5F3", color: "#6B7280", border: "1px solid #E0DFDC" }}>
-                        {c.status === "published" ? "พัก" : "เผยแพร่"}
-                      </button>
-                      <button onClick={() => removeClip(q.code)}
-                        className="text-[11px] font-semibold px-2 py-1 rounded-lg"
-                        style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
-                        ลบ
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-[11px] flex-shrink-0 text-gray-300">ยังไม่มีคลิป</span>
-                  )}
+                <div key={q.code}>
+                  {rows.map((r) => {
+                    const c = clips.get(r.code);
+                    return (
+                      <div key={r.code} className="px-4 py-2.5 flex items-center gap-3">
+                        <span className={`text-[12px] font-mono font-bold flex-shrink-0 w-20 ${r.isVariant ? "pl-3" : ""}`}
+                          style={{ color: c?.videoPath ? "#15803D" : "#A8A8A6" }}>
+                          {r.isVariant ? `↳ แบบ ${r.code.slice(-1)}` : r.code}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] text-gray-800 truncate">{r.text}</p>
+                          <p className="text-[11px]" style={{ color: r.subColor }}>{r.sub}
+                            {c?.durationSec ? <span className="text-gray-400"> · {c.durationSec} วิ</span> : null}
+                            {c?.posterPath ? <span className="text-gray-400"> · มีปก</span> : null}
+                            {c?.status === "draft" ? <span style={{ color: "#B45309" }}> · ร่าง</span> : null}
+                          </p>
+                        </div>
+                        {c?.videoPath ? (
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button onClick={() => toggleFree(r.code)}
+                              className="text-[11px] font-semibold px-2 py-1 rounded-lg"
+                              style={c.isFreePreview
+                                ? { backgroundColor: "#F0FDF4", color: "#15803D", border: "1px solid #86EFAC" }
+                                : { backgroundColor: "#F5F5F3", color: "#A8A8A6", border: "1px solid #E0DFDC" }}>
+                              {c.isFreePreview ? "🎁 ฟรี" : "ล็อก"}
+                            </button>
+                            <button onClick={() => toggleStatus(r.code)}
+                              className="text-[11px] font-semibold px-2 py-1 rounded-lg"
+                              style={{ backgroundColor: "#F5F5F3", color: "#6B7280", border: "1px solid #E0DFDC" }}>
+                              {c.status === "published" ? "พัก" : "เผยแพร่"}
+                            </button>
+                            <button onClick={() => removeClip(r.code)}
+                              className="text-[11px] font-semibold px-2 py-1 rounded-lg"
+                              style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+                              ลบ
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] flex-shrink-0 text-gray-300">ยังไม่มีคลิป</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}

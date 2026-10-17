@@ -35,6 +35,41 @@ export interface TabCtx {
 const playableClip = (c?: InterviewClip) =>
   Boolean(c && c.videoPath && c.status === "published");
 
+// ── คลิปหลายเวอร์ชันต่อข้อ (Aj 2026-10-17: ข้อแนะนำตัวอัดหลายแบบ
+//    กันน้องซ้อมหลายรอบเจอคลิปเดิมทุกครั้ง) ──
+// ตั้งชื่อไฟล์: SPS-C-001.mp4 = แบบแรก · SPS-C-001-2.mp4 ถึง -9 = แบบถัดไป
+// ทุกเวอร์ชันแชร์รหัสคำถามเดิม — ตัวสุ่มเลือกให้เอง ไม่ซ้ำแบบที่เพิ่งเจอ
+
+/** ทุกเวอร์ชันที่เล่นได้ของข้อนี้ (freeOnly = เอาเฉพาะข้อ 🎁 สำหรับ guest) */
+function clipVariants(
+  clips: Map<string, InterviewClip>, code: string, freeOnly = false,
+): InterviewClip[] {
+  const out: InterviewClip[] = [];
+  const keep = (c?: InterviewClip) => {
+    if (playableClip(c) && (!freeOnly || c!.isFreePreview)) out.push(c!);
+  };
+  keep(clips.get(code));
+  for (let i = 2; i <= 9; i++) keep(clips.get(`${code}-${i}`));
+  return out;
+}
+
+/** สุ่มเวอร์ชันมาเล่น — จำแบบล่าสุดไว้ใน localStorage กันสุ่มซ้ำติดกัน */
+function pickClipVariant(
+  clips: Map<string, InterviewClip>, code: string, freeOnly = false,
+): InterviewClip | undefined {
+  const vs = clipVariants(clips, code, freeOnly);
+  if (vs.length === 0) return undefined;
+  if (vs.length === 1) return vs[0];
+  const key = `interview-clip-last-${code}`;
+  let last = "";
+  try { last = localStorage.getItem(key) ?? ""; } catch {}
+  const fresh = vs.filter((v) => v.code !== last);
+  const from = fresh.length > 0 ? fresh : vs;
+  const pick = from[Math.floor(Math.random() * from.length)];
+  try { localStorage.setItem(key, pick.code); } catch {}
+  return pick;
+}
+
 // ─── การ์ดชวนสมัคร (จบโหมดทดลองฟรี — handoff 2.6) ────────────────────────────
 
 export function JoinCta({ field }: { field: ExamFieldKey }) {
@@ -166,8 +201,9 @@ export function QuestionBank({ ctx }: { ctx: TabCtx }) {
             <div className="space-y-2">
               {list.map((q) => {
                 const open = openIds.has(q.id);
-                const clip = clips.get(q.code);
-                const free = playableClip(clip) && clip!.isFreePreview;
+                const vs = clipVariants(clips, q.code);
+                const hasClip = vs.length > 0;
+                const free = vs.some((v) => v.isFreePreview);
                 const locked = !isMember && !free;
                 return (
                   <div key={q.id} className="card-elev overflow-hidden"
@@ -176,9 +212,9 @@ export function QuestionBank({ ctx }: { ctx: TabCtx }) {
                       className="w-full px-4 py-3 flex items-start gap-3 text-left active:bg-stone-50">
                       <div className="flex-1 min-w-0">
                         <p className="text-[14.5px] font-semibold text-gray-900 leading-snug">{q.q}</p>
-                        {(playableClip(clip) || free) && (
+                        {(hasClip || free) && (
                           <p className="text-[11px] mt-1 flex items-center gap-1.5">
-                            {playableClip(clip) && (
+                            {hasClip && (
                               <span className="font-semibold px-1.5 py-0.5 rounded"
                                 style={{ backgroundColor: "#EBF5F3", color: BRAND.primary }}>
                                 ▶ มีคลิปกรรมการถาม
@@ -385,10 +421,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const pool = useMemo(() => {
     const all = questionsForField(field);
     if (isMember) return all;
-    return all.filter((q) => {
-      const c = clips.get(q.code);
-      return playableClip(c) && c!.isFreePreview;
-    });
+    return all.filter((q) => clipVariants(clips, q.code, true).length > 0);
   }, [field, isMember, clips]);
 
   useEffect(() => {
@@ -431,9 +464,9 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   /** เวลาเริ่มต้นของขั้นนี้ */
   const stepSeconds = (s: Step) => (s.kind === "intro" ? CFG.simIntroSeconds : CFG.answerSeconds);
 
-  const playClip = useCallback(async (q: InterviewQuestion) => {
+  const playClip = useCallback(async (clipCode: string) => {
     setClipLoading(true);
-    const media = await fetchClipUrl(q.code, await getToken());
+    const media = await fetchClipUrl(clipCode, await getToken());
     setClipLoading(false);
     if (!media) { setSub("answer"); return; } // โหลดคลิปไม่ได้ → ใช้การ์ดข้อความ ไม่พัง flow
     setClipMedia(media);
@@ -452,10 +485,12 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     setPreCount(null);
     setPressureText("");
     answerUsedRef.current = null;
-    const clip = step.q ? clips.get(step.q.code) : undefined;
-    if (playableClip(clip) && step.q) {
+    // สุ่มเวอร์ชันคลิปของข้อนี้ (ข้อที่อัดหลายแบบ เช่น แนะนำตัว จะไม่เจอแบบเดิมซ้ำ)
+    // guest เล่นได้เฉพาะเวอร์ชัน 🎁 — ข้อล็อกเป็นการ์ดข้อความตามเดิม
+    const clip = step.q ? pickClipVariant(clips, step.q.code, !isMember) : undefined;
+    if (clip && step.q) {
       setSub("listen");
-      playClip(step.q);
+      playClip(clip.code);
     } else {
       setSub("answer");
     }
@@ -467,8 +502,8 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const pickWithClipsFirst = useCallback((n: number, exclude: string[] = []) => {
     const stats = loadPracticeStats(field);
     const ok = (q: InterviewQuestion) => !exclude.includes(q.id);
-    const clipQs = pool.filter((q) => ok(q) && playableClip(clips.get(q.code)));
-    const textQs = pool.filter((q) => ok(q) && !playableClip(clips.get(q.code)));
+    const clipQs = pool.filter((q) => ok(q) && clipVariants(clips, q.code).length > 0);
+    const textQs = pool.filter((q) => ok(q) && clipVariants(clips, q.code).length === 0);
     const picked = pickPracticeSet(field, n, stats, clipQs);
     if (picked.length < n) {
       picked.push(...pickPracticeSet(field, n - picked.length, stats, textQs));
@@ -484,8 +519,8 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       const all = questionsForField(field);
       const intro = all.find((q) => q.id === "intro-self");
       const stats = loadPracticeStats(field);
-      const clipQs = all.filter((q) => q.id !== "intro-self" && playableClip(clips.get(q.code)));
-      const textQs = all.filter((q) => q.id !== "intro-self" && !playableClip(clips.get(q.code)));
+      const clipQs = all.filter((q) => q.id !== "intro-self" && clipVariants(clips, q.code).length > 0);
+      const textQs = all.filter((q) => q.id !== "intro-self" && clipVariants(clips, q.code).length === 0);
       const rest = pickPracticeSet(field, CFG.simQuestionCount, stats, clipQs);
       if (rest.length < CFG.simQuestionCount) {
         rest.push(...pickPracticeSet(field, CFG.simQuestionCount - rest.length, stats, textQs));
@@ -750,8 +785,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const step = steps[idx];
   const q = step.q;
   const cat = q ? catOf(q.cat) : null;
-  const clip = q ? clips.get(q.code) : undefined;
-  const hasClip = playableClip(clip);
+  const hasClip = q ? clipVariants(clips, q.code, !isMember).length > 0 : false;
   const overtime = secs < 0;
   const warning = !overtime && secs <= CFG.warnAtSeconds;
 
