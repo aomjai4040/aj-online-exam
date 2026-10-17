@@ -248,7 +248,7 @@ interface Step {
   title: string;
 }
 
-export function PracticeMode({ ctx }: { ctx: TabCtx }) {
+export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void }) {
   const { field, isMember, clips, getToken } = ctx;
   const CFG = PRACTICE_CONFIG;
 
@@ -377,16 +377,32 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
   /** เวลาเริ่มต้นของขั้นนี้ */
   const stepSeconds = (s: Step) => (s.kind === "intro" ? CFG.simIntroSeconds : CFG.answerSeconds);
 
+  const playClip = useCallback(async (q: InterviewQuestion) => {
+    setClipLoading(true);
+    const media = await fetchClipUrl(q.code, await getToken());
+    setClipLoading(false);
+    if (!media) { setSub("answer"); return; } // โหลดคลิปไม่ได้ → ใช้การ์ดข้อความ ไม่พัง flow
+    setClipMedia(media);
+    // เล่นต่ออัตโนมัติ (Aj 2026-10-17: กดให้คะแนนเสร็จ คลิปข้อถัดไปรันเลย) —
+    // การกดปุ่มให้คะแนน/เริ่มซ้อมคือ user gesture ล่าสุด เบราว์เซอร์ส่วนใหญ่ยอม
+    // ถ้าเครื่องไหนบล็อก autoplay น้องเห็นตัวเล่นพร้อมปุ่ม play จิ้มเองได้ ไม่ค้าง
+    setTimeout(() => videoRef.current?.play().catch(() => {}), 80);
+  }, [getToken]);
+
   const beginStep = useCallback(async (list: Step[], i: number) => {
     const step = list[i];
     setIdx(i);
     setSecs(stepSeconds(step));
     setClipMedia(null);
-    // ข้อที่มีคลิป → เริ่มที่ขั้นฟังคำถาม (ให้ผู้ใช้กดเองก่อน กันมือถือบล็อกเสียง)
     const clip = step.q ? clips.get(step.q.code) : undefined;
-    setSub(playableClip(clip) ? "listen" : "answer");
+    if (playableClip(clip) && step.q) {
+      setSub("listen");
+      playClip(step.q);
+    } else {
+      setSub("answer");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clips]);
+  }, [clips, playClip]);
 
   /** สุ่มแบบ "ข้อที่มีคลิปมาก่อนเสมอ" (Aj 2026-10-17) — คลิปไม่พอค่อยเติมการ์ดข้อความ
    *  Aj ผลิตคลิปเพิ่มเรื่อย ๆ ระบบจะดึงข้อใหม่ที่มีคลิปเข้ารอบซ้อมเองอัตโนมัติ */
@@ -431,18 +447,6 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
     setPhase("run");
     beginStep(list, 0);
   };
-
-  async function playClip() {
-    const step = steps[idx];
-    if (!step?.q) return;
-    setClipLoading(true);
-    const media = await fetchClipUrl(step.q.code, await getToken());
-    setClipLoading(false);
-    if (!media) { setSub("answer"); return; } // โหลดคลิปไม่ได้ → ใช้การ์ดข้อความ ไม่พัง flow
-    setClipMedia(media);
-    // autoplay ได้เพราะมาจาก user gesture (กดปุ่มเริ่มฟังคำถาม)
-    setTimeout(() => videoRef.current?.play().catch(() => {}), 80);
-  }
 
   function replay() {
     const v = videoRef.current;
@@ -599,10 +603,16 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
               </div>
             </div>
           )}
-          <button type="button" onClick={() => setPhase("idle")}
+          <button type="button" onClick={() => start(mode)}
             className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98]"
             style={{ backgroundColor: BRAND.primary }}>
-            {isMember ? "ซ้อมอีกรอบ" : "ลองอีกรอบ"}
+            {isMember ? "ซ้อมอีกรอบ (สุ่มชุดใหม่)" : "ลองอีกรอบ"}
+          </button>
+          <button type="button"
+            onClick={() => { setPhase("idle"); onExit?.(); }}
+            className="w-full py-3 mt-2 rounded-2xl text-[14px] font-semibold active:scale-[0.98]"
+            style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
+            ✓ ซ้อมเสร็จแล้ว — กลับหน้าเมนูภาค ค
           </button>
         </div>
         {!isMember && <JoinCta field={field} />}
@@ -646,13 +656,15 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
           : q!.q}
       </p>
 
-      {/* ขั้นฟังคำถามจากคลิป (ต้องให้ผู้ใช้กดเอง — มือถือบล็อก autoplay พร้อมเสียง) */}
-      {sub === "listen" && !clipMedia && (
-        <button type="button" onClick={playClip} disabled={clipLoading}
-          className="w-full py-6 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98] mb-4 disabled:opacity-60"
-          style={{ backgroundColor: BRAND.primary }}>
-          {clipLoading ? "กำลังโหลดคลิป…" : "▶ เริ่มฟังคำถามจากกรรมการ"}
-        </button>
+      {/* กำลังเชิญกรรมการ (โหลดคลิป) — เล่นต่อเองทันทีที่พร้อม */}
+      {sub === "listen" && !clipMedia && clipLoading && (
+        <div className="w-full py-6 rounded-2xl text-center mb-4"
+          style={{ backgroundColor: "#F5FAF9" }}>
+          <span className="inline-block w-5 h-5 border-[3px] border-[#C3E5DE] border-t-[#0B6E65] rounded-full animate-spin align-middle mr-2" />
+          <span className="text-[13.5px] font-semibold" style={{ color: BRAND.primary }}>
+            กรรมการกำลังจะถาม…
+          </span>
+        </div>
       )}
 
       {clipMedia && (

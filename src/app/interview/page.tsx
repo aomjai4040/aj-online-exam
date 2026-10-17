@@ -195,7 +195,10 @@ export default function InterviewPage() {
         </div>
 
         {tab === "bank"     && <QuestionBank ctx={ctx} />}
-        {tab === "practice" && <PracticeMode ctx={ctx} />}
+        {tab === "practice" && (
+          <PracticeMode ctx={ctx}
+            onExit={() => { setTab("bank"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        )}
         {tab === "check"    && (
           isMember
             ? <Checklist field={field} />
