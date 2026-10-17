@@ -12,7 +12,10 @@ export type OrderTier =
   | "up-full2"   // 200: review → full
   | "dcd"        // สนามกรมควบคุมโรค 2569 (ติวเข้ม: คลิป+ข้อสอบ+LINE) — ซื้อแยกจาก สป.สธ.
   | "dcd-app"    // 299: App Only สนาม คร. — ฝึกข้อสอบอย่างเดียว (Aj 2026-08-27)
-  | "up-dcd";    // ส่วนต่างจริง: dcd-app → ติวเข้ม คร. (โปร +200 · หลังโปร +400)
+  | "up-dcd"     // ส่วนต่างจริง: dcd-app → ติวเข้ม คร. (โปร +200 · หลังโปร +400)
+  | "partc-moph" // 159: เมนูซ้อมภาค ค สป.สธ. อย่างเดียว (Aj 2026-10-17)
+  | "partc-dcd"  // 159: เมนูซ้อมภาค ค คร. อย่างเดียว
+  | "partc-duo"; // 199: ซ้อมภาค ค ทั้งสองสนาม (ตัวจูงใจคนสอบ 2 สนาม)
 export type OrderStatus = "pending" | "paid" | "rejected" | "expired";
 
 export interface Order {
@@ -58,6 +61,26 @@ export function tierPlan(tier: OrderTier): { courseId: string; courseName: strin
         courseId:   "dcd-2026",
         courseName: "อัปเกรดเป็นติวเข้มกรมควบคุมโรค (จาก App Only)",
         amount:     dcdUpgradePrice(),
+      };
+    // เมนูซ้อมภาค ค แยกขาย — courseId ขึ้นต้น partc- ต้องถูกกันออกจาก
+    // hasAny/isFullCourse (ดู access.ts) ไม่งั้นคนซื้อ 159 ได้คลังข้อสอบ/วิดีโอไปด้วย
+    case "partc-moph":
+      return {
+        courseId:   "partc-moph-69",
+        courseName: "ซ้อมสัมภาษณ์ภาค ค สป.สธ. 2569",
+        amount:     PRICING.partc.price,
+      };
+    case "partc-dcd":
+      return {
+        courseId:   "partc-dcd-69",
+        courseName: "ซ้อมสัมภาษณ์ภาค ค กรมควบคุมโรค 2569",
+        amount:     PRICING.partc.price,
+      };
+    case "partc-duo":
+      return {
+        courseId:   "partc-duo-69",
+        courseName: "ซ้อมสัมภาษณ์ภาค ค แพ็กคู่ สป.สธ. + คร. 2569",
+        amount:     PRICING.partc.duoPrice,
       };
     case "app":
       return { courseId: "app-2026", courseName: "App Only (แอปข้อสอบ) 2569", amount: 299 };

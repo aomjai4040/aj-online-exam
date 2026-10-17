@@ -35,19 +35,25 @@ export async function makePromptPayQR(amount: number): Promise<string> {
 async function serverAccess(uid: string): Promise<{
   hasAny: boolean; hasReview: boolean; hasFull: boolean;
   hasDcd: boolean; hasDcdFull: boolean; hasDcdApp: boolean;
+  hasPartCMoph: boolean; hasPartCDcd: boolean;
 }> {
   const snap = await adminDb().collection("userCourses").where("userId", "==", uid).get();
   const ids  = snap.docs.map((d) => String(d.data().courseId ?? "").toLowerCase());
   const isDcd    = (id: string) => id.startsWith("dcd-");
   const isDcdApp = (id: string) => id.startsWith("dcd-app");
   const isLocal  = (id: string) => id.startsWith("local-"); // สนาม อปท. — คนละสนามกับ สป.สธ.
+  const isPartc  = (id: string) => id.startsWith("partc-"); // เมนูซ้อมภาค ค แยกขาย (159/199)
   return {
-    hasAny:    ids.some((id) => !isDcd(id) && !isLocal(id)),   // สิทธิ์ฝั่ง สป.สธ. เท่านั้น
+    hasAny:    ids.some((id) => !isDcd(id) && !isLocal(id) && !isPartc(id)), // สิทธิ์ฝั่ง สป.สธ. เท่านั้น
     hasReview: ids.some((id) => id.startsWith("review-")),
-    hasFull:   ids.some((id) => !id.startsWith("app-") && !id.startsWith("review-") && !isDcd(id) && !isLocal(id)),
+    hasFull:   ids.some((id) => !id.startsWith("app-") && !id.startsWith("review-")
+      && !isDcd(id) && !isLocal(id) && !isPartc(id)),
     hasDcd:    ids.some(isDcd),
     hasDcdFull: ids.some((id) => isDcd(id) && !isDcdApp(id)), // ติวเข้ม คร. (คลิป/LINE/เอกสาร)
     hasDcdApp:  ids.some(isDcdApp),
+    // แพ็กคู่ (partc-duo) ปลดทั้งสองสนาม
+    hasPartCMoph: ids.some((id) => id.startsWith("partc-moph") || id.startsWith("partc-duo")),
+    hasPartCDcd:  ids.some((id) => id.startsWith("partc-dcd")  || id.startsWith("partc-duo")),
   };
 }
 
@@ -92,6 +98,11 @@ export async function alreadyOwns(uid: string, tier: OrderTier): Promise<boolean
   if (tier === "app") return acc.hasAny;
   if (tier === "review") return acc.hasReview || acc.hasFull;
   if (tier === "full" || tier === "upgrade" || tier === "up-full2") return acc.hasFull;
+  // ซ้อมภาค ค: คอร์สหลักของสนามนั้นได้เมนูนี้ฟรีอยู่แล้ว = ถือว่ามีสิทธิ์
+  if (tier === "partc-moph") return acc.hasPartCMoph || acc.hasAny;
+  if (tier === "partc-dcd")  return acc.hasPartCDcd  || acc.hasDcd;
+  if (tier === "partc-duo")
+    return (acc.hasPartCMoph || acc.hasAny) && (acc.hasPartCDcd || acc.hasDcd);
   return false;
 }
 
@@ -101,6 +112,45 @@ export async function createOrder(
 ): Promise<{ orderId: string; amount: number; qr: string; courseName: string }> {
   // กันซื้อซ้ำ / อัปเกรดผิดเงื่อนไข / จ่ายแพงเกินจำเป็น
   const acc = await serverAccess(uid);
+
+  // เมนูซ้อมภาค ค แยกขาย (Aj 2026-10-17) — ไม่ติดเงื่อนไขของคอร์สหลัก
+  // กติกา: คอร์สหลักของสนามไหน ได้เมนูซ้อมของสนามนั้นฟรีอยู่แล้ว → ห้ามให้จ่ายซ้ำ
+  if (tier === "partc-moph" || tier === "partc-dcd" || tier === "partc-duo") {
+    const canMoph = acc.hasPartCMoph || acc.hasAny; // ซ้อมภาค ค สป.สธ. ได้อยู่แล้ว
+    const canDcd  = acc.hasPartCDcd  || acc.hasDcd; // ซ้อมภาค ค คร. ได้อยู่แล้ว
+    if (tier === "partc-moph") {
+      if (acc.hasAny) throw new CheckoutError(
+        "บัญชีนี้มีคอร์สสนาม สป.สธ. อยู่แล้ว — เมนูซ้อมภาค ค ใช้ได้ฟรีเลยค่ะ ไม่ต้องซื้อเพิ่ม");
+      if (acc.hasPartCMoph) throw new CheckoutError("บัญชีนี้ปลดล็อกซ้อมภาค ค สป.สธ. แล้วค่ะ");
+    }
+    if (tier === "partc-dcd") {
+      if (acc.hasDcd) throw new CheckoutError(
+        "บัญชีนี้มีคอร์สสนาม คร. อยู่แล้ว — เมนูซ้อมภาค ค ใช้ได้ฟรีเลยค่ะ ไม่ต้องซื้อเพิ่ม");
+      if (acc.hasPartCDcd) throw new CheckoutError("บัญชีนี้ปลดล็อกซ้อมภาค ค คร. แล้วค่ะ");
+    }
+    if (tier === "partc-duo") {
+      if (canMoph && canDcd)
+        throw new CheckoutError("บัญชีนี้ซ้อมภาค ค ได้ทั้งสองสนามอยู่แล้วค่ะ ไม่ต้องซื้อเพิ่ม");
+      if (canMoph) throw new CheckoutError(
+        "บัญชีนี้ซ้อมภาค ค สป.สธ. ได้อยู่แล้ว — ซื้อเฉพาะสนาม คร. 159 บาทพอค่ะ");
+      if (canDcd) throw new CheckoutError(
+        "บัญชีนี้ซ้อมภาค ค คร. ได้อยู่แล้ว — ซื้อเฉพาะสนาม สป.สธ. 159 บาทพอค่ะ");
+    }
+    const openPartc = await pendingOrder(uid, tier);
+    if (openPartc) return openPartc;
+    const plan = tierPlan(tier);
+    const ref  = adminDb().collection("orders").doc();
+    await ref.set({
+      userId: uid, email, tier,
+      amount: plan.amount, status: "pending",
+      courseId: plan.courseId, courseName: plan.courseName,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return {
+      orderId: ref.id, amount: plan.amount, courseName: plan.courseName,
+      qr: await makePromptPayQR(plan.amount),
+    };
+  }
 
   // สนามกรมควบคุมโรค — คนละสนามกับ สป.สธ. ตรวจแยก และไม่ติดเงื่อนไขของสนามเดิม
   if (tier === "dcd" || tier === "dcd-app" || tier === "up-dcd") {

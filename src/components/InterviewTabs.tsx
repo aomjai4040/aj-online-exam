@@ -38,8 +38,10 @@ const playableClip = (c?: InterviewClip) =>
 // ─── การ์ดชวนสมัคร (จบโหมดทดลองฟรี — handoff 2.6) ────────────────────────────
 
 export function JoinCta({ field }: { field: ExamFieldKey }) {
+  // ขายแพ็กซ้อมภาค ค แยก (Aj 2026-10-17): สนามเดียว 159 · สองสนาม 199
+  // สมาชิกคอร์สหลักไม่เห็นการ์ดนี้อยู่แล้ว (เมนูนี้ใช้ฟรี)
   const meta = EXAM_FIELDS.find((f) => f.id === field);
-  const buyHref = meta?.hrefBuy ?? "/packages";
+  const partcHref = field === "dcd" ? "/checkout/partc-dcd" : "/checkout/partc-moph";
   return (
     <div className="rounded-2xl px-5 py-5 text-center"
       style={{ backgroundColor: "#FFFBEB", border: "1.5px solid #FCD34D" }}>
@@ -47,19 +49,27 @@ export function JoinCta({ field }: { field: ExamFieldKey }) {
         ชอบไหมคะ? คลังเต็มมีให้ซ้อมทุกหมวด 🎤
       </p>
       <p className="text-[13px] mt-1 mb-4 leading-relaxed" style={{ color: "#B45309" }}>
-        สมัครคอร์สแล้วซ้อมได้ครบทุกข้อ พร้อมแนวทางตอบจากพี่อ้อมทีละข้อ
-        โหมดจำลองห้องสัมภาษณ์ และเช็คลิสต์วันจริง
+        ปลดล็อกครั้งเดียวซ้อมได้ไม่อั้นทุกข้อ ทั้งคลิปกรรมการอวตาร์
+        แนวทางตอบจากพี่อ้อมทีละข้อ ห้องจำลองสัมภาษณ์ 5 นาที และห้องกดดัน
       </p>
-      <a href={buyHref}
+      <a href={partcHref}
         className="block w-full py-3 rounded-xl text-[14.5px] font-bold text-white active:scale-[0.98] transition-transform"
         style={{ backgroundColor: BRAND.primary }}>
-        สมัครคอร์ส {meta?.code ?? ""} →
+        ปลดล็อกซ้อมภาค ค {meta?.code ?? ""} — 159 บาท
+      </a>
+      <a href="/checkout/partc-duo"
+        className="block w-full py-2.5 mt-2 rounded-xl text-[13.5px] font-bold"
+        style={{ backgroundColor: "white", border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
+        สอบทั้ง สป.สธ. และ คร.? แพ็กคู่ 199 บาท
       </a>
       <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
         className="block w-full py-2.5 mt-2 rounded-xl text-[13.5px] font-semibold"
         style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#07A94D" }}>
         💬 ทัก LINE ถามพี่อ้อมก่อนได้
       </a>
+      <p className="text-[11.5px] mt-3" style={{ color: "#B45309", opacity: 0.75 }}>
+        น้องที่อยู่คอร์สหลักกับพี่อ้อมอยู่แล้ว เมนูนี้ใช้ฟรีเลย แค่เข้าสู่ระบบค่ะ
+      </p>
     </div>
   );
 }

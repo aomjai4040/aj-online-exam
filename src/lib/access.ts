@@ -21,11 +21,14 @@ export interface UserAccess {
   hasDcd:     boolean;  // มีคอร์สสนามกรมควบคุมโรค (ตัวไหนก็ได้ — คุมสิทธิ์เข้า "สนาม")
   hasDcdFull: boolean;  // มี "ติวเข้ม คร." (dcd- ที่ไม่ใช่ dcd-app) → คลิป + LINE + เอกสาร
   hasLocal:   boolean;  // มีคอร์สสนาม อปท. (local-) — คุมสิทธิ์เข้าสนามท้องถิ่น
+  hasPartCMoph: boolean; // ซื้อเมนูซ้อมภาค ค สป.สธ. แยก (159 หรือแพ็กคู่ 199)
+  hasPartCDcd:  boolean; // ซื้อเมนูซ้อมภาค ค คร. แยก (159 หรือแพ็กคู่ 199)
 }
 
 export const EMPTY_ACCESS: UserAccess = {
   packageIds: [], hasAny: false, hasReview: false, hasFull: false,
   hasDcd: false, hasDcdFull: false, hasLocal: false,
+  hasPartCMoph: false, hasPartCDcd: false,
 };
 
 /**
@@ -55,10 +58,15 @@ export function isDcdAppCourse(courseId: string): boolean {
 export function isLocalCourse(courseId: string): boolean {
   return courseId.toLowerCase().startsWith("local-");
 }
+/** เมนูซ้อมภาค ค แยกขาย (159/199 — Aj 2026-10-17): ห้องซ้อมสัมภาษณ์อย่างเดียว */
+export function isPartCCourse(courseId: string): boolean {
+  return courseId.toLowerCase().startsWith("partc-");
+}
 export function isFullCourse(courseId: string): boolean {
-  // local- ต้องถูกกันออกเช่นเดียวกับ dcd- — ไม่งั้นคนซื้อ อปท. ได้คอร์สวิดีโอ สป.สธ. ฟรี
+  // dcd-/local-/partc- ต้องถูกกันออกทั้งหมด — ไม่งั้นคนซื้อแพ็กเล็ก
+  // ได้คอร์สวิดีโอ สป.สธ. (ของแพ็ก 699) ไปด้วยโดยไม่ได้ตั้งใจ
   return !isAppOnlyCourse(courseId) && !isReviewCourse(courseId)
-    && !isDcdCourse(courseId) && !isLocalCourse(courseId);
+    && !isDcdCourse(courseId) && !isLocalCourse(courseId) && !isPartCCourse(courseId);
 }
 
 /** ดึงสิทธิ์ทั้งหมดของผู้ใช้ในครั้งเดียว (แทน checkUserHasAnyAccess เดิม) */
@@ -73,13 +81,24 @@ export async function getUserAccess(uid: string): Promise<UserAccess> {
     packageIds,
     // hasAny = legacy fallback ของ "คลัง สป.สธ. เดิม" (ชุดที่ยังไม่ผูก packageId)
     // Aj ยืนยัน 2026-08-16: แต่ละสนามแยกขาด ซื้อคอร์สไหนได้แค่คอร์สนั้น
-    // → คอร์ส คร. (dcd-) และ อปท. (local-) ไม่นับ ไม่งั้นได้คลัง สป.สธ. ไปด้วย
-    hasAny:    packageIds.some((id) => !isDcdCourse(id) && !isLocalCourse(id)),
+    // → คอร์ส คร. (dcd-) อปท. (local-) และซ้อมภาค ค (partc-) ไม่นับ
+    //   ไม่งั้นได้คลังข้อสอบ สป.สธ. ไปด้วย
+    hasAny:    packageIds.some((id) =>
+      !isDcdCourse(id) && !isLocalCourse(id) && !isPartCCourse(id)),
     hasReview: packageIds.some(isReviewCourse),
     hasFull:   packageIds.some(isFullCourse),
     hasDcd:    packageIds.some(isDcdCourse),
     hasDcdFull: packageIds.some((id) => isDcdCourse(id) && !isDcdAppCourse(id)),
     hasLocal:  packageIds.some(isLocalCourse),
+    // แพ็กคู่ (partc-duo) ปลดทั้งสองสนามในตัวเดียว
+    hasPartCMoph: packageIds.some((id) => {
+      const x = id.toLowerCase();
+      return x.startsWith("partc-moph") || x.startsWith("partc-duo");
+    }),
+    hasPartCDcd: packageIds.some((id) => {
+      const x = id.toLowerCase();
+      return x.startsWith("partc-dcd") || x.startsWith("partc-duo");
+    }),
   };
 }
 

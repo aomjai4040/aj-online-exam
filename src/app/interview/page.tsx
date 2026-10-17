@@ -16,7 +16,7 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, type UserAccess } from "@/lib/access";
-import { effectiveField } from "@/lib/active-field";
+import { getActiveField } from "@/lib/active-field";
 import { FIELD_SHORT, type ExamFieldKey } from "@/lib/exam-fields";
 import { partBAnnounced, partBAnswered, partBKeyOf, type PartBStatus } from "@/lib/interview";
 import { loadClips, type InterviewClip } from "@/lib/interview-clips";
@@ -30,16 +30,18 @@ export default function InterviewPage() {
   const { user, loading: authLoading } = useAuth();
   const [access, setAccess] = useState<UserAccess | null | "guest">(null);
   const [clips, setClips] = useState<Map<string, InterviewClip>>(new Map());
-  const [guestField, setGuestField] = useState<ExamFieldKey>("moph");
+  const [urlField, setUrlField] = useState<ExamFieldKey | null>(null);
+  // คนที่ซ้อมได้สองสนาม (แพ็กคู่ / มีทั้งสองคอร์ส) กดสลับสนามเองได้
+  const [fieldChoice, setFieldChoice] = useState<ExamFieldKey | null>(null);
   const [tab, setTab] = useState<Tab>("bank");
   // ผลภาค ข (Aj 2026-10-17): น้องในคอร์สทุกสนามต้องตอบ ผ่าน/ไม่ผ่าน/ไม่ได้ไปสอบ ก่อนเข้าเมนู
   const [partBByKey, setPartBByKey] = useState<Record<string, PartBStatus | null> | undefined>(undefined);
   const [partBBusy, setPartBBusy] = useState(false);
 
-  // deep link สนามสำหรับคนยังไม่มีสิทธิ์: /interview?field=dcd (อ่านเองกัน Suspense ของ useSearchParams)
+  // deep link ระบุสนาม: /interview?field=dcd|moph (อ่านเองกัน Suspense ของ useSearchParams)
   useEffect(() => {
     const f = new URLSearchParams(window.location.search).get("field");
-    if (f === "dcd") setGuestField("dcd");
+    if (f === "dcd" || f === "moph") setUrlField(f);
   }, []);
 
   // เมทาดาทาคลิป — อ่านได้ทุกคนรวม guest (rules เปิด read)
@@ -92,8 +94,21 @@ export default function InterviewPage() {
     );
   }
 
-  const isMember = access !== "guest" && (access.hasAny || access.hasDcd);
-  const field: ExamFieldKey = isMember ? effectiveField(access as UserAccess) : guestField;
+  // สิทธิ์เข้าเมนูนี้ต่อสนาม: คอร์สหลักของสนามนั้น หรือซื้อแพ็กซ้อมภาค ค แยก (159/199)
+  const acc = access === "guest" ? null : access;
+  const canField = (f: ExamFieldKey): boolean =>
+    !!acc && (f === "dcd" ? acc.hasDcd || acc.hasPartCDcd
+      : f === "moph" ? acc.hasAny || acc.hasPartCMoph : false);
+  const bothFields = canField("moph") && canField("dcd");
+
+  // เลือกสนาม: ปุ่มสลับ > ?field ใน URL > สนามที่จำไว้ > สนามแรกที่มีสิทธิ์
+  const prefer = [fieldChoice, urlField, getActiveField(), "moph", "dcd"] as const;
+  const field: ExamFieldKey = acc
+    ? (prefer.find((f): f is ExamFieldKey => !!f && canField(f)) ?? urlField ?? "moph")
+    : (urlField ?? "moph");
+  const isMember = canField(field);
+  // น้องในคอร์สหลักเท่านั้นที่ต้องแจ้งผลภาค ข — guest และคนซื้อแพ็กซ้อมแยกไม่ต้องตอบ
+  const isMainMember = !!acc && (field === "dcd" ? acc.hasDcd : acc.hasAny);
 
   const ctx: TabCtx = {
     field,
@@ -102,11 +117,11 @@ export default function InterviewPage() {
     getToken: async () => (user ? await user.getIdToken() : null),
   };
 
-  // ── ประตูแจ้งผลภาค ข (น้องในคอร์สทุกสนาม — Aj 2026-10-17: ต้องตอบก่อนจึงเข้าได้
+  // ── ประตูแจ้งผลภาค ข (เฉพาะน้องคอร์สหลัก — Aj 2026-10-17: ต้องตอบก่อนจึงเข้าได้
   //    ตัวเลือกมี 3 ทางตามที่ Aj กำหนด ไม่มีทางข้าม เพราะผลประกาศแล้ว) ──
   const partBKey = partBKeyOf(field);
   const myPartB = partBByKey?.[partBKey] ?? null;
-  if (isMember && partBAnnounced(field) && !partBAnswered(myPartB)) {
+  if (isMainMember && partBAnnounced(field) && !partBAnswered(myPartB)) {
     return (
       <div className="min-h-screen bg-stone-50 font-sans pb-28">
         <div className="max-w-lg mx-auto px-5 pt-12">
@@ -170,6 +185,20 @@ export default function InterviewPage() {
             ซ้อมกับกรรมการอวตาร์เหมือนนั่งอยู่หน้าห้องจริง —
             คนที่ซ้อมมาก่อนจะนิ่งกว่าหน้ากรรมการเสมอ
           </p>
+          {/* คนที่ซ้อมได้สองสนาม (แพ็กคู่ 199 / มีทั้งสองคอร์ส) สลับสนามตรงนี้ */}
+          {bothFields && (
+            <div className="flex gap-1.5 mt-3">
+              {(["moph", "dcd"] as ExamFieldKey[]).map((f) => (
+                <button key={f} type="button" onClick={() => setFieldChoice(f)}
+                  className="px-3.5 py-1.5 rounded-full text-[12.5px] font-bold transition-colors"
+                  style={field === f
+                    ? { backgroundColor: "white", color: BRAND.primary }
+                    : { backgroundColor: "rgba(255,255,255,0.16)", color: "white" }}>
+                  {FIELD_SHORT[f]}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

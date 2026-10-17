@@ -18,7 +18,8 @@ import DriveFilesButton from "@/components/DriveFilesButton";
 
 type Phase = "loading" | "intake" | "qr" | "verifying" | "success" | "owned" | "error";
 
-const TIERS: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2", "dcd", "dcd-app", "up-dcd"];
+const TIERS: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2",
+  "dcd", "dcd-app", "up-dcd", "partc-moph", "partc-dcd", "partc-duo"];
 
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -224,10 +225,18 @@ export default function CheckoutPage() {
               <DriveFilesButton field="dcd" />
             </>
           )}
-          <button onClick={() => router.push("/")}
-            className="btn-primary w-full py-3 text-[14px]">เข้าหน้าเรียน</button>
-          <button onClick={() => router.push("/exams")}
-            className="btn-secondary w-full py-3 text-[14px]">ทำข้อสอบ</button>
+          {tier.startsWith("partc") ? (
+            // ซ้อมภาค ค — มีสิทธิ์อยู่แล้ว (ซื้อไปแล้ว หรือคอร์สหลักได้ฟรี) พาเข้าห้องซ้อมเลย
+            <button onClick={() => router.push(tier === "partc-dcd" ? "/interview?field=dcd" : "/interview")}
+              className="btn-primary w-full py-3 text-[14px]">เข้าห้องซ้อมภาค ค</button>
+          ) : (
+            <>
+              <button onClick={() => router.push("/")}
+                className="btn-primary w-full py-3 text-[14px]">เข้าหน้าเรียน</button>
+              <button onClick={() => router.push("/exams")}
+                className="btn-secondary w-full py-3 text-[14px]">ทำข้อสอบ</button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -270,6 +279,24 @@ export default function CheckoutPage() {
                 อัปเกรดเป็นติวเข้มได้ทีหลัง จ่ายแค่ส่วนต่าง
               </p>
             </>
+          ) : tier.startsWith("partc") ? (
+            <>
+              {/* ซ้อมภาค ค — พาเข้าห้องซ้อมของสนามที่ซื้อ (แพ็กคู่ให้สองปุ่ม) */}
+              {tier !== "partc-dcd" && (
+                <button onClick={() => router.push("/interview?field=moph")}
+                  className="btn-primary w-full py-3 text-[14px]">เข้าห้องซ้อมภาค ค สป.สธ.</button>
+              )}
+              {tier !== "partc-moph" && (
+                <button onClick={() => router.push("/interview?field=dcd")}
+                  className={`${tier === "partc-dcd" ? "btn-primary" : "btn-secondary"} w-full py-3 text-[14px]`}>
+                  เข้าห้องซ้อมภาค ค คร.
+                </button>
+              )}
+              <p className="text-[12.5px] leading-relaxed mt-1" style={{ color: "#A8A8A6" }}>
+                แพ็กนี้ปลดล็อกเมนูซ้อมสัมภาษณ์ครบทุกอย่าง ทั้งคลังคำถาม กรรมการอวตาร์
+                ห้องจำลอง 5 นาที และห้องกดดัน — พี่อ้อมทยอยเพิ่มคลิปให้เรื่อย ๆ นะคะ
+              </p>
+            </>
           ) : tier === "review" || tier === "up-review" ? (
             <>
               {/* แพ็กติวทบทวน: พาไปแผน 14 วัน + คลิปโค้งสุดท้าย (ไม่มีชีท/กลุ่ม LINE) */}
@@ -299,13 +326,14 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-stone-50 pb-16">
       <div className="max-w-lg mx-auto px-5 pt-8">
-        <Link href="/packages" className="inline-flex items-center gap-1.5 text-[13px] mb-6"
+        <Link href={tier.startsWith("partc") ? "/interview" : "/packages"}
+          className="inline-flex items-center gap-1.5 text-[13px] mb-6"
           style={{ color: "#A8A8A6" }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"
             strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
             <polyline points="15 18 9 12 15 6" />
           </svg>
-          แพ็กเกจ
+          {tier.startsWith("partc") ? "เมนูภาค ค" : "แพ็กเกจ"}
         </Link>
 
         <h1 className="text-[20px] font-bold text-gray-900 mb-1">ชำระเงิน</h1>
@@ -315,7 +343,8 @@ export default function CheckoutPage() {
 
         {/* กันกดผิดสนาม (เคส 27 ส.ค.: น้องจะซื้อ App คร. แต่จ่าย App สป.สธ. เพราะราคา 299 เท่ากัน)
             แพ็ก สป.สธ. ทุกตัวขึ้นป้ายเตือน + ทางลัดไปแพ็ก คร. */}
-        {!["dcd", "dcd-app", "up-dcd"].includes(tier) && (
+        {/* แพ็กซ้อมภาค ค ไม่เกี่ยวกับข้อเขียน — ไม่ต้องขึ้นป้ายเตือนสนาม */}
+        {!["dcd", "dcd-app", "up-dcd"].includes(tier) && !tier.startsWith("partc") && (
           <div className="rounded-2xl px-4 py-3.5 mb-6"
             style={{ backgroundColor: "#FFFBEB", border: "1.5px solid #FCD34D" }}>
             <p className="text-[13px] font-bold mb-1" style={{ color: "#92400E" }}>
