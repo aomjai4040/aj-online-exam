@@ -17,8 +17,9 @@ import { useAuth } from "@/lib/auth-context";
 import { DCD_PARTB_KEY, dcdResultAnnounced, type PartBStatus } from "@/lib/interview";
 import { BRAND } from "@/lib/subjects";
 
-/** เลิกโชว์หลังสัมภาษณ์จบ (เก็บข้อมูลพอแล้ว) */
-const HIDE_AFTER = "2026-10-21T00:00:00+07:00";
+/** เลิกโชว์หลังสัมภาษณ์จบ (เก็บข้อมูลพอแล้ว) —
+ *  ไทม์ไลน์ใหม่ (Aj 2026-10-18): ประกาศผู้มีสิทธิ 23 พ.ย. · คาดสัมภาษณ์ต้น ธ.ค. */
+const HIDE_AFTER = "2026-12-16T00:00:00+07:00";
 
 export default function DcdPartBCard() {
   const { user } = useAuth();
@@ -65,7 +66,8 @@ export default function DcdPartBCard() {
           🎉 ผ่านภาค ข แล้ว — ยินดีด้วยค่ะ!
         </p>
         <p className="text-[12.5px] mt-0.5" style={{ color: "#15803D" }}>
-          ต่อไปคือสัมภาษณ์ 14–20 ต.ค. · แตะเข้าเมนูเตรียมภาค ค. ได้เลย →
+          ประกาศรายชื่อผู้มีสิทธิสัมภาษณ์ 23 พ.ย. คาดสัมภาษณ์ต้น ธ.ค. —
+          มีเวลาซ้อมเต็มที่ แตะเข้าเมนูเตรียมภาค ค. ได้เลย
         </p>
       </a>
     );
