@@ -19,7 +19,7 @@ import { BRAND } from "@/lib/subjects";
 import {
   INTERVIEW_CATS, catOf, questionsForField, pickPracticeSet,
   loadPracticeStats, recordPracticeRating, practiceProgress,
-  ANSWER_PRINCIPLES, INTERVIEW_CHECKLIST, PRACTICE_CONFIG,
+  ANSWER_PRINCIPLES, INTERVIEW_CHECKLIST, PRACTICE_CONFIG, PRESSURE_PROMPTS,
   type InterviewQuestion, type PracticeRating,
 } from "@/lib/interview";
 import { fetchClipUrl, type InterviewClip } from "@/lib/interview-clips";
@@ -238,8 +238,26 @@ function fmtTime(s: number): string {
   return `${Math.floor(a / 60)}:${String(a % 60).padStart(2, "0")}`;
 }
 
-type Mode = "drill" | "sim";
-type Sub = "listen" | "answer" | "revealed";
+type Mode = "drill" | "sim" | "pressure";
+type Sub = "listen" | "answer" | "pressure" | "revealed";
+
+/** สุ่มคำถามจี้แบบไม่ซ้ำจนกว่าจะวนครบคลัง (จำตัวที่เจอแล้วใน localStorage) */
+function pickPressurePrompt(): string {
+  const KEY = "interview-pressure-seen";
+  let seen: number[] = [];
+  try { seen = JSON.parse(localStorage.getItem(KEY) ?? "[]") as number[]; } catch {}
+  let unseen = PRESSURE_PROMPTS.map((_, i) => i).filter((i) => !seen.includes(i));
+  if (unseen.length === 0) { seen = []; unseen = PRESSURE_PROMPTS.map((_, i) => i); }
+  const pick = unseen[Math.floor(Math.random() * unseen.length)];
+  try { localStorage.setItem(KEY, JSON.stringify([...seen, pick])); } catch {}
+  return PRESSURE_PROMPTS[pick];
+}
+
+/** โหมดทดลองห้องซ้อมจริงของ guest — ฟรี 1 รอบต่อสนาม (Aj 2026-10-17) */
+const trialKey = (field: ExamFieldKey) => `interview-sim-trial-${field}`;
+function trialUsed(field: ExamFieldKey): boolean {
+  try { return localStorage.getItem(trialKey(field)) === "1"; } catch { return false; }
+}
 
 /** 1 ขั้นของรอบซ้อม — โหมดจำลองห้องมีขั้น "แนะนำตัว" นำหน้า */
 interface Step {
@@ -263,6 +281,15 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const [progress, setProgress] = useState<{ seen: number; total: number } | null>(null);
   const [clipMedia, setClipMedia] = useState<{ videoUrl: string; posterUrl?: string; captionsUrl?: string } | null>(null);
   const [clipLoading, setClipLoading] = useState(false);
+  // หน่วง 3 วิ ก่อนคลิปเล่น — เว้นจังหวะให้ตั้งสติเหมือนห้องจริง (Aj 2026-10-17)
+  const [preCount, setPreCount] = useState<number | null>(null);
+  // ห้องกดดัน: คำจี้ของข้อปัจจุบัน + เวลาตอบช่วงแรก (ไว้รวมเวลาใช้จริง)
+  const [pressureText, setPressureText] = useState("");
+  const answerUsedRef = useRef<number | null>(null);
+  const pressureCountRef = useRef(0);
+  // guest: ทดลองห้องซ้อมจริงฟรี 1 รอบ
+  const [simTrialUsed, setSimTrialUsed] = useState(false);
+  useEffect(() => { setSimTrialUsed(trialUsed(field)); }, [field]);
   // นาฬิการวมของโหมดจำลองห้อง — เดินตลอดเหมือนเวลาจริงในห้อง (handoff 2.5)
   // หยุดเฉพาะตอนเปิดแนวทาง/ให้คะแนน (ช่วงนั้นหลุดจากบทสมมติแล้ว)
   const [simTotal, setSimTotal] = useState(0);
@@ -354,9 +381,9 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     setProgress(practiceProgress(field, loadPracticeStats(field)));
   }, [field, phase]);
 
-  // นาฬิกาเดินเฉพาะช่วงตอบ — เกินเวลาไม่หยุด (นับติดลบ เพื่อโชว์เวลาที่เกิน)
+  // นาฬิกาเดินช่วงตอบและช่วงโดนจี้ — เกินเวลาไม่หยุด (นับติดลบ เพื่อโชว์เวลาที่เกิน)
   useEffect(() => {
-    if (phase !== "run" || sub !== "answer") {
+    if (phase !== "run" || (sub !== "answer" && sub !== "pressure")) {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
       return;
     }
@@ -364,15 +391,27 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [phase, sub, idx]);
 
-  // นาฬิการวม (เฉพาะโหมดจำลองห้อง) — เดินทั้งช่วงฟังคำถามและช่วงตอบ
+  // นาฬิการวม (โหมดจำลองห้อง/ห้องกดดัน) — เดินทั้งช่วงฟังคำถามและช่วงตอบ
   useEffect(() => {
-    if (phase !== "run" || mode !== "sim" || sub === "revealed") {
+    if (phase !== "run" || mode === "drill" || sub === "revealed") {
       if (totalRef.current) { clearInterval(totalRef.current); totalRef.current = null; }
       return;
     }
     totalRef.current = setInterval(() => setSimTotal((s) => s + 1), 1000);
     return () => { if (totalRef.current) clearInterval(totalRef.current); };
   }, [phase, mode, sub]);
+
+  // นับถอยหลังตั้งสติ 3..2..1 ก่อนคลิปเล่น
+  useEffect(() => {
+    if (preCount === null) return;
+    if (preCount <= 0) {
+      setPreCount(null);
+      videoRef.current?.play().catch(() => {});
+      return;
+    }
+    const t = setTimeout(() => setPreCount((c) => (c === null ? null : c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [preCount]);
 
   /** เวลาเริ่มต้นของขั้นนี้ */
   const stepSeconds = (s: Step) => (s.kind === "intro" ? CFG.simIntroSeconds : CFG.answerSeconds);
@@ -383,10 +422,9 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     setClipLoading(false);
     if (!media) { setSub("answer"); return; } // โหลดคลิปไม่ได้ → ใช้การ์ดข้อความ ไม่พัง flow
     setClipMedia(media);
-    // เล่นต่ออัตโนมัติ (Aj 2026-10-17: กดให้คะแนนเสร็จ คลิปข้อถัดไปรันเลย) —
-    // การกดปุ่มให้คะแนน/เริ่มซ้อมคือ user gesture ล่าสุด เบราว์เซอร์ส่วนใหญ่ยอม
+    // หน่วง 3 วิ ให้ตั้งสติก่อนกรรมการถาม (Aj 2026-10-17) แล้วค่อยเล่นเอง —
     // ถ้าเครื่องไหนบล็อก autoplay น้องเห็นตัวเล่นพร้อมปุ่ม play จิ้มเองได้ ไม่ค้าง
-    setTimeout(() => videoRef.current?.play().catch(() => {}), 80);
+    setPreCount(PRACTICE_CONFIG.preClipDelaySeconds);
   }, [getToken]);
 
   const beginStep = useCallback(async (list: Step[], i: number) => {
@@ -394,6 +432,9 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     setIdx(i);
     setSecs(stepSeconds(step));
     setClipMedia(null);
+    setPreCount(null);
+    setPressureText("");
+    answerUsedRef.current = null;
     const clip = step.q ? clips.get(step.q.code) : undefined;
     if (playableClip(clip) && step.q) {
       setSub("listen");
@@ -420,13 +461,23 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
 
   const start = (m: Mode) => {
     let list: Step[];
-    if (m === "sim") {
-      const intro = pool.find((q) => q.id === "intro-self");
-      const rest = pickWithClipsFirst(CFG.simQuestionCount, ["intro-self"]);
+    if (m !== "drill") {
+      // จำลองห้อง/ห้องกดดัน: แนะนำตัว + สุ่มคำถาม (คลิปมาก่อน) —
+      // guest ที่ใช้สิทธิ์ทดลอง 1 รอบ ใช้คลังเต็มเหมือนสมาชิก (ข้อล็อกเป็นการ์ดข้อความ)
+      const all = questionsForField(field);
+      const intro = all.find((q) => q.id === "intro-self");
+      const stats = loadPracticeStats(field);
+      const clipQs = all.filter((q) => q.id !== "intro-self" && playableClip(clips.get(q.code)));
+      const textQs = all.filter((q) => q.id !== "intro-self" && !playableClip(clips.get(q.code)));
+      const rest = pickPracticeSet(field, CFG.simQuestionCount, stats, clipQs);
+      if (rest.length < CFG.simQuestionCount) {
+        rest.push(...pickPracticeSet(field, CFG.simQuestionCount - rest.length, stats, textQs));
+      }
       list = [
         { kind: "intro", q: intro, title: "แนะนำตัวเอง" },
         ...rest.map((q) => ({ kind: "question" as const, q, title: q.q })),
       ];
+      pressureCountRef.current = 0;
     } else {
       // ทดลองฟรี: คลังเล็ก สุ่มจากที่มี (อาจน้อยกว่า 5)
       const picked = isMember
@@ -459,36 +510,58 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     const step = steps[idx];
     if (step.q && r) recordPracticeRating(field, step.q.id, r);
     setRatings((p) => [...p, r]);
-    setUsed((p) => [...p, stepSeconds(step) - secs]);
-    if (idx + 1 >= steps.length) { setPhase("done"); return; }
+    // เวลาใช้จริง: ข้อที่โดนจี้ = เวลาตอบหลัก + เวลาตอบคำจี้
+    const timeUsed = answerUsedRef.current !== null
+      ? answerUsedRef.current + (CFG.pressureSeconds - secs)
+      : stepSeconds(step) - secs;
+    setUsed((p) => [...p, timeUsed]);
+    if (idx + 1 >= steps.length) {
+      // guest จบรอบจำลองห้อง = ใช้สิทธิ์ทดลองฟรี 1 รอบแล้ว
+      if (!isMember && mode !== "drill") {
+        try { localStorage.setItem(trialKey(field), "1"); } catch {}
+        setSimTrialUsed(true);
+      }
+      setPhase("done");
+      return;
+    }
     beginStep(steps, idx + 1);
+  };
+
+  /** กดตอบจบในช่วงตอบหลัก — ห้องกดดันมีโอกาสโดนกรรมการจี้ต่อก่อนเปิดแนวทาง */
+  const finishAnswer = () => {
+    const step = steps[idx];
+    if (step.kind === "intro") {
+      if (recEnabled) stopRec(idx);
+      finishStep(null);
+      return;
+    }
+    const isLast = idx + 1 >= steps.length;
+    const shouldPress = mode === "pressure" && answerUsedRef.current === null &&
+      (Math.random() < CFG.pressureChance || (isLast && pressureCountRef.current === 0));
+    if (shouldPress) {
+      answerUsedRef.current = stepSeconds(step) - secs;
+      pressureCountRef.current += 1;
+      setPressureText(pickPressurePrompt());
+      setSecs(CFG.pressureSeconds);
+      setSub("pressure");
+      return; // ไมค์อัดต่อเนื่อง — เสียงช่วงโดนจี้คือของดีไว้ฟังย้อน
+    }
+    if (recEnabled) stopRec(idx);
+    setSub("revealed");
   };
 
   // ── จอเริ่ม ──
   if (phase === "idle") {
-    if (!isMember && pool.length === 0) {
-      return (
-        <div>
-          <div className="card-elev px-5 py-6 text-center mb-4">
-            <p className="text-[15px] font-bold text-gray-900 mb-1">โหมดซ้อมตอบ</p>
-            <p className="text-[13px] text-gray-500 leading-relaxed">
-              ข้อทดลองฟรีกำลังจะเปิดเร็ว ๆ นี้ค่ะ — สมัครคอร์สแล้วซ้อมได้ครบทุกข้อเลย
-            </p>
-          </div>
-          <JoinCta field={field} />
-        </div>
-      );
-    }
     return (
       <div className="space-y-3">
-        {/* จำลองห้องสัมภาษณ์ — เฉพาะสมาชิก (ต้องใช้คลังเต็ม) */}
-        {isMember && (
+        {/* จำลองห้องสัมภาษณ์ — สมาชิกเต็มรูปแบบ · guest ลองฟรี 1 รอบ (Aj 2026-10-17) */}
+        {(isMember || !simTrialUsed) && (
           <div className="card-elev px-5 py-5">
             <div className="flex items-center gap-2 mb-1">
               <p className="text-[16px] font-bold text-gray-900">จำลองห้องสัมภาษณ์ 5 นาที</p>
               <span className="text-[10.5px] font-bold px-1.5 py-0.5 rounded"
                 style={{ backgroundColor: "#FDEEEE", color: "#B91C1C" }}>
-                เหมือนจริง
+                {isMember ? "เหมือนจริง" : "ลองฟรี 1 รอบ"}
               </span>
             </div>
             <p className="text-[13px] text-gray-500 leading-relaxed mb-3.5">
@@ -499,12 +572,38 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
             <button type="button" onClick={() => start("sim")}
               className="w-full py-3 rounded-2xl text-[14.5px] font-bold text-white active:scale-[0.98]"
               style={{ backgroundColor: "#B91C1C" }}>
-              🎬 เข้าห้องสัมภาษณ์
+              🎬 เข้าห้องสัมภาษณ์{!isMember && " (ฟรี 1 รอบ)"}
+            </button>
+          </div>
+        )}
+
+        {/* guest ใช้สิทธิ์ทดลองแล้ว → ชวนสมัคร */}
+        {!isMember && simTrialUsed && <JoinCta field={field} />}
+
+        {/* ห้องกดดัน — เฉพาะสมาชิก (Aj 2026-10-17: กรรมการจริงจี้เพื่อวัดการคุมอารมณ์) */}
+        {isMember && (
+          <div className="card-elev px-5 py-5" style={{ border: "1.5px solid #FCA5A5" }}>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-[16px] font-bold text-gray-900">ห้องกดดัน</p>
+              <span className="text-[10.5px] font-bold px-1.5 py-0.5 rounded"
+                style={{ backgroundColor: "#7F1D1D", color: "white" }}>
+                🔥 วัดการคุมสติ
+              </span>
+            </div>
+            <p className="text-[13px] text-gray-500 leading-relaxed mb-3.5">
+              เหมือนจำลองห้อง แต่ตอบจบแล้วกรรมการอาจ &ldquo;จี้ต่อทันที&rdquo; แบบห้องจริง —
+              รีวิวรุ่นพี่บอกตรงกันว่าบางห้องกดดันเพื่อดูความนิ่ง ซ้อมรับแรงจี้ไว้ก่อน วันจริงจะไม่ลน
+            </p>
+            <button type="button" onClick={() => start("pressure")}
+              className="w-full py-3 rounded-2xl text-[14.5px] font-bold text-white active:scale-[0.98]"
+              style={{ backgroundColor: "#7F1D1D" }}>
+              🔥 เข้าห้องกดดัน
             </button>
           </div>
         )}
 
         {/* ซ้อมเก็บข้อ */}
+        {(isMember || pool.length > 0) && (
         <div className="card-elev px-5 py-5">
           <p className="text-[16px] font-bold text-gray-900 mb-1">
             {isMember ? "ซ้อมเก็บข้อ" : "ทดลองซ้อมฟรี"}
@@ -525,6 +624,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
               : "ระบบจำให้ว่าเจอข้อไหนแล้ว ไม่สุ่มซ้ำจนกว่าจะครบคลัง"}
           </p>
         </div>
+        )}
       </div>
     );
   }
@@ -543,14 +643,15 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       <div className="space-y-3">
         <div className="card-elev px-5 py-6">
           <p className="text-[17px] font-bold text-gray-900 text-center mb-1">
-            {mode === "sim" ? "ออกจากห้องสัมภาษณ์ 🎉" : "จบรอบซ้อม 🎉"}
+            {mode === "pressure" ? "รอดจากห้องกดดันแล้ว 🔥" : mode === "sim" ? "ออกจากห้องสัมภาษณ์ 🎉" : "จบรอบซ้อม 🎉"}
           </p>
-          {mode === "sim" && (
+          {mode !== "drill" && (
             <p className="text-[13px] text-gray-500 text-center mb-4">
               อยู่ในห้องรวม {fmtTime(simTotal)} นาที (เวลาตอบจริง {fmtTime(totalUsed)} นาที)
+              {mode === "pressure" && ` · โดนจี้ ${pressureCountRef.current} ครั้ง`}
             </p>
           )}
-          {mode === "sim" ? (
+          {mode !== "drill" ? (
             <div className="space-y-1.5 mb-4">
               {steps.map((s, i) => {
                 const over = used[i] > stepSeconds(s);
@@ -644,7 +745,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
           </span>
         )}
         <span className="text-[13px] font-semibold text-gray-400 tabular-nums">
-          {mode === "sim"
+          {mode !== "drill"
             ? <>ขั้นที่ {idx + 1}/{steps.length} · <span style={{ color: "#B91C1C" }}>⏱ {fmtTime(simTotal)}</span></>
             : `ข้อ ${idx + 1}/${steps.length}`}
         </span>
@@ -667,6 +768,13 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
         </div>
       )}
 
+      {/* หน่วงตั้งสติ 3..2..1 ก่อนกรรมการถาม */}
+      {preCount !== null && preCount > 0 && (
+        <p className="text-[12.5px] font-semibold text-center mb-2 tabular-nums"
+          style={{ color: BRAND.primary }}>
+          หายใจลึก ๆ … กรรมการจะถามในอีก {preCount}
+        </p>
+      )}
       {clipMedia && (
         <div className="mb-4">
           <video ref={videoRef} controls playsInline preload="metadata"
@@ -731,14 +839,41 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
               ไม่ได้รับสิทธิ์ไมค์ — ซ้อมต่อได้ตามปกติ (เปิดสิทธิ์ได้ในตั้งค่าเบราว์เซอร์)
             </p>
           )}
-          <button type="button"
-            onClick={() => {
-              if (recEnabled) stopRec(idx);
-              if (step.kind === "intro") finishStep(null); else setSub("revealed");
-            }}
+          <button type="button" onClick={finishAnswer}
             className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98]"
             style={{ backgroundColor: BRAND.primary }}>
             ตอบจบแล้ว → {step.kind === "intro" ? "ไปข้อถัดไป" : "เปิดแนวทาง"}
+          </button>
+        </>
+      )}
+
+      {/* ── กรรมการจี้ต่อ (ห้องกดดัน) ── */}
+      {sub === "pressure" && (
+        <>
+          <div className="rounded-2xl px-4 py-3.5 mb-3"
+            style={{ backgroundColor: "#FDEEEE", border: "1.5px solid #FCA5A5" }}>
+            <p className="text-[11.5px] font-bold mb-1" style={{ color: "#B91C1C" }}>
+              กรรมการถามต่อทันที
+            </p>
+            <p className="font-exam text-[16px] font-semibold leading-snug" style={{ color: "#7F1D1D" }}>
+              &ldquo;{pressureText}&rdquo;
+            </p>
+          </div>
+          <div className="rounded-2xl px-4 py-4 text-center mb-4"
+            style={{ backgroundColor: secs < 0 ? "#FDEEEE" : "#FFF7ED" }}>
+            <p className="text-[30px] font-extrabold tabular-nums leading-none"
+              style={{ color: secs < 0 ? "#B91C1C" : "#C2410C" }}>
+              {secs < 0 ? `+${fmtTime(secs)}` : fmtTime(secs)}
+            </p>
+            <p className="text-[12.5px] mt-1.5" style={{ color: "#C2410C" }}>
+              นิ่งไว้ หายใจ แล้วตอบสั้น ๆ ให้ตรงคำถาม — กรรมการวัดการคุมอารมณ์ ไม่ได้วัดความยาว
+            </p>
+          </div>
+          <button type="button"
+            onClick={() => { if (recEnabled) stopRec(idx); setSub("revealed"); }}
+            className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98]"
+            style={{ backgroundColor: "#B91C1C" }}>
+            ตอบจบแล้ว → เปิดแนวทาง
           </button>
         </>
       )}

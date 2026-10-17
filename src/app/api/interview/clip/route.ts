@@ -55,7 +55,9 @@ export async function GET(req: NextRequest) {
   }
 
   const out: Record<string, string> = { videoUrl: await signedRead(String(clip.videoPath)) };
-  if (clip.posterPath)   out.posterUrl   = await signedRead(String(clip.posterPath));
+  // ไม่มีปกของตัวเอง → ใช้ปกกลาง (รูปกรรมการนิ่งก่อนถาม — Aj อัป 2026-10-17)
+  out.posterUrl = await signedRead(
+    clip.posterPath ? String(clip.posterPath) : "interview/poster-default.png");
   if (clip.captionsPath) out.captionsUrl = await signedRead(String(clip.captionsPath));
   return NextResponse.json(out);
 }
