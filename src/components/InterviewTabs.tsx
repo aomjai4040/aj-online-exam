@@ -20,8 +20,8 @@ import {
   INTERVIEW_CATS, catOf, questionsForField, pickPracticeSet,
   loadPracticeStats, recordPracticeRating, practiceProgress,
   ANSWER_PRINCIPLES, INTERVIEW_CHECKLIST, PRACTICE_CONFIG,
-  PRESSURE_PROMPTS, PRESSURE_CLIPS, CLIP_VARIANT_META,
-  type InterviewQuestion, type PracticeRating,
+  PRESSURE_JABS, PRESSURE_CLIPS, CLIP_VARIANT_META,
+  type InterviewCat, type InterviewQuestion, type PracticeRating,
 } from "@/lib/interview";
 import { fetchClipUrl, type InterviewClip } from "@/lib/interview-clips";
 
@@ -293,30 +293,43 @@ function fmtTime(s: number): string {
 type Mode = "drill" | "sim" | "pressure";
 type Sub = "listen" | "answer" | "pressure-listen" | "pressure" | "revealed";
 
-/** สุ่มคำถามจี้แบบไม่ซ้ำจนกว่าจะวนครบคลัง (จำตัวที่เจอแล้วใน localStorage) */
-function pickPressurePrompt(): string {
+/** คำจี้ index นี้เข้ากับหมวดคำถามที่เพิ่งตอบไหม — ไม่ระบุ cats = เข้าได้ทุกหมวด
+ *  (Aj 2026-10-18: เคยเจอ "ถ้าทำไปไม่ได้ผลล่ะ" หลังแนะนำตัวภาษาอังกฤษ) */
+const jabFitsCat = (i: number, cat: InterviewCat | null) => {
+  const cats = PRESSURE_JABS[i]?.cats;
+  return !cat || !cats || cats.includes(cat);
+};
+
+/** สุ่มคำถามจี้ให้เข้ากับหมวดข้อที่เพิ่งตอบ แบบไม่ซ้ำจนกว่าจะวนครบ (จำใน localStorage) */
+function pickPressurePrompt(cat: InterviewCat | null): string {
   const KEY = "interview-pressure-seen";
   let seen: number[] = [];
   try { seen = JSON.parse(localStorage.getItem(KEY) ?? "[]") as number[]; } catch {}
-  let unseen = PRESSURE_PROMPTS.map((_, i) => i).filter((i) => !seen.includes(i));
-  if (unseen.length === 0) { seen = []; unseen = PRESSURE_PROMPTS.map((_, i) => i); }
+  const fits = PRESSURE_JABS.map((_, i) => i).filter((i) => jabFitsCat(i, cat));
+  let unseen = fits.filter((i) => !seen.includes(i));
+  if (unseen.length === 0) {
+    // คำจี้ของหมวดนี้วนครบแล้ว — ล้างเฉพาะชุดนี้ให้เริ่มรอบใหม่ หมวดอื่นไม่กระทบ
+    seen = seen.filter((i) => !fits.includes(i));
+    unseen = fits;
+  }
   const pick = unseen[Math.floor(Math.random() * unseen.length)];
   try { localStorage.setItem(KEY, JSON.stringify([...seen, pick])); } catch {}
-  return PRESSURE_PROMPTS[pick];
+  return PRESSURE_JABS[pick].text;
 }
 
-/** จี้ด้วยคลิปอวตาร์ (PRS-P-001..005) ถ้ามีคลิปเผยแพร่แล้ว — สุ่มไม่ซ้ำตัวล่าสุด
- *  ยังไม่มีคลิป (หรือโหลดพลาด) ใช้ข้อความจี้ตามเดิม ไม่พัง flow */
+/** จี้ด้วยคลิปอวตาร์ (PRS-P-001..005) ถ้ามีคลิปเผยแพร่และเข้ากับหมวดข้อนั้น —
+ *  สุ่มไม่ซ้ำตัวล่าสุด · ไม่มีคลิปที่เข้ากัน (หรือโหลดพลาด) ใช้ข้อความจี้แทน */
 function pickPressureJab(
-  clips: Map<string, InterviewClip>,
+  clips: Map<string, InterviewClip>, cat: InterviewCat | null,
 ): { clip?: InterviewClip; text: string } {
   const avail: { clip: InterviewClip; text: string }[] = [];
   PRESSURE_CLIPS.forEach((p, i) => {
-    // เวอร์ชันสำรองของคลิปจี้ (-2..-9) ใช้บทพูดเดียวกับตัวหลัก
+    if (!jabFitsCat(i, cat)) return; // คลิปจี้ตัวที่ i ใช้บทเดียวกับคำจี้ตัวที่ i
+    // เวอร์ชันสำรองของคลิปจี้ (-v2..-v9) ใช้บทพูดเดียวกับตัวหลัก
     clipVariants(clips, p.code).forEach((c) =>
-      avail.push({ clip: c, text: PRESSURE_PROMPTS[i] ?? p.label }));
+      avail.push({ clip: c, text: PRESSURE_JABS[i]?.text ?? p.label }));
   });
-  if (avail.length === 0) return { text: pickPressurePrompt() };
+  if (avail.length === 0) return { text: pickPressurePrompt(cat) };
   const KEY = "interview-pressure-clip-last";
   let last = "";
   try { last = localStorage.getItem(KEY) ?? ""; } catch {}
@@ -669,7 +682,8 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       pressureCountRef.current += 1;
       // มีคลิปจี้อวตาร์ → เล่นคลิปก่อน นาฬิกา 30 วิเริ่มเมื่อกรรมการพูดจบ
       // ยังไม่มีคลิป → การ์ดข้อความจี้ นาฬิกาเริ่มทันทีแบบเดิม
-      const jab = pickPressureJab(clips);
+      // คำจี้เลือกเฉพาะตัวที่เข้ากับหมวดข้อที่เพิ่งตอบ (แนะนำตัว/อังกฤษ ไม่โดนจี้เรื่องแผนงาน)
+      const jab = pickPressureJab(clips, step.q?.cat ?? null);
       setPressureText(jab.text);
       setSecs(CFG.pressureSeconds);
       if (jab.clip) {
