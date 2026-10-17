@@ -19,7 +19,8 @@ import { BRAND } from "@/lib/subjects";
 import {
   INTERVIEW_CATS, catOf, questionsForField, pickPracticeSet,
   loadPracticeStats, recordPracticeRating, practiceProgress,
-  ANSWER_PRINCIPLES, INTERVIEW_CHECKLIST, PRACTICE_CONFIG, PRESSURE_PROMPTS,
+  ANSWER_PRINCIPLES, INTERVIEW_CHECKLIST, PRACTICE_CONFIG,
+  PRESSURE_PROMPTS, PRESSURE_CLIPS,
   type InterviewQuestion, type PracticeRating,
 } from "@/lib/interview";
 import { fetchClipUrl, type InterviewClip } from "@/lib/interview-clips";
@@ -285,7 +286,7 @@ function fmtTime(s: number): string {
 }
 
 type Mode = "drill" | "sim" | "pressure";
-type Sub = "listen" | "answer" | "pressure" | "revealed";
+type Sub = "listen" | "answer" | "pressure-listen" | "pressure" | "revealed";
 
 /** สุ่มคำถามจี้แบบไม่ซ้ำจนกว่าจะวนครบคลัง (จำตัวที่เจอแล้วใน localStorage) */
 function pickPressurePrompt(): string {
@@ -297,6 +298,28 @@ function pickPressurePrompt(): string {
   const pick = unseen[Math.floor(Math.random() * unseen.length)];
   try { localStorage.setItem(KEY, JSON.stringify([...seen, pick])); } catch {}
   return PRESSURE_PROMPTS[pick];
+}
+
+/** จี้ด้วยคลิปอวตาร์ (PRS-P-001..005) ถ้ามีคลิปเผยแพร่แล้ว — สุ่มไม่ซ้ำตัวล่าสุด
+ *  ยังไม่มีคลิป (หรือโหลดพลาด) ใช้ข้อความจี้ตามเดิม ไม่พัง flow */
+function pickPressureJab(
+  clips: Map<string, InterviewClip>,
+): { clip?: InterviewClip; text: string } {
+  const avail: { clip: InterviewClip; text: string }[] = [];
+  PRESSURE_CLIPS.forEach((p, i) => {
+    // เวอร์ชันสำรองของคลิปจี้ (-2..-9) ใช้บทพูดเดียวกับตัวหลัก
+    clipVariants(clips, p.code).forEach((c) =>
+      avail.push({ clip: c, text: PRESSURE_PROMPTS[i] ?? p.label }));
+  });
+  if (avail.length === 0) return { text: pickPressurePrompt() };
+  const KEY = "interview-pressure-clip-last";
+  let last = "";
+  try { last = localStorage.getItem(KEY) ?? ""; } catch {}
+  const fresh = avail.filter((x) => x.clip.code !== last);
+  const from = fresh.length > 0 ? fresh : avail;
+  const pick = from[Math.floor(Math.random() * from.length)];
+  try { localStorage.setItem(KEY, pick.clip.code); } catch {}
+  return pick;
 }
 
 /** โหมดทดลองห้องซ้อมจริงของ guest — ฟรี 1 รอบต่อสนาม (Aj 2026-10-17) */
@@ -477,6 +500,18 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     setPreCount(PRACTICE_CONFIG.preClipDelaySeconds);
   }, [getToken]);
 
+  /** เล่นคลิปกรรมการจี้ (ห้องกดดัน) — จี้ต่อทันที ไม่มีช่วงตั้งสติ 3 วิ */
+  const playJab = useCallback(async (clipCode: string) => {
+    setClipLoading(true);
+    const media = await fetchClipUrl(clipCode, await getToken());
+    setClipLoading(false);
+    if (!media) { setSub("pressure"); return; } // โหลดพลาด → จี้ด้วยข้อความ นาฬิกาเริ่มเลย
+    setClipMedia(media);
+    setClipPaused(true);
+    setClipEnded(false);
+    setPreCount(0); // เล่นทันทีที่ขึ้นจอ (ปุ่มตอบจบที่เพิ่งกด = gesture ปลดบล็อก autoplay แล้ว)
+  }, [getToken]);
+
   const beginStep = useCallback(async (list: Step[], i: number) => {
     const step = list[i];
     setIdx(i);
@@ -601,9 +636,18 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     if (shouldPress) {
       answerUsedRef.current = stepSeconds(step) - secs;
       pressureCountRef.current += 1;
-      setPressureText(pickPressurePrompt());
+      // มีคลิปจี้อวตาร์ → เล่นคลิปก่อน นาฬิกา 30 วิเริ่มเมื่อกรรมการพูดจบ
+      // ยังไม่มีคลิป → การ์ดข้อความจี้ นาฬิกาเริ่มทันทีแบบเดิม
+      const jab = pickPressureJab(clips);
+      setPressureText(jab.text);
       setSecs(CFG.pressureSeconds);
-      setSub("pressure");
+      if (jab.clip) {
+        setClipMedia(null); // ถอดคลิปคำถามออกก่อน ให้ตัวเล่น mount ใหม่กับคลิปจี้
+        setSub("pressure-listen");
+        playJab(jab.clip.code);
+      } else {
+        setSub("pressure");
+      }
       return; // ไมค์อัดต่อเนื่อง — เสียงช่วงโดนจี้คือของดีไว้ฟังย้อน
     }
     if (recEnabled) stopRec(idx);
@@ -817,12 +861,13 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       </p>
 
       {/* กำลังเชิญกรรมการ (โหลดคลิป) — เล่นต่อเองทันทีที่พร้อม */}
-      {sub === "listen" && !clipMedia && clipLoading && (
+      {(sub === "listen" || sub === "pressure-listen") && !clipMedia && clipLoading && (
         <div className="w-full py-6 rounded-2xl text-center mb-4"
-          style={{ backgroundColor: "#F5FAF9" }}>
+          style={{ backgroundColor: sub === "pressure-listen" ? "#FDEEEE" : "#F5FAF9" }}>
           <span className="inline-block w-5 h-5 border-[3px] border-[#C3E5DE] border-t-[#0B6E65] rounded-full animate-spin align-middle mr-2" />
-          <span className="text-[13.5px] font-semibold" style={{ color: BRAND.primary }}>
-            กรรมการกำลังจะถาม…
+          <span className="text-[13.5px] font-semibold"
+            style={{ color: sub === "pressure-listen" ? "#B91C1C" : BRAND.primary }}>
+            {sub === "pressure-listen" ? "กรรมการกำลังจะถามต่อ…" : "กรรมการกำลังจะถาม…"}
           </span>
         </div>
       )}
@@ -847,7 +892,11 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
                 setClipPaused(true);
                 if (e.currentTarget.ended) setClipEnded(true);
               }}
-              onEnded={() => { setClipEnded(true); if (sub === "listen") setSub("answer"); }}
+              onEnded={() => {
+                setClipEnded(true);
+                if (sub === "listen") setSub("answer");
+                else if (sub === "pressure-listen") setSub("pressure"); // จี้จบ → เริ่มนับ 30 วิ
+              }}
               className="w-full rounded-2xl bg-black"
               style={{ maxHeight: "60vh" }}>
               <source src={clipMedia.videoUrl} type="video/mp4" />
@@ -873,6 +922,12 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
             <button type="button" onClick={() => setSub("answer")}
               className="w-full py-2 mt-2 text-[12.5px] font-semibold underline" style={{ color: "#6B7280" }}>
               ข้ามไปเริ่มตอบเลย
+            </button>
+          )}
+          {sub === "pressure-listen" && (
+            <button type="button" onClick={() => setSub("pressure")}
+              className="w-full py-2 mt-2 text-[12.5px] font-semibold underline" style={{ color: "#6B7280" }}>
+              ข้ามไปตอบเลย
             </button>
           )}
         </div>
@@ -929,8 +984,9 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
         </>
       )}
 
-      {/* ── กรรมการจี้ต่อ (ห้องกดดัน) ── */}
-      {sub === "pressure" && (
+      {/* ── กรรมการจี้ต่อ (ห้องกดดัน) — ช่วงคลิปจี้เล่นอยู่โชว์การ์ดคำจี้ก่อน
+          นาฬิกา 30 วิกับปุ่มตอบจบค่อยโผล่เมื่อกรรมการพูดจบ ── */}
+      {(sub === "pressure" || sub === "pressure-listen") && (
         <>
           <div className="rounded-2xl px-4 py-3.5 mb-3"
             style={{ backgroundColor: "#FDEEEE", border: "1.5px solid #FCA5A5" }}>
@@ -941,6 +997,10 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
               &ldquo;{pressureText}&rdquo;
             </p>
           </div>
+        </>
+      )}
+      {sub === "pressure" && (
+        <>
           <div className="rounded-2xl px-4 py-4 text-center mb-4"
             style={{ backgroundColor: secs < 0 ? "#FDEEEE" : "#FFF7ED" }}>
             <p className="text-[30px] font-extrabold tabular-nums leading-none"
