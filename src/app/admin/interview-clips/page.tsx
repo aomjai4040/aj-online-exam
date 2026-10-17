@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { QUESTIONS, catOf } from "@/lib/interview";
+import { QUESTIONS, PRESSURE_CLIPS, catOf } from "@/lib/interview";
 import {
   loadClips, removeClipDoc, saveClip, type InterviewClip,
 } from "@/lib/interview-clips";
@@ -70,7 +70,9 @@ export default function AdminInterviewClipsPage() {
       const code = m[1].toUpperCase();
       const kind = KIND_OF_EXT[m[2].toLowerCase()];
       if (!kind) { log(file.name, "รองรับเฉพาะ .mp4 (คลิป) .jpg (ปก) .vtt (ซับ)", false); continue; }
-      if (!QUESTIONS.some((q) => q.code === code)) {
+      // รับทั้งรหัสคำถาม (SPS-C/DCD-C) และคลิปจี้ห้องกดดัน (PRS-P-001..005)
+      if (!QUESTIONS.some((q) => q.code === code)
+        && !PRESSURE_CLIPS.some((p) => p.code === code)) {
         log(file.name, `ไม่พบคำถามรหัส ${code} ในคลัง`, false); continue;
       }
       try {
@@ -145,13 +147,22 @@ export default function AdminInterviewClipsPage() {
     setClips((p) => { const n = new Map(p); n.delete(code); return n; });
   }
 
-  // จัดกลุ่มรายการ: สป.สธ.+กลาง (SPS) ก่อน แล้ว คร. (DCD) — เรียงตามรหัส
+  // จัดกลุ่มรายการ: สป.สธ.+กลาง (SPS) ก่อน แล้ว คร. (DCD) แล้วคลิปจี้ (PRS) — เรียงตามรหัส
   const groups = useMemo(() => {
-    const sps = QUESTIONS.filter((q) => q.code.startsWith("SPS")).sort((a, b) => a.code.localeCompare(b.code));
-    const dcd = QUESTIONS.filter((q) => q.code.startsWith("DCD")).sort((a, b) => a.code.localeCompare(b.code));
+    const row = (q: { code: string; q: string; cat: Parameters<typeof catOf>[0] }) => {
+      const cat = catOf(q.cat);
+      return { code: q.code, text: q.q, sub: cat.short, subColor: cat.color };
+    };
+    const sps = QUESTIONS.filter((q) => q.code.startsWith("SPS"))
+      .sort((a, b) => a.code.localeCompare(b.code)).map(row);
+    const dcd = QUESTIONS.filter((q) => q.code.startsWith("DCD"))
+      .sort((a, b) => a.code.localeCompare(b.code)).map(row);
+    const prs = PRESSURE_CLIPS.map((p) =>
+      ({ code: p.code, text: p.label, sub: "ห้องกดดัน", subColor: "#DC2626" }));
     return [
       { title: "สป.สธ. + คำถามกลาง (SPS-C)", list: sps },
       { title: "กรมควบคุมโรค (DCD-C)", list: dcd },
+      { title: "คลิปจี้ห้องกดดัน (PRS-P) — ระหว่างรอคลิป ระบบใช้ข้อความจี้แทน", list: prs },
     ];
   }, []);
 
@@ -205,7 +216,6 @@ export default function AdminInterviewClipsPage() {
           <div className="card divide-y divide-gray-100">
             {g.list.map((q) => {
               const c = clips.get(q.code);
-              const cat = catOf(q.cat);
               return (
                 <div key={q.code} className="px-4 py-2.5 flex items-center gap-3">
                   <span className="text-[12px] font-mono font-bold flex-shrink-0 w-20"
@@ -213,8 +223,8 @@ export default function AdminInterviewClipsPage() {
                     {q.code}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-gray-800 truncate">{q.q}</p>
-                    <p className="text-[11px]" style={{ color: cat.color }}>{cat.short}
+                    <p className="text-[13px] text-gray-800 truncate">{q.text}</p>
+                    <p className="text-[11px]" style={{ color: q.subColor }}>{q.sub}
                       {c?.durationSec ? <span className="text-gray-400"> · {c.durationSec} วิ</span> : null}
                       {c?.posterPath ? <span className="text-gray-400"> · มีปก</span> : null}
                       {c?.status === "draft" ? <span style={{ color: "#B45309" }}> · ร่าง</span> : null}
