@@ -29,39 +29,41 @@ const fmt = (iso: string | null) =>
   iso ? new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short" }).format(new Date(iso)) : "—";
 const daysAgo = (iso: string | null) => iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000) : null;
 
-// ─── ผลภาค ข คร. ที่น้องแจ้งเข้ามา (Aj 2026-09-27) ────────────────────────────
-// อ่านตรงจาก users (rules ให้ admin อ่านได้) — การ์ดแจ้งผลโผล่ในแอปตั้งแต่ 5 ต.ค.
+// ─── ผลภาค ข ที่น้องแจ้งเข้ามา (Aj 2026-09-27 · ขยายเป็นรายสนาม 2026-10-17) ────
+// อ่านตรงจาก users (rules ให้ admin อ่านได้) — ประตูบังคับตอบอยู่หน้า /interview
 
 interface PartBRow { email: string; name: string; status: string; at: string }
 
-function DcdPartBPanel() {
+function DcdPartBPanel({ field }: { field: ExamFieldKey }) {
+  const key = field === "dcd" ? "dcdPartB69" : "mophPartB69";
   const [rows, setRows] = useState<PartBRow[] | null>(null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    setRows(null);
     (async () => {
       try {
         const { collection, getDocs, query, where } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
         const snap = await getDocs(query(
           collection(db, "users"),
-          where("dcdPartB69", "in", ["passed", "failed", "pending", "absent"]),
+          where(key, "in", ["passed", "failed", "pending", "absent"]),
         ));
         if (cancelled) return;
         setRows(snap.docs.map((d) => {
           const x = d.data();
-          const ts = x.dcdPartB69At as { toDate?: () => Date } | undefined;
+          const ts = x[`${key}At`] as { toDate?: () => Date } | undefined;
           return {
             email: String(x.email ?? d.id), name: String(x.displayName ?? ""),
-            status: String(x.dcdPartB69),
+            status: String(x[key]),
             at: ts?.toDate ? fmt(ts.toDate().toISOString()) : "—",
           };
         }));
       } catch { if (!cancelled) setRows([]); }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [key]);
 
   if (rows === null) return null;
   const passed  = rows.filter((r) => r.status === "passed");
@@ -76,7 +78,7 @@ function DcdPartBPanel() {
     <div className="bg-white rounded-2xl p-5" style={{ border: "1.5px solid #FCD34D" }}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
-          📣 ผลภาค ข ที่น้องแจ้ง (การ์ดถามโผล่ในแอปตั้งแต่ 5 ต.ค.)
+          📣 ผลภาค ข {FIELD_SHORT[field]} ที่น้องแจ้ง (บังคับตอบก่อนเข้าเมนูภาค ค)
         </p>
         {rows.length > 0 && (
           <button onClick={() => setOpen((o) => !o)} className="text-[12px] font-semibold underline"
@@ -214,7 +216,7 @@ export default function AdminProgressPage() {
               · คิด % จากคลิป 50 / ข้อสอบ 35 / Mock 15 (ส่วนที่ยังไม่มีของถูกตัดออก) · นับอัตโนมัติจากการดู/ส่งจริง ไม่ต้องติ๊ก
             </p>
 
-            {field === "dcd" && <DcdPartBPanel />}
+            {(field === "dcd" || field === "moph") && <DcdPartBPanel field={field} />}
 
             <div className="flex flex-wrap items-center gap-2">
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาอีเมล"

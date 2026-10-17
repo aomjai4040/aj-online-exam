@@ -19,8 +19,27 @@ import type { ExamFieldKey } from "./exam-fields";
 
 /** วันประกาศผู้มีสิทธิสัมภาษณ์ คร. (ตามประกาศกรม) */
 export const DCD_RESULT_AT = "2026-10-05T00:00:00+07:00";
+/** วันเริ่มถามผลภาค ข ฝั่ง สป.สธ. (Aj เปิดประตู 2026-10-17 — ปรับวันได้ถ้าประกาศเลื่อน) */
+export const MOPH_RESULT_AT = "2026-10-17T00:00:00+07:00";
 export const DCD_PARTB_KEY = "dcdPartB69";
+export const MOPH_PARTB_KEY = "mophPartB69";
 export type PartBStatus = "passed" | "failed" | "pending" | "absent";
+
+/** ชื่อฟิลด์ใน users/{uid} ที่เก็บผลภาค ข ของสนามนั้น */
+export function partBKeyOf(field: ExamFieldKey): string {
+  return field === "dcd" ? DCD_PARTB_KEY : MOPH_PARTB_KEY;
+}
+
+export function partBAnnounced(field: ExamFieldKey, now: Date = new Date()): boolean {
+  const at = field === "dcd" ? DCD_RESULT_AT : MOPH_RESULT_AT;
+  return now.getTime() >= new Date(at).getTime();
+}
+
+/** ตอบแบบไหนถึงถือว่า "ตอบแล้ว" — Aj 2026-10-17: ต้องเลือก ผ่าน/ไม่ผ่าน/ไม่ได้ไปสอบ
+ *  เท่านั้นจึงเข้าเมนูซ้อมได้ (ตัดตัวเลือกขอเข้าก่อนออก — ผลประกาศแล้วทุกสนาม) */
+export function partBAnswered(v: PartBStatus | null | undefined): boolean {
+  return v === "passed" || v === "failed" || v === "absent";
+}
 
 export function dcdResultAnnounced(now: Date = new Date()): boolean {
   return now.getTime() >= new Date(DCD_RESULT_AT).getTime();
