@@ -263,7 +263,11 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
   const [progress, setProgress] = useState<{ seen: number; total: number } | null>(null);
   const [clipMedia, setClipMedia] = useState<{ videoUrl: string; posterUrl?: string; captionsUrl?: string } | null>(null);
   const [clipLoading, setClipLoading] = useState(false);
+  // นาฬิการวมของโหมดจำลองห้อง — เดินตลอดเหมือนเวลาจริงในห้อง (handoff 2.5)
+  // หยุดเฉพาะตอนเปิดแนวทาง/ให้คะแนน (ช่วงนั้นหลุดจากบทสมมติแล้ว)
+  const [simTotal, setSimTotal] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const totalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // คลังที่ซ้อมได้: สมาชิก = ทั้งสนาม · ทดลองฟรี = เฉพาะข้อ 🎁 ที่มีคลิปเผยแพร่
@@ -290,6 +294,16 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
     timerRef.current = setInterval(() => setSecs((s) => s - 1), 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [phase, sub, idx]);
+
+  // นาฬิการวม (เฉพาะโหมดจำลองห้อง) — เดินทั้งช่วงฟังคำถามและช่วงตอบ
+  useEffect(() => {
+    if (phase !== "run" || mode !== "sim" || sub === "revealed") {
+      if (totalRef.current) { clearInterval(totalRef.current); totalRef.current = null; }
+      return;
+    }
+    totalRef.current = setInterval(() => setSimTotal((s) => s + 1), 1000);
+    return () => { if (totalRef.current) clearInterval(totalRef.current); };
+  }, [phase, mode, sub]);
 
   /** เวลาเริ่มต้นของขั้นนี้ */
   const stepSeconds = (s: Step) => (s.kind === "intro" ? CFG.simIntroSeconds : CFG.answerSeconds);
@@ -328,6 +342,7 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
     setSteps(list);
     setRatings([]);
     setUsed([]);
+    setSimTotal(0);
     setPhase("run");
     beginStep(list, 0);
   };
@@ -443,7 +458,7 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
           </p>
           {mode === "sim" && (
             <p className="text-[13px] text-gray-500 text-center mb-4">
-              ใช้เวลารวม {fmtTime(totalUsed)} นาที
+              อยู่ในห้องรวม {fmtTime(simTotal)} นาที (เวลาตอบจริง {fmtTime(totalUsed)} นาที)
             </p>
           )}
           {mode === "sim" ? (
@@ -516,8 +531,10 @@ export function PracticeMode({ ctx }: { ctx: TabCtx }) {
             {cat!.short}
           </span>
         )}
-        <span className="text-[13px] font-semibold text-gray-400">
-          {mode === "sim" ? `ขั้นที่ ${idx + 1}/${steps.length}` : `ข้อ ${idx + 1}/${steps.length}`}
+        <span className="text-[13px] font-semibold text-gray-400 tabular-nums">
+          {mode === "sim"
+            ? <>ขั้นที่ {idx + 1}/{steps.length} · <span style={{ color: "#B91C1C" }}>⏱ {fmtTime(simTotal)}</span></>
+            : `ข้อ ${idx + 1}/${steps.length}`}
         </span>
       </div>
 
