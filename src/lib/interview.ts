@@ -781,16 +781,21 @@ export function pickPracticeSet(
 /** ค่าเวลาโหมดซ้อม — เป็น config ไม่ hardcode (handoff 2.5: Aj ปรับได้หลังประกาศจริง)
  *  Aj ประเมินสนามจริง ~5 นาที/คน → ตอบข้อละ 1 นาที · เตือนเมื่อเหลือ 15 วิ ·
  *  เกินเวลาไม่ตัด แต่โชว์เวลาที่เกิน */
-export const PRACTICE_CONFIG = {
+export const PRACTICE_CONFIG: {
   /** เวลาตอบต่อข้อ (วินาที) */
-  answerSeconds: 60,
+  answerSeconds: number;
   /** เตือนเมื่อเหลือกี่วินาที */
-  warnAtSeconds: 15,
+  warnAtSeconds: number;
   /** โหมดจำลองห้อง 5 นาที: เวลาแนะนำตัว (วินาที) */
-  simIntroSeconds: 60,
+  simIntroSeconds: number;
   /** โหมดจำลองห้อง: จำนวนคำถามสุ่ม */
+  simQuestionCount: number;
+} = {
+  answerSeconds: 60,
+  warnAtSeconds: 15,
+  simIntroSeconds: 60,
   simQuestionCount: 3,
-} as const;
+};
 
 /** เวลาแนะนำต่อ 1 คำตอบในโหมดซ้อม (วินาที) — ชี้ไป config กลาง */
 export const PRACTICE_SECONDS = PRACTICE_CONFIG.answerSeconds;

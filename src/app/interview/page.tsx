@@ -1,65 +1,66 @@
 "use client";
 /**
- * /interview — เตรียมสอบภาค ค. (สัมภาษณ์)
+ * /interview — ภาค ค สัมภาษณ์
  *
- * สำหรับสนามที่สอบข้อเขียนเสร็จแล้ว รอเรียกสัมภาษณ์ (สป.สธ. ก่อน — คร. ค่อยเปิด
- * หลังสอบข้อเขียน). เนื้อหาทั้งหมดอยู่ src/lib/interview.ts แก้ที่เดียว.
- * ตัวแท็บอยู่ components/InterviewTabs.tsx
+ * v2 (handoff Aj 2026-10-17 — รองรับคลิปอวตาร์ + โหมดทดลองฟรี):
+ *   - เปิดให้คนยังไม่สมัคร/ยังไม่ login เข้าดูได้ (deep link ใส่โพสต์ FB ได้เลย:
+ *     /interview?field=moph หรือ ?field=dcd · ไม่ใส่ = สป.สธ.)
+ *     เห็นคลังทั้งหมดแบบล็อก · ซ้อมได้เฉพาะข้อ 🎁 ทดลองฟรี · จบแล้วเจอการ์ดชวนสมัคร
+ *   - สมาชิก: ครบทุกอย่าง + โหมดจำลองห้องสัมภาษณ์ 5 นาที
+ *   - คลิปอวตาร์โหลดเมทาดาทาที่นี่ครั้งเดียว ส่งลงทุกแท็บ (ตัวคลิปขอ signed URL รายข้อ)
  *
- * 3 แท็บ: คลังคำถาม (แนวทางตอบต่อข้อ) · ซ้อมตอบ (สุ่ม 5 ข้อ จับเวลา ประเมินตัวเอง)
- * · เช็คลิสต์ (ติ๊กแล้วจำไว้ในเครื่อง)
+ * 3 แท็บ: คลังคำถาม · ซ้อมตอบ · เช็คลิสต์ — เนื้อหาอยู่ src/lib/interview.ts
  */
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { doc, getDoc, increment, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
-import { useLoginGuard } from "@/lib/use-login-guard";
 import { getUserAccess, type UserAccess } from "@/lib/access";
 import { effectiveField } from "@/lib/active-field";
-import { FIELD_SHORT } from "@/lib/exam-fields";
+import { FIELD_SHORT, type ExamFieldKey } from "@/lib/exam-fields";
 import { DCD_PARTB_KEY, dcdResultAnnounced, type PartBStatus } from "@/lib/interview";
+import { loadClips, type InterviewClip } from "@/lib/interview-clips";
 import { BRAND } from "@/lib/subjects";
-import { QuestionBank, PracticeMode, Checklist } from "@/components/InterviewTabs";
+import { QuestionBank, PracticeMode, Checklist, JoinCta, type TabCtx } from "@/components/InterviewTabs";
 import BottomNav from "@/components/BottomNav";
 
 type Tab = "bank" | "practice" | "check";
 
 export default function InterviewPage() {
-  const guard = useLoginGuard();
-  const { user } = useAuth();
-  const [access, setAccess] = useState<UserAccess | null>(null);
+  const { user, loading: authLoading } = useAuth();
+  const [access, setAccess] = useState<UserAccess | null | "guest">(null);
+  const [clips, setClips] = useState<Map<string, InterviewClip>>(new Map());
+  const [guestField, setGuestField] = useState<ExamFieldKey>("moph");
   const [tab, setTab] = useState<Tab>("bank");
   // ผลภาค ข คร. (Aj 2026-09-27): ตั้งแต่วันประกาศ ถามก่อนเข้าเมนู — ตอบแตะเดียวเข้าได้เลย
   const [partB, setPartB] = useState<PartBStatus | null | undefined>(undefined);
   const [partBBusy, setPartBBusy] = useState(false);
 
+  // deep link สนามสำหรับคนยังไม่มีสิทธิ์: /interview?field=dcd (อ่านเองกัน Suspense ของ useSearchParams)
   useEffect(() => {
-    if (!user) return;
+    const f = new URLSearchParams(window.location.search).get("field");
+    if (f === "dcd") setGuestField("dcd");
+  }, []);
+
+  // เมทาดาทาคลิป — อ่านได้ทุกคนรวม guest (rules เปิด read)
+  useEffect(() => {
+    let cancelled = false;
+    loadClips().then((m) => { if (!cancelled) setClips(m); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setAccess("guest"); setPartB(null); return; }
     let cancelled = false;
     getUserAccess(user.uid)
       .then((a) => { if (!cancelled) setAccess(a); })
-      .catch(() => { if (!cancelled) setAccess(null); });
+      .catch(() => { if (!cancelled) setAccess("guest"); });
     getDoc(doc(db, "users", user.uid))
       .then((d) => { if (!cancelled) setPartB((d.data()?.[DCD_PARTB_KEY] as PartBStatus) ?? null); })
       .catch(() => { if (!cancelled) setPartB(null); });
     return () => { cancelled = true; };
-  }, [user]);
-
-  // นับผู้เข้าใช้เมนูติวภาค ค. — interviewUsage/{uid} (Aj 2026-10-02:
-  // "มีคนเข้าใช้งานกี่คน ดูได้มั้ย") · การ์ด/เช็คลิสต์จำใน localStorage
-  // ไม่ขึ้นเซิร์ฟเวอร์ เลยบันทึกการเข้าหน้าแทน — ดูยอดที่ /admin/insights
-  useEffect(() => {
-    if (!user || !access || (!access.hasAny && !access.hasDcd)) return;
-    setDoc(doc(db, "interviewUsage", user.uid), {
-      userId: user.uid,
-      email:  user.email ?? "",
-      name:   user.displayName ?? "",
-      field:  effectiveField(access),
-      lastAt: serverTimestamp(),
-      visits: increment(1),
-    }, { merge: true }).catch(() => {}); // นับพลาดห้ามกระทบการใช้งาน
-  }, [user, access]);
+  }, [user, authLoading]);
 
   async function savePartB(v: PartBStatus) {
     if (!user || partBBusy) return;
@@ -76,7 +77,7 @@ export default function InterviewPage() {
     finally { setPartBBusy(false); }
   }
 
-  if (guard !== "allowed" || !access) {
+  if (authLoading || access === null || partB === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F5FAF9" }}>
         <span className="w-8 h-8 border-[3px] border-[#C3E5DE] border-t-[#0B6E65] rounded-full animate-spin" />
@@ -84,32 +85,18 @@ export default function InterviewPage() {
     );
   }
 
-  // สมาชิกเท่านั้น — คนไม่มีคอร์สเลยไม่ได้สอบข้อเขียนกับเรา ไม่มีอะไรให้ซ้อม
-  if (!access.hasAny && !access.hasDcd) {
-    return (
-      <div className="min-h-screen bg-stone-50 font-sans pb-28">
-        <div className="max-w-lg mx-auto px-5 pt-12 text-center">
-          <p className="text-[40px] mb-3">🔒</p>
-          <p className="text-[17px] font-bold text-gray-900 mb-2">เมนูนี้สำหรับสมาชิกคอร์ส</p>
-          <p className="text-[13.5px] text-gray-500 leading-relaxed mb-6">
-            เตรียมสอบภาค ค. เปิดให้ผู้ที่เรียนคอร์สกับพี่อ้อมและสอบข้อเขียนเสร็จแล้ว
-          </p>
-          <Link href="/?pick=1"
-            className="inline-block px-6 py-3 rounded-2xl text-[14.5px] font-bold text-white"
-            style={{ backgroundColor: BRAND.primary }}>
-            ดูคอร์สทั้งหมด
-          </Link>
-        </div>
-        <BottomNav />
-      </div>
-    );
-  }
+  const isMember = access !== "guest" && (access.hasAny || access.hasDcd);
+  const field: ExamFieldKey = isMember ? effectiveField(access as UserAccess) : guestField;
 
-  const field = effectiveField(access);
+  const ctx: TabCtx = {
+    field,
+    isMember,
+    clips,
+    getToken: async () => (user ? await user.getIdToken() : null),
+  };
 
-  // ── ประตูแจ้งผลภาค ข (คร. เท่านั้น ตั้งแต่วันประกาศ 5 ต.ค.) ──
-  // ยังไม่เคยตอบ → ถามก่อน 1 จอ ตอบอะไรก็เข้าเมนูได้ทันที ("ยังไม่ได้เช็ค" ก็ได้)
-  if (field === "dcd" && dcdResultAnnounced() && partB === null) {
+  // ── ประตูแจ้งผลภาค ข (สมาชิก คร. เท่านั้น ตั้งแต่วันประกาศ) ──
+  if (isMember && field === "dcd" && dcdResultAnnounced() && partB === null) {
     return (
       <div className="min-h-screen bg-stone-50 font-sans pb-28">
         <div className="max-w-lg mx-auto px-5 pt-12">
@@ -170,13 +157,28 @@ export default function InterviewPage() {
             style={{ backgroundColor: "rgba(255,255,255,0.18)", color: "white" }}>
             {FIELD_SHORT[field]} · ภาค ค.
           </span>
-          <h1 className="text-[22px] font-bold text-white leading-tight">เตรียมสอบสัมภาษณ์</h1>
+          <h1 className="text-[22px] font-bold text-white leading-tight">ภาค ค สัมภาษณ์</h1>
           <p className="text-[13px] mt-1 leading-relaxed" style={{ color: "rgba(255,255,255,0.78)" }}>
-            สอบข้อเขียนผ่านไปแล้ว — ช่วงรอประกาศผลคือเวลาทองของการซ้อม
+            ซ้อมกับกรรมการอวตาร์เหมือนนั่งอยู่หน้าห้องจริง —
             คนที่ซ้อมมาก่อนจะนิ่งกว่าหน้ากรรมการเสมอ
           </p>
         </div>
       </section>
+
+      {/* ── แถบโหมดทดลองฟรี ── */}
+      {!isMember && (
+        <div className="max-w-lg mx-auto px-5 pt-3">
+          <div className="rounded-xl px-3.5 py-2.5 text-[12.5px] leading-relaxed"
+            style={{ backgroundColor: "#FFFBEB", border: "1px solid #FCD34D", color: "#92400E" }}>
+            🎁 <b>โหมดทดลองฟรี</b> — ดูคลังคำถามได้ทั้งหมด และลองซ้อมข้อที่มีป้าย 🎁 ได้เลย
+            {!user && (
+              <>
+                {" "}· มีคอร์สอยู่แล้ว? <a href="/login" className="underline font-semibold">เข้าสู่ระบบ</a>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── แท็บ ── */}
       <div className="max-w-lg mx-auto px-5 pt-4">
@@ -192,9 +194,16 @@ export default function InterviewPage() {
           ))}
         </div>
 
-        {tab === "bank"     && <QuestionBank field={field} />}
-        {tab === "practice" && <PracticeMode field={field} />}
-        {tab === "check"    && <Checklist field={field} />}
+        {tab === "bank"     && <QuestionBank ctx={ctx} />}
+        {tab === "practice" && <PracticeMode ctx={ctx} />}
+        {tab === "check"    && (
+          isMember
+            ? <Checklist field={field} />
+            : <div className="space-y-4">
+                <Checklist field={field} />
+                <JoinCta field={field} />
+              </div>
+        )}
       </div>
 
       <BottomNav />

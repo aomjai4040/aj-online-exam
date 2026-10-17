@@ -13,6 +13,7 @@
 import "server-only";
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { existsSync, readFileSync } from "fs";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
@@ -33,6 +34,14 @@ function getAdminApp(): App {
 
 export function adminDb() {
   return getFirestore(getAdminApp());
+}
+
+/** bucket เก็บคลิปอวตาร์/สื่อ — สร้าง 2026-10-17 ไม่มี lifecycle ลบอัตโนมัติ
+ *  (ห้ามใช้ aj-online-exam-backups เก็บสื่อ — bucket นั้นลบเองทุก 30 วัน) */
+export const MEDIA_BUCKET = "aj-online-exam-media";
+
+export function adminMediaBucket() {
+  return getStorage(getAdminApp()).bucket(MEDIA_BUCKET);
 }
 
 /** access token ของ service account (scope cloud-platform) — ใช้เรียก Google REST API

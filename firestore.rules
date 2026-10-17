@@ -161,6 +161,14 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── คลิปอวตาร์เมนูภาค ค. (2026-10-17) ───────────────────────────────────
+    // เมทาดาทาอ่านสาธารณะ (หน้า /interview เปิดให้คนยังไม่ login ดูคลังแบบล็อกได้)
+    // มีแค่ path/ธง — ตัวคลิปจริงต้องขอ signed URL ผ่าน API ที่ตรวจสิทธิ์เสมอ
+    match /interviewClips/{code} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
     // ตัวนับผู้เข้าใช้เมนูติวภาค ค. (/interview) — เขียนได้เฉพาะ doc ของตัวเอง
     // อ่านรวมเป็นสถิติผ่าน /api/admin/insights (Admin SDK) — client อ่านได้แค่ของตัวเอง
     match /interviewUsage/{userId} {

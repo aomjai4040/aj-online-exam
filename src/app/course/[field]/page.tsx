@@ -82,7 +82,7 @@ function menuFor(field: ExamFieldKey, extra: { driveUrl: string | null; openLine
   if (field === "moph") {
     return [
       // สนามติวจบแล้ว รอเรียกสัมภาษณ์ — เมนูภาค ค. ขึ้นก่อนเพื่อน (คร. ค่อยเปิดหลังสอบข้อเขียน)
-      { title: "เตรียมภาค ค.", desc: "ซ้อมสัมภาษณ์ · เช็คลิสต์วันจริง", href: "/interview", badge: "ใหม่", icon: ICONS.mic },
+      { title: "ภาค ค สัมภาษณ์", desc: "ซ้อมกับกรรมการอวตาร์ · เช็คลิสต์", href: "/interview", badge: "ใหม่", icon: ICONS.mic },
       { title: "ติวโค้งสุดท้าย", desc: "จบแคมป์แล้ว · ดูคลิป/ชีทย้อนหลัง", href: "/final-review", icon: ICONS.flame },
       game, video, mock, review, me,
       { title: "Checklist วิดีโอ", desc: "ติดตามวิดีโอที่ดู", href: "https://jade-fenglisu-32fb47.netlify.app", external: true, icon: ICONS.check },
@@ -96,7 +96,7 @@ function menuFor(field: ExamFieldKey, extra: { driveUrl: string | null; openLine
   // App Only คร. (Aj 2026-08-27): สองการ์ดนั้นแทนด้วยปุ่มอัปเกรดจ่ายส่วนต่าง
   // สอบข้อเขียนจบแล้ว → เมนูภาค ค. ขึ้นก่อนเพื่อน (Aj เปิด 2026-09-27)
   const dcdInterview = {
-    title: "เตรียมภาค ค.", desc: "ซ้อมสัมภาษณ์ 14–20 ต.ค. · คลังคำถาม คร.",
+    title: "ภาค ค สัมภาษณ์", desc: "ซ้อมสัมภาษณ์ · คลังคำถาม คร.",
     href: "/interview", badge: "ใหม่", icon: ICONS.mic,
   };
   if (!extra.dcdFull) {
@@ -389,7 +389,8 @@ export default function CoursePage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <p className="font-bold text-[15px] text-gray-900 leading-tight truncate">{item.title}</p>
+                    {/* ชื่อการ์ดห้ามโดนตัด (handoff 2.7) — ยอมขึ้น 2 บรรทัดแทน truncate */}
+                    <p className="font-bold text-[15px] text-gray-900 leading-tight">{item.title}</p>
                     {item.badge && (
                       <span className="text-[10px] font-bold px-1.5 py-[2px] rounded-full flex-shrink-0"
                         style={{ backgroundColor: "#FDF6E9", color: "#B45309" }}>
