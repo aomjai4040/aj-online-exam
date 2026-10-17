@@ -33,7 +33,8 @@ export default function InterviewPage() {
   const [urlField, setUrlField] = useState<ExamFieldKey | null>(null);
   // คนที่ซ้อมได้สองสนาม (แพ็กคู่ / มีทั้งสองคอร์ส) กดสลับสนามเองได้
   const [fieldChoice, setFieldChoice] = useState<ExamFieldKey | null>(null);
-  const [tab, setTab] = useState<Tab>("bank");
+  // เปิดหน้าเจอเช็คลิสต์ก่อน (Aj 2026-10-18: ลำดับ เช็คลิสต์ → ซ้อมตอบ → คลังคำถาม)
+  const [tab, setTab] = useState<Tab>("check");
   // ผลภาค ข (Aj 2026-10-17): น้องในคอร์สทุกสนามต้องตอบ ผ่าน/ไม่ผ่าน/ไม่ได้ไปสอบ ก่อนเข้าเมนู
   const [partBByKey, setPartBByKey] = useState<Record<string, PartBStatus | null> | undefined>(undefined);
   const [partBBusy, setPartBBusy] = useState(false);
@@ -162,9 +163,9 @@ export default function InterviewPage() {
   }
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: "bank",     label: "คลังคำถาม" },
-    { key: "practice", label: "ซ้อมตอบ" },
     { key: "check",    label: "เช็คลิสต์" },
+    { key: "practice", label: "ซ้อมตอบ" },
+    { key: "bank",     label: "คลังคำถาม" },
   ];
 
   return (
@@ -234,7 +235,7 @@ export default function InterviewPage() {
         {tab === "bank"     && <QuestionBank ctx={ctx} />}
         {tab === "practice" && (
           <PracticeMode ctx={ctx}
-            onExit={() => { setTab("bank"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+            onExit={() => { setTab("check"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
         )}
         {tab === "check"    && (
           isMember
