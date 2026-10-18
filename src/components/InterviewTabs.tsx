@@ -863,8 +863,16 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
           </div>
         )}
 
-        {/* guest ใช้สิทธิ์ทดลองแล้ว → ชวนสมัคร */}
-        {!isMember && simTrialUsed && <JoinCta field={field} />}
+        {/* guest ใช้สิทธิ์ทดลองแล้ว → บอกให้ชัดว่ารอบฟรีถูกใช้ไป แล้วชวนสมัคร */}
+        {!isMember && simTrialUsed && (
+          <>
+            <div className="rounded-xl px-3.5 py-2.5 text-[12.5px] leading-relaxed text-center"
+              style={{ backgroundColor: "#F5FAF9", border: "1px solid #E7F0EE", color: "#6B7280" }}>
+              เครื่องนี้ใช้สิทธิ์ซ้อมทดลองฟรี 1 รอบไปแล้วค่ะ — สมัครแล้วกลับมาซ้อมต่อได้ทันที
+            </div>
+            <JoinCta field={field} />
+          </>
+        )}
 
         {/* ห้องกดดัน — เฉพาะสมาชิก (Aj 2026-10-17: กรรมการจริงจี้เพื่อวัดการคุมอารมณ์) */}
         {isMember && (
