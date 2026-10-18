@@ -44,11 +44,14 @@ export async function GET(req: NextRequest) {
   const doc = await adminDb().collection("interviewClips").doc(code).get();
   if (!doc.exists) return NextResponse.json({ error: "no-clip" }, { status: 404 });
   const clip = doc.data()!;
+  // คลิปติวก่อนซ้อม (SPS-T/DCD-T) เป็นของสมาชิกเสมอ —
+  // ต่อให้เผลอติ๊กฟรีที่หน้า admin ก็ไม่หลุดถึง guest (Aj 2026-10-18)
+  const isTutorClip = /^[A-Z]{3}-T-/.test(code);
   if (clip.status === "draft") {
     // draft เล่นได้เฉพาะ admin (ไว้พรีวิวก่อนเผยแพร่)
     const user = await verifyBearer(req.headers.get("authorization"));
     if (!user || !isAdmin(user.email)) return NextResponse.json({ error: "no-clip" }, { status: 404 });
-  } else if (clip.isFreePreview !== true) {
+  } else if (clip.isFreePreview !== true || isTutorClip) {
     const user = await verifyBearer(req.headers.get("authorization"));
     if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     if (!isAdmin(user.email) && !(await isMember(user.uid))) {

@@ -301,13 +301,16 @@ export default function AdminInterviewClipsPage() {
                                 : { backgroundColor: "#EBF5F3", color: "#0B6E65", border: "1px solid #C3E5DE" }}>
                               {openCode === r.code ? "ปิด" : "▶ ฟัง"}
                             </button>
-                            <button onClick={() => toggleFree(r.code)}
-                              className="text-[11px] font-semibold px-2 py-1 rounded-lg"
-                              style={c.isFreePreview
-                                ? { backgroundColor: "#F0FDF4", color: "#15803D", border: "1px solid #86EFAC" }
-                                : { backgroundColor: "#F5F5F3", color: "#A8A8A6", border: "1px solid #E0DFDC" }}>
-                              {c.isFreePreview ? "🎁 ฟรี" : "ล็อก"}
-                            </button>
+                            {/* คลิปติว (T) เป็นของสมาชิกเสมอ — ไม่มีปุ่มเปิดฟรี */}
+                            {!/-T-/.test(r.code) && (
+                              <button onClick={() => toggleFree(r.code)}
+                                className="text-[11px] font-semibold px-2 py-1 rounded-lg"
+                                style={c.isFreePreview
+                                  ? { backgroundColor: "#F0FDF4", color: "#15803D", border: "1px solid #86EFAC" }
+                                  : { backgroundColor: "#F5F5F3", color: "#A8A8A6", border: "1px solid #E0DFDC" }}>
+                                {c.isFreePreview ? "🎁 ฟรี" : "ล็อก"}
+                              </button>
+                            )}
                             <button onClick={() => toggleStatus(r.code)}
                               className="text-[11px] font-semibold px-2 py-1 rounded-lg"
                               style={{ backgroundColor: "#F5F5F3", color: "#6B7280", border: "1px solid #E0DFDC" }}>
