@@ -212,18 +212,32 @@ export default function CoursePage() {
                 </Link>
               )}
               {locked !== "guest" && field === "dcd" && !locked.hasPartCDcd && locked.hasPartCMoph && (
-                <Link href="/interview?field=moph"
-                  className="block w-full text-center py-3 rounded-2xl text-[13.5px] font-semibold mb-3"
-                  style={{ border: "1.5px solid #7C3AED", color: "#7C3AED" }}>
-                  🎤 แพ็กซ้อมภาค ค ที่คุณมีเป็นของสนาม สป.สธ. — เข้าห้องซ้อมที่นี่
-                </Link>
+                <>
+                  <Link href="/checkout/partc-up"
+                    className="block w-full text-center py-3 rounded-2xl text-[14px] font-bold text-white mb-2"
+                    style={{ backgroundColor: "#7C3AED" }}>
+                    ➕ เพิ่มห้องซ้อมภาค ค สนาม คร. — จ่ายเพิ่มแค่ ฿{PRICING.partc.upPrice}
+                  </Link>
+                  <Link href="/interview?field=moph"
+                    className="block w-full text-center py-3 rounded-2xl text-[13.5px] font-semibold mb-3"
+                    style={{ border: "1.5px solid #7C3AED", color: "#7C3AED" }}>
+                    🎤 แพ็กซ้อมภาค ค ที่คุณมีเป็นของสนาม สป.สธ. — เข้าห้องซ้อมที่นี่
+                  </Link>
+                </>
               )}
               {locked !== "guest" && field === "moph" && !locked.hasPartCMoph && locked.hasPartCDcd && (
-                <Link href="/interview?field=dcd"
-                  className="block w-full text-center py-3 rounded-2xl text-[13.5px] font-semibold mb-3"
-                  style={{ border: "1.5px solid #7C3AED", color: "#7C3AED" }}>
-                  🎤 แพ็กซ้อมภาค ค ที่คุณมีเป็นของสนาม คร. — เข้าห้องซ้อมที่นี่
-                </Link>
+                <>
+                  <Link href="/checkout/partc-up"
+                    className="block w-full text-center py-3 rounded-2xl text-[14px] font-bold text-white mb-2"
+                    style={{ backgroundColor: "#7C3AED" }}>
+                    ➕ เพิ่มห้องซ้อมภาค ค สนาม สป.สธ. — จ่ายเพิ่มแค่ ฿{PRICING.partc.upPrice}
+                  </Link>
+                  <Link href="/interview?field=dcd"
+                    className="block w-full text-center py-3 rounded-2xl text-[13.5px] font-semibold mb-3"
+                    style={{ border: "1.5px solid #7C3AED", color: "#7C3AED" }}>
+                    🎤 แพ็กซ้อมภาค ค ที่คุณมีเป็นของสนาม คร. — เข้าห้องซ้อมที่นี่
+                  </Link>
+                </>
               )}
               {field === "local" && meta.status === "open" ? (
                 // อปท. ขายผ่านโค้ด Activate ทางแชท (Aj 2026-10-04) — ยังไม่มี checkout

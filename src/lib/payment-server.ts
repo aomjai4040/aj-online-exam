@@ -12,7 +12,7 @@ import QRCode from "qrcode";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb, adminAccessToken } from "./firebase-admin";
 import { tierPlan, type OrderTier } from "./order-types";
-import { dcdUpgradePrice } from "./pricing";
+import { PRICING, dcdUpgradePrice } from "./pricing";
 import { normalizeCode } from "./discount-types";
 
 /** bucket เก็บรูปสลิปที่ตรวจไม่ผ่าน (ใช้ bucket backup เดิม — lifecycle ลบเอง 30 วัน) */
@@ -101,7 +101,7 @@ export async function alreadyOwns(uid: string, tier: OrderTier): Promise<boolean
   // ซ้อมภาค ค: คอร์สหลักของสนามนั้นได้เมนูนี้ฟรีอยู่แล้ว = ถือว่ามีสิทธิ์
   if (tier === "partc-moph") return acc.hasPartCMoph || acc.hasAny;
   if (tier === "partc-dcd")  return acc.hasPartCDcd  || acc.hasDcd;
-  if (tier === "partc-duo")
+  if (tier === "partc-duo" || tier === "partc-up")
     return (acc.hasPartCMoph || acc.hasAny) && (acc.hasPartCDcd || acc.hasDcd);
   return false;
 }
@@ -115,26 +115,43 @@ export async function createOrder(
 
   // เมนูซ้อมภาค ค แยกขาย (Aj 2026-10-17) — ไม่ติดเงื่อนไขของคอร์สหลัก
   // กติกา: คอร์สหลักของสนามไหน ได้เมนูซ้อมของสนามนั้นฟรีอยู่แล้ว → ห้ามให้จ่ายซ้ำ
-  if (tier === "partc-moph" || tier === "partc-dcd" || tier === "partc-duo") {
+  if (tier === "partc-moph" || tier === "partc-dcd" || tier === "partc-duo"
+    || tier === "partc-up") {
     const canMoph = acc.hasPartCMoph || acc.hasAny; // ซ้อมภาค ค สป.สธ. ได้อยู่แล้ว
     const canDcd  = acc.hasPartCDcd  || acc.hasDcd; // ซ้อมภาค ค คร. ได้อยู่แล้ว
+    // "ซื้อแพ็กเดี่ยวมาแล้ว" (จ่ายเงิน 159 จริง) ต่างจาก "ได้ฟรีจากคอร์สหลัก" —
+    // ส่วนต่าง 40 บาทให้เฉพาะคนที่จ่ายแพ็กเดี่ยวมาก่อน (Aj 2026-10-18)
+    const boughtOne = (acc.hasPartCMoph || acc.hasPartCDcd)
+      && !(acc.hasPartCMoph && acc.hasPartCDcd);
     if (tier === "partc-moph") {
       if (acc.hasAny) throw new CheckoutError(
         "บัญชีนี้มีคอร์สสนาม สป.สธ. อยู่แล้ว — เมนูซ้อมภาค ค ใช้ได้ฟรีเลยค่ะ ไม่ต้องซื้อเพิ่ม");
       if (acc.hasPartCMoph) throw new CheckoutError("บัญชีนี้ปลดล็อกซ้อมภาค ค สป.สธ. แล้วค่ะ");
+      if (acc.hasPartCDcd) throw new CheckoutError(
+        `บัญชีนี้มีแพ็กซ้อม คร. อยู่แล้ว — อัปเป็นแพ็กคู่จ่ายเพิ่มแค่ ${PRICING.partc.upPrice} บาทพอค่ะ`);
     }
     if (tier === "partc-dcd") {
       if (acc.hasDcd) throw new CheckoutError(
         "บัญชีนี้มีคอร์สสนาม คร. อยู่แล้ว — เมนูซ้อมภาค ค ใช้ได้ฟรีเลยค่ะ ไม่ต้องซื้อเพิ่ม");
       if (acc.hasPartCDcd) throw new CheckoutError("บัญชีนี้ปลดล็อกซ้อมภาค ค คร. แล้วค่ะ");
+      if (acc.hasPartCMoph) throw new CheckoutError(
+        `บัญชีนี้มีแพ็กซ้อม สป.สธ. อยู่แล้ว — อัปเป็นแพ็กคู่จ่ายเพิ่มแค่ ${PRICING.partc.upPrice} บาทพอค่ะ`);
     }
     if (tier === "partc-duo") {
       if (canMoph && canDcd)
         throw new CheckoutError("บัญชีนี้ซ้อมภาค ค ได้ทั้งสองสนามอยู่แล้วค่ะ ไม่ต้องซื้อเพิ่ม");
+      if (boughtOne) throw new CheckoutError(
+        `มีแพ็กซ้อมสนามเดียวอยู่แล้ว — อัปเป็นแพ็กคู่จ่ายเพิ่มแค่ ${PRICING.partc.upPrice} บาทพอค่ะ`);
       if (canMoph) throw new CheckoutError(
         "บัญชีนี้ซ้อมภาค ค สป.สธ. ได้อยู่แล้ว — ซื้อเฉพาะสนาม คร. 159 บาทพอค่ะ");
       if (canDcd) throw new CheckoutError(
         "บัญชีนี้ซ้อมภาค ค คร. ได้อยู่แล้ว — ซื้อเฉพาะสนาม สป.สธ. 159 บาทพอค่ะ");
+    }
+    if (tier === "partc-up") {
+      if (canMoph && canDcd)
+        throw new CheckoutError("บัญชีนี้ซ้อมภาค ค ได้ทั้งสองสนามอยู่แล้วค่ะ ไม่ต้องจ่ายเพิ่ม");
+      if (!boughtOne) throw new CheckoutError(
+        "เมนูนี้สำหรับผู้ที่มีแพ็กซ้อมสนามเดียวอยู่แล้ว — เลือกแพ็กเดี่ยว 159 หรือแพ็กคู่ 199 บาทค่ะ");
     }
     const openPartc = await pendingOrder(uid, tier);
     if (openPartc) return openPartc;

@@ -19,7 +19,7 @@ import DriveFilesButton from "@/components/DriveFilesButton";
 type Phase = "loading" | "intake" | "qr" | "verifying" | "success" | "owned" | "error";
 
 const TIERS: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2",
-  "dcd", "dcd-app", "up-dcd", "partc-moph", "partc-dcd", "partc-duo"];
+  "dcd", "dcd-app", "up-dcd", "partc-moph", "partc-dcd", "partc-duo", "partc-up"];
 
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

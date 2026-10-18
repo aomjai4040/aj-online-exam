@@ -15,7 +15,8 @@ export type OrderTier =
   | "up-dcd"     // ส่วนต่างจริง: dcd-app → ติวเข้ม คร. (โปร +200 · หลังโปร +400)
   | "partc-moph" // 159: เมนูซ้อมภาค ค สป.สธ. อย่างเดียว (Aj 2026-10-17)
   | "partc-dcd"  // 159: เมนูซ้อมภาค ค คร. อย่างเดียว
-  | "partc-duo"; // 199: ซ้อมภาค ค ทั้งสองสนาม (ตัวจูงใจคนสอบ 2 สนาม)
+  | "partc-duo"  // 199: ซ้อมภาค ค ทั้งสองสนาม (ตัวจูงใจคนสอบ 2 สนาม)
+  | "partc-up";  // 40: มีแพ็กสนามเดียว → อัปเป็นแพ็กคู่ จ่ายส่วนต่าง (Aj 2026-10-18)
 export type OrderStatus = "pending" | "paid" | "rejected" | "expired";
 
 export interface Order {
@@ -81,6 +82,13 @@ export function tierPlan(tier: OrderTier): { courseId: string; courseName: strin
         courseId:   "partc-duo-69",
         courseName: "ซ้อมสัมภาษณ์ภาค ค แพ็กคู่ สป.สธ. + คร. 2569",
         amount:     PRICING.partc.duoPrice,
+      };
+    case "partc-up":
+      // ได้ courseId แพ็กคู่ → ปลดทั้งสองสนามทันที (สนามเดิมยังอยู่ ไม่ซ้ำซ้อน)
+      return {
+        courseId:   "partc-duo-69",
+        courseName: "อัปเกรดซ้อมภาค ค เป็นแพ็กคู่ (เพิ่มอีกสนาม)",
+        amount:     PRICING.partc.upPrice,
       };
     case "app":
       return { courseId: "app-2026", courseName: "App Only (แอปข้อสอบ) 2569", amount: 299 };

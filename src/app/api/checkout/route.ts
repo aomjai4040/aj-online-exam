@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const VALID: OrderTier[] = ["app", "review", "full", "upgrade", "up-review", "up-full2",
-  "dcd", "dcd-app", "up-dcd", "partc-moph", "partc-dcd", "partc-duo"];
+  "dcd", "dcd-app", "up-dcd", "partc-moph", "partc-dcd", "partc-duo", "partc-up"];
 
 /** สถานะก่อนเข้าหน้าจ่ายเงิน — ถามก่อนเสมอ จะได้ไม่ถามแบบสอบถามคนที่ซื้อไปแล้ว
  *
