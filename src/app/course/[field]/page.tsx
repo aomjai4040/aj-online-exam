@@ -200,6 +200,16 @@ export default function CoursePage() {
                   </p>
                 </div>
               </div>
+              {/* คนซื้อแพ็กซ้อมภาค ค แยก (159/199) — มีของที่ซื้อแล้ว
+                  ให้ทางเข้าชัด ๆ ก่อนปุ่มขายคอร์สหลัก (Aj เจอเคสนี้ 2026-10-18) */}
+              {locked !== "guest" && field !== "local"
+                && (field === "dcd" ? locked.hasPartCDcd : locked.hasPartCMoph) && (
+                <Link href={`/interview?field=${field}`}
+                  className="block w-full text-center py-3.5 rounded-2xl text-[15px] font-bold text-white mb-3 active:scale-[0.98] transition-transform"
+                  style={{ backgroundColor: "#7C3AED" }}>
+                  🎤 เข้าห้องซ้อมภาค ค ที่สมัครไว้
+                </Link>
+              )}
               {field === "local" && meta.status === "open" ? (
                 // อปท. ขายผ่านโค้ด Activate ทางแชท (Aj 2026-10-04) — ยังไม่มี checkout
                 <>
