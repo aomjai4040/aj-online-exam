@@ -11,8 +11,13 @@ import AccessGuardSpinner from "@/components/AccessGuardSpinner";
 // การเช็คสิทธิ์ย้ายไปทำต่อชุดข้อสอบแทน (ดู lib/access.ts)
 
 function resolveAfterLogin(from: string): string {
-  const safePaths = ["/exams", "/dashboard", "/exam/", "/result/", "/activate", "/packages", "/free"];
-  return safePaths.some((p) => from.startsWith(p)) ? from : "/dashboard";
+  // รับทุกเส้นทางภายในเว็บ (ขึ้นต้น "/" เดี่ยว = same-origin เสมอ กัน open redirect)
+  // เดิมเป็น allowlist รายหน้าแล้วลืมเติม /checkout — น้องกดลิงก์ซื้อแพ็กภาค ค
+  // login เสร็จถูกพาไป dashboard เจอแต่แพ็ก 299/499/699 (เคสจริง 2026-10-18)
+  if (from.startsWith("/") && !from.startsWith("//") && !from.startsWith("/login")) {
+    return from;
+  }
+  return "/dashboard";
 }
 
 // ─── Button helpers ───────────────────────────────────────────────────────────
