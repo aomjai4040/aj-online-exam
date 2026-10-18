@@ -477,6 +477,9 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const [variantMeta, setVariantMeta] = useState<{ q: string; answerSeconds?: number } | null>(null);
   // เวลาที่จัดให้ขั้นนี้จริง (เวอร์ชัน v4 ให้ 30 วิ ไม่ใช่ค่ามาตรฐานของขั้น)
   const allotRef = useRef<number>(PRACTICE_CONFIG.answerSeconds);
+  // กันคลิปข้อเก่าที่โหลดช้ามาโผล่ทับข้อใหม่ (กดไวบนเน็ตช้า) —
+  // ทุกครั้งที่เปลี่ยนขั้น เลขนี้ขยับ ผลลัพธ์ fetch รอบเก่าถูกทิ้ง
+  const clipReqRef = useRef(0);
   const pressureCountRef = useRef(0);
   // guest: ทดลองห้องซ้อมจริงฟรี 1 รอบ
   const [simTrialUsed, setSimTrialUsed] = useState(false);
@@ -610,8 +613,10 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const stepSeconds = (s: Step) => (s.kind === "intro" ? CFG.simIntroSeconds : CFG.answerSeconds);
 
   const playClip = useCallback(async (clipCode: string) => {
+    const req = ++clipReqRef.current;
     setClipLoading(true);
     const media = await fetchClipUrl(clipCode, await getToken());
+    if (clipReqRef.current !== req) return; // ข้ามไปขั้นอื่นแล้ว — ทิ้งผลรอบเก่า
     setClipLoading(false);
     if (!media) { setSub("answer"); return; } // โหลดคลิปไม่ได้ → ใช้การ์ดข้อความ ไม่พัง flow
     setClipMedia(media);
@@ -624,8 +629,10 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
 
   /** เล่นคลิปกรรมการจี้ (ห้องกดดัน) — จี้ต่อทันที ไม่มีช่วงตั้งสติ 3 วิ */
   const playJab = useCallback(async (clipCode: string) => {
+    const req = ++clipReqRef.current;
     setClipLoading(true);
     const media = await fetchClipUrl(clipCode, await getToken());
+    if (clipReqRef.current !== req) return; // เปลี่ยนขั้นไปแล้ว — ทิ้งผลรอบเก่า
     setClipLoading(false);
     if (!media) { setSub("pressure"); return; } // โหลดพลาด → จี้ด้วยข้อความ นาฬิกาเริ่มเลย
     setClipMedia(media);
@@ -637,6 +644,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const beginStep = useCallback(async (list: Step[], i: number) => {
     const step = list[i];
     setIdx(i);
+    clipReqRef.current++; // ยกเลิกผลโหลดคลิปของขั้นก่อนที่อาจยังค้างอยู่
     setClipMedia(null);
     setPreCount(null);
     setPressureText("");
