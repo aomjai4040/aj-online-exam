@@ -201,13 +201,28 @@ export default function CoursePage() {
                 </div>
               </div>
               {/* คนซื้อแพ็กซ้อมภาค ค แยก (159/199) — มีของที่ซื้อแล้ว
-                  ให้ทางเข้าชัด ๆ ก่อนปุ่มขายคอร์สหลัก (Aj เจอเคสนี้ 2026-10-18) */}
+                  ให้ทางเข้าชัด ๆ ก่อนปุ่มขายคอร์สหลัก (Aj เจอเคสนี้ 2026-10-18)
+                  ถ้าแพ็กที่มีเป็นของอีกสนาม บอกทางไปให้ด้วย กันหลงว่าของหาย */}
               {locked !== "guest" && field !== "local"
                 && (field === "dcd" ? locked.hasPartCDcd : locked.hasPartCMoph) && (
                 <Link href={`/interview?field=${field}`}
                   className="block w-full text-center py-3.5 rounded-2xl text-[15px] font-bold text-white mb-3 active:scale-[0.98] transition-transform"
                   style={{ backgroundColor: "#7C3AED" }}>
                   🎤 เข้าห้องซ้อมภาค ค ที่สมัครไว้
+                </Link>
+              )}
+              {locked !== "guest" && field === "dcd" && !locked.hasPartCDcd && locked.hasPartCMoph && (
+                <Link href="/interview?field=moph"
+                  className="block w-full text-center py-3 rounded-2xl text-[13.5px] font-semibold mb-3"
+                  style={{ border: "1.5px solid #7C3AED", color: "#7C3AED" }}>
+                  🎤 แพ็กซ้อมภาค ค ที่คุณมีเป็นของสนาม สป.สธ. — เข้าห้องซ้อมที่นี่
+                </Link>
+              )}
+              {locked !== "guest" && field === "moph" && !locked.hasPartCMoph && locked.hasPartCDcd && (
+                <Link href="/interview?field=dcd"
+                  className="block w-full text-center py-3 rounded-2xl text-[13.5px] font-semibold mb-3"
+                  style={{ border: "1.5px solid #7C3AED", color: "#7C3AED" }}>
+                  🎤 แพ็กซ้อมภาค ค ที่คุณมีเป็นของสนาม คร. — เข้าห้องซ้อมที่นี่
                 </Link>
               )}
               {field === "local" && meta.status === "open" ? (
