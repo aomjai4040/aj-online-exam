@@ -271,13 +271,15 @@ export default function AdminInsights() {
                 </div>
                 <div className="text-right">
                   <div className="text-[26px] font-extrabold leading-none" style={{ color: "#7C3AED" }}>
-                    {(data.paid["partc-moph"] ?? 0) + (data.paid["partc-dcd"] ?? 0) + (data.paid["partc-duo"] ?? 0)}
+                    {(data.paid["partc-moph"] ?? 0) + (data.paid["partc-dcd"] ?? 0)
+                      + (data.paid["partc-duo"] ?? 0) + (data.paid["partc-up"] ?? 0)}
                   </div>
                   <div className="text-[11px]" style={{ color: "#A8A8A6" }}>จ่ายแล้วรวม</div>
                   <div className="text-[11px] mt-0.5" style={{ color: "#A8A8A6" }}>
                     สป.สธ.: <b style={{ color: "#0B6E65" }}>{data.paid["partc-moph"] ?? 0}</b>
                     {" · "}คร.: <b style={{ color: "#0B6E65" }}>{data.paid["partc-dcd"] ?? 0}</b>
                     {" · "}คู่: <b style={{ color: "#B45309" }}>{data.paid["partc-duo"] ?? 0}</b>
+                    {" · "}อัป ฿40: <b style={{ color: "#B45309" }}>{data.paid["partc-up"] ?? 0}</b>
                   </div>
                 </div>
               </div>

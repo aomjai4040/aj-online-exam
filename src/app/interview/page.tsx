@@ -12,7 +12,7 @@
  * 3 แท็บ: คลังคำถาม · ซ้อมตอบ · เช็คลิสต์ — เนื้อหาอยู่ src/lib/interview.ts
  */
 import { useEffect, useState } from "react";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, increment, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, type UserAccess } from "@/lib/access";
@@ -80,6 +80,19 @@ export default function InterviewPage() {
 
   /** บันทึกคำตอบประตูภาค ข — รับหลายฟิลด์พร้อมกัน
    *  (เคสตอบ "ไม่ได้ไปสอบ" ก่อนประกาศผล = ข้อเท็จจริง บันทึกเป็นผลจริงด้วยเลย) */
+  // ตัวนับผู้เข้าใช้เมนูภาค ค — /admin/insights อ่านรวมจาก interviewUsage
+  // (ฝั่งเขียนตกหล่นมาตั้งแต่วางแผน 2 ต.ค. ยอดเลยขึ้น 0 ตลอด — เติม 2026-10-18)
+  useEffect(() => {
+    if (!user || access === null || access === "guest") return;
+    setDoc(doc(db, "interviewUsage", user.uid), {
+      email: user.email ?? "",
+      displayName: user.displayName ?? "",
+      isMember: access.hasAny || access.hasDcd || access.hasPartCMoph || access.hasPartCDcd,
+      lastAt: serverTimestamp(),
+      visits: increment(1),
+    }, { merge: true }).catch(() => {});
+  }, [user, access]);
+
   async function savePartB(data: Record<string, string>) {
     if (!user || partBBusy) return;
     setPartBBusy(true);
