@@ -84,37 +84,42 @@ function pickClipVariant(
 // ─── การ์ดชวนสมัคร (จบโหมดทดลองฟรี — handoff 2.6) ────────────────────────────
 
 export function JoinCta({ field }: { field: ExamFieldKey }) {
-  // ขายแพ็กซ้อมภาค ค แยก (Aj 2026-10-17): สนามเดียว 159 · สองสนาม 199
-  // สมาชิกคอร์สหลักไม่เห็นการ์ดนี้อยู่แล้ว (เมนูนี้ใช้ฟรี)
+  // ขายแพ็กซ้อมภาค ค แยก (สนามเดียว 159 · สองสนาม 199) — เขียนเป็นโน้ตจากพี่อ้อม
+  // โทนเดียวกับกล่อง "พี่อ้อมแนะนำ" ไม่ใช่กล่องโปรโมชันจัดกลาง (Aj 2026-10-18)
   const meta = EXAM_FIELDS.find((f) => f.id === field);
   const partcHref = field === "dcd" ? "/checkout/partc-dcd" : "/checkout/partc-moph";
   return (
-    <div className="rounded-2xl px-5 py-5 text-center"
-      style={{ backgroundColor: "#FFFBEB", border: "1.5px solid #FCD34D" }}>
-      <p className="text-[16px] font-bold" style={{ color: "#92400E" }}>
-        ชอบไหมคะ? คลังเต็มมีให้ซ้อมทุกหมวด 🎤
+    <div className="rounded-2xl px-4 py-4"
+      style={{ backgroundColor: "#FFFDF5", border: "1px solid #F3EAD3" }}>
+      <p className="text-[12px] font-bold mb-2" style={{ color: "#92400E" }}>💬 จากพี่อ้อม</p>
+      <p className="text-[13.5px] leading-relaxed text-gray-700 pl-2.5 mb-2"
+        style={{ borderLeft: "2px solid #F3EAD3" }}>
+        ซ้อมรอบแรกเป็นยังไงบ้างคะ ใจเต้นเหมือนนั่งอยู่หน้ากรรมการจริงเลยใช่ไหม
+        ห้องนี้พี่ตั้งใจทำให้เหมือนวันจริงที่สุด เพราะคนที่เคยซ้อมมาก่อนจะนิ่งกว่าเสมอ
       </p>
-      <p className="text-[13px] mt-1 mb-4 leading-relaxed" style={{ color: "#B45309" }}>
-        ปลดล็อกครั้งเดียวซ้อมได้ไม่อั้นทุกข้อ ทั้งคลิปกรรมการอวตาร์
-        แนวทางตอบจากพี่อ้อมทีละข้อ ห้องจำลองสัมภาษณ์ 5 นาที และห้องกดดัน
+      <p className="text-[13.5px] leading-relaxed text-gray-700 pl-2.5 mb-3.5"
+        style={{ borderLeft: "2px solid #F3EAD3" }}>
+        ในเวอร์ชันเต็มพี่เตรียมไว้ให้หมดแล้วนะ คลังคำถามครบทุกหมวดพร้อมแนวตอบที่พี่เขียนเองทีละข้อ
+        คลิปกรรมการถามอีกหลายสิบข้อ ห้องจำลองที่ซ้อมกี่รอบก็ได้
+        แล้วก็ห้องกดดันไว้ฝึกรับมือกรรมการสายจี้โดยเฉพาะ
       </p>
       <a href={partcHref}
-        className="block w-full py-3 rounded-xl text-[14.5px] font-bold text-white active:scale-[0.98] transition-transform"
+        className="block w-full py-3 rounded-xl text-[14.5px] font-bold text-white text-center active:scale-[0.98] transition-transform"
         style={{ backgroundColor: BRAND.primary }}>
-        ปลดล็อกซ้อมภาค ค {meta?.code ?? ""} — 159 บาท
+        สมัครซ้อมภาค ค {meta?.code ?? ""} 159 บาท
       </a>
       <a href="/checkout/partc-duo"
-        className="block w-full py-2.5 mt-2 rounded-xl text-[13.5px] font-bold"
-        style={{ backgroundColor: "white", border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
-        สอบทั้ง สป.สธ. และ คร.? แพ็กคู่ 199 บาท
+        className="block text-center text-[13px] font-semibold mt-2.5 underline"
+        style={{ color: BRAND.primary }}>
+        เตรียมสอบทั้ง สป.สธ. และ คร. เอาแพ็กคู่ 199 บาทคุ้มกว่าค่ะ
       </a>
       <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
-        className="block w-full py-2.5 mt-2 rounded-xl text-[13.5px] font-semibold"
-        style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#07A94D" }}>
-        💬 ทัก LINE ถามพี่อ้อมก่อนได้
+        className="block text-center text-[12.5px] mt-2 underline"
+        style={{ color: "#07A94D" }}>
+        ยังลังเลอยู่ ทักไลน์มาคุยกับพี่อ้อมก่อนได้นะคะ
       </a>
-      <p className="text-[11.5px] mt-3" style={{ color: "#B45309", opacity: 0.75 }}>
-        น้องที่อยู่คอร์สหลักกับพี่อ้อมอยู่แล้ว เมนูนี้ใช้ฟรีเลย แค่เข้าสู่ระบบค่ะ
+      <p className="text-[11.5px] mt-3 text-center" style={{ color: "#A8A8A6" }}>
+        น้องที่เรียนคอร์สหลักกับพี่อ้อมอยู่แล้ว เมนูนี้ใช้ฟรีเลย แค่เข้าสู่ระบบค่ะ
       </p>
     </div>
   );
@@ -242,6 +247,13 @@ export function QuestionBank({ ctx }: { ctx: TabCtx }) {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [showPrinciples, setShowPrinciples] = useState(false);
   const questions = useMemo(() => questionsForField(field), [field]);
+  // guest เห็นเฉพาะข้อ 🎁 ทดลองฟรี — ตัวคำถามทั้งคลัง+แนวตอบ+หลักการตอบ
+  // เป็นของสมาชิก ไม่เปิดให้อ่านก่อนซื้อ (Aj 2026-10-18)
+  const visible = useMemo(() => isMember
+    ? questions
+    : questions.filter((q) => clipVariants(clips, q.code, field, true).length > 0),
+  [isMember, questions, clips, field]);
+  const lockedCount = questions.length - visible.length;
 
   const toggle = (id: string) =>
     setOpenIds((prev) => {
@@ -252,7 +264,8 @@ export function QuestionBank({ ctx }: { ctx: TabCtx }) {
 
   return (
     <div>
-      {/* หลักการตอบ — กล่องเดียวกางได้ */}
+      {/* หลักการตอบ — กล่องเดียวกางได้ (เฉพาะสมาชิก) */}
+      {isMember && (
       <button type="button" onClick={() => setShowPrinciples((v) => !v)}
         className="card-elev w-full px-4 py-3.5 mb-4 text-left active:scale-[0.99]">
         <div className="flex items-center gap-3">
@@ -292,9 +305,10 @@ export function QuestionBank({ ctx }: { ctx: TabCtx }) {
           </div>
         )}
       </button>
+      )}
 
       {INTERVIEW_CATS.map((cat) => {
-        const list = questions.filter((q) => q.cat === cat.key);
+        const list = visible.filter((q) => q.cat === cat.key);
         if (list.length === 0) return null;
         return (
           <section key={cat.key} className="mb-5">
@@ -370,6 +384,18 @@ export function QuestionBank({ ctx }: { ctx: TabCtx }) {
         );
       })}
 
+      {/* guest: บอกว่าคลังเต็มมีอีกเท่าไร โดยไม่เผยตัวคำถาม */}
+      {!isMember && lockedCount > 0 && (
+        <div className="card-elev px-4 py-4 mb-4 text-center">
+          <p className="text-[14.5px] font-bold text-gray-800">
+            🔒 ในคลังเต็มยังมีอีก {lockedCount} ข้อ ครบทุกหมวด
+          </p>
+          <p className="text-[12.5px] mt-1 leading-relaxed" style={{ color: "#A8A8A6" }}>
+            ทุกข้อมีแนวตอบที่พี่อ้อมเขียนให้ อ่านแล้วซ้อมต่อได้ทันที
+            รวมหมวดที่กรรมการยุคนี้ชอบถามอย่าง PDPA และสัมภาษณ์ภาษาอังกฤษด้วยค่ะ
+          </p>
+        </div>
+      )}
       {!isMember && <div className="mt-2 mb-4"><JoinCta field={field} /></div>}
     </div>
   );
@@ -689,8 +715,10 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       const intro = all.find((q) => q.id === "intro-self");
       const stats = loadPracticeStats(field);
       const pickFrom = (n: number, fromPool: InterviewQuestion[]) => {
-        const clipQs = fromPool.filter((q) => clipVariants(clips, q.code, field).length > 0);
-        const textQs = fromPool.filter((q) => clipVariants(clips, q.code, field).length === 0);
+        // guest เล่นได้เฉพาะคลิป 🎁 — รอบทดลองจึงดันข้อที่มีคลิปฟรีมาก่อน
+        // จะได้เจอกรรมการอวตาร์จริงในรอบเดียวที่มี (Aj 2026-10-18)
+        const clipQs = fromPool.filter((q) => clipVariants(clips, q.code, field, !isMember).length > 0);
+        const textQs = fromPool.filter((q) => clipVariants(clips, q.code, field, !isMember).length === 0);
         const out = pickPracticeSet(field, n, stats, clipQs);
         if (out.length < n) out.push(...pickPracticeSet(field, n - out.length, stats, textQs));
         return out;
@@ -763,8 +791,9 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       : allotRef.current - secs;
     setUsed((p) => [...p, timeUsed]);
     if (idx + 1 >= steps.length) {
-      // guest จบรอบจำลองห้อง = ใช้สิทธิ์ทดลองฟรี 1 รอบแล้ว
-      if (!isMember && mode !== "drill") {
+      // guest จบรอบไหนก็ตาม = ใช้สิทธิ์ทดลองฟรี 1 รอบแล้ว เสนอขายเลย
+      // (Aj 2026-10-18: เดิมกดลองซ้ำวนคำถามใหม่ได้เรื่อย ๆ)
+      if (!isMember) {
         try { localStorage.setItem(trialKey(field), "1"); } catch {}
         setSimTrialUsed(true);
       }
@@ -859,8 +888,8 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
           </div>
         )}
 
-        {/* ซ้อมเก็บข้อ */}
-        {(isMember || pool.length > 0) && (
+        {/* ซ้อมเก็บข้อ — guest ที่ใช้สิทธิ์ทดลองไปแล้วไม่เห็นปุ่มเริ่มรอบใหม่ */}
+        {(isMember || (pool.length > 0 && !simTrialUsed)) && (
         <div className="card-elev px-5 py-5">
           <p className="text-[16px] font-bold text-gray-900 mb-1">
             {isMember ? "ซ้อมเก็บข้อ" : "ทดลองซ้อมฟรี"}
@@ -961,11 +990,14 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
               </div>
             </div>
           )}
-          <button type="button" onClick={() => start(mode)}
-            className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98]"
-            style={{ backgroundColor: BRAND.primary }}>
-            {isMember ? "ซ้อมอีกรอบ (สุ่มชุดใหม่)" : "ลองอีกรอบ"}
-          </button>
+          {/* guest ไม่มีปุ่มลองซ้ำ — ทดลองได้ 1 รอบแล้วเจอโน้ตชวนสมัครด้านล่าง (Aj 2026-10-18) */}
+          {isMember && (
+            <button type="button" onClick={() => start(mode)}
+              className="w-full py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98]"
+              style={{ backgroundColor: BRAND.primary }}>
+              ซ้อมอีกรอบ (สุ่มชุดใหม่)
+            </button>
+          )}
           <button type="button"
             onClick={() => { setPhase("idle"); onExit?.(); }}
             className="w-full py-3 mt-2 rounded-2xl text-[14px] font-semibold active:scale-[0.98]"

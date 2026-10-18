@@ -265,7 +265,7 @@ export default function InterviewPage() {
         <div className="max-w-lg mx-auto px-5 pt-3">
           <div className="rounded-xl px-3.5 py-2.5 text-[12.5px] leading-relaxed"
             style={{ backgroundColor: "#FFFBEB", border: "1px solid #FCD34D", color: "#92400E" }}>
-            🎁 <b>โหมดทดลองฟรี</b> — ดูคลังคำถามได้ทั้งหมด และลองซ้อมข้อที่มีป้าย 🎁 ได้เลย
+            🎁 <b>โหมดทดลองฟรี</b> — ลองซ้อมกับกรรมการอวตาร์ได้ฟรี 1 รอบ
             {!user && (
               <>
                 {" "}· มีคอร์สอยู่แล้ว? <a href="/login" className="underline font-semibold">เข้าสู่ระบบ</a>
@@ -298,8 +298,22 @@ export default function InterviewPage() {
           <div className="space-y-4">
             {/* คลิปติวจากพี่อ้อมอยู่บนสุดของหน้าแรก (Aj 2026-10-18) */}
             <TutorClips ctx={ctx} />
-            <Checklist field={field} />
-            {!isMember && <JoinCta field={field} />}
+            {/* เช็คลิสต์เต็มเป็นของสมาชิก — guest เห็นแค่ว่ามีอะไรรออยู่ (Aj 2026-10-18) */}
+            {isMember ? (
+              <Checklist field={field} />
+            ) : (
+              <>
+                <div className="card-elev px-4 py-4">
+                  <p className="text-[15px] font-bold text-gray-900">📋 เช็คลิสต์เตรียมสัมภาษณ์ฉบับพี่อ้อม</p>
+                  <p className="text-[12.5px] mt-1 leading-relaxed" style={{ color: "#A8A8A6" }}>
+                    ไล่ให้ครบตั้งแต่ช่วงรอประกาศ วันประกาศชื่อ ไปจนถึงเช้าวันสัมภาษณ์
+                    ทั้งเอกสาร การแต่งกาย และบทแนะนำตัว ติ๊กแล้วระบบจำให้ —
+                    เปิดให้สมาชิกค่ะ
+                  </p>
+                </div>
+                <JoinCta field={field} />
+              </>
+            )}
           </div>
         )}
       </div>
