@@ -18,7 +18,11 @@ import { useAuth } from "@/lib/auth-context";
 import { getUserAccess, type UserAccess } from "@/lib/access";
 import { getActiveField } from "@/lib/active-field";
 import { FIELD_SHORT, type ExamFieldKey } from "@/lib/exam-fields";
-import { partBAnnounced, partBAnswered, partBKeyOf, type PartBStatus } from "@/lib/interview";
+import {
+  partBAnnounced, partBAnswered, partBKeyOf,
+  partBExpectAnswered, partBExpectKeyOf,
+  type PartBExpect, type PartBStatus,
+} from "@/lib/interview";
 import { loadClips, type InterviewClip } from "@/lib/interview-clips";
 import { BRAND } from "@/lib/subjects";
 import { QuestionBank, PracticeMode, Checklist, JoinCta, TutorClips, type TabCtx } from "@/components/InterviewTabs";
@@ -35,8 +39,9 @@ export default function InterviewPage() {
   const [fieldChoice, setFieldChoice] = useState<ExamFieldKey | null>(null);
   // เปิดหน้าเจอเช็คลิสต์ก่อน (Aj 2026-10-18: ลำดับ เช็คลิสต์ → ซ้อมตอบ → คลังคำถาม)
   const [tab, setTab] = useState<Tab>("check");
-  // ผลภาค ข (Aj 2026-10-17): น้องในคอร์สทุกสนามต้องตอบ ผ่าน/ไม่ผ่าน/ไม่ได้ไปสอบ ก่อนเข้าเมนู
-  const [partBByKey, setPartBByKey] = useState<Record<string, PartBStatus | null> | undefined>(undefined);
+  // ผลภาค ข (Aj 2026-10-17): น้องคอร์สหลักต้องตอบก่อนเข้าเมนู —
+  // สนามที่ผลยังไม่ประกาศ (สป.สธ. — Aj 2026-10-18) ถาม "ความมั่นใจ" แทนผลจริง
+  const [partBByKey, setPartBByKey] = useState<Record<string, string | null> | undefined>(undefined);
   const [partBBusy, setPartBBusy] = useState(false);
 
   // deep link ระบุสนาม: /interview?field=dcd|moph (อ่านเองกัน Suspense ของ useSearchParams)
@@ -64,25 +69,29 @@ export default function InterviewPage() {
         if (cancelled) return;
         const x = d.data() ?? {};
         setPartBByKey({
-          dcdPartB69:  (x.dcdPartB69 as PartBStatus) ?? null,
-          mophPartB69: (x.mophPartB69 as PartBStatus) ?? null,
+          dcdPartB69:        (x.dcdPartB69 as string) ?? null,
+          mophPartB69:       (x.mophPartB69 as string) ?? null,
+          mophPartB69Expect: (x.mophPartB69Expect as string) ?? null,
         });
       })
       .catch(() => { if (!cancelled) setPartBByKey({}); });
     return () => { cancelled = true; };
   }, [user, authLoading]);
 
-  async function savePartB(key: string, v: PartBStatus) {
+  /** บันทึกคำตอบประตูภาค ข — รับหลายฟิลด์พร้อมกัน
+   *  (เคสตอบ "ไม่ได้ไปสอบ" ก่อนประกาศผล = ข้อเท็จจริง บันทึกเป็นผลจริงด้วยเลย) */
+  async function savePartB(data: Record<string, string>) {
     if (!user || partBBusy) return;
     setPartBBusy(true);
     try {
+      const stamps = Object.fromEntries(
+        Object.keys(data).map((k) => [`${k}At`, serverTimestamp()]));
       await setDoc(doc(db, "users", user.uid), {
-        [key]: v,
-        [`${key}At`]: serverTimestamp(),
+        ...data, ...stamps,
         email: user.email ?? "",
         displayName: user.displayName ?? "",
       }, { merge: true });
-      setPartBByKey((p) => ({ ...(p ?? {}), [key]: v }));
+      setPartBByKey((p) => ({ ...(p ?? {}), ...data }));
     } catch {}
     finally { setPartBBusy(false); }
   }
@@ -118,10 +127,58 @@ export default function InterviewPage() {
     getToken: async () => (user ? await user.getIdToken() : null),
   };
 
-  // ── ประตูแจ้งผลภาค ข (เฉพาะน้องคอร์สหลัก — Aj 2026-10-17: ต้องตอบก่อนจึงเข้าได้
-  //    ตัวเลือกมี 3 ทางตามที่ Aj กำหนด ไม่มีทางข้าม เพราะผลประกาศแล้ว) ──
+  // ── ประตูภาค ข (เฉพาะน้องคอร์สหลัก) ──
+  // ผลประกาศแล้ว (คร.) → ถามผลจริง ผ่าน/ไม่ผ่าน/ไม่ได้ไปสอบ
+  // ผลยังไม่ประกาศ (สป.สธ. — Aj 2026-10-18) → ถามความมั่นใจแทน
+  //   ประกาศจริงเมื่อไหร่ (Aj จะยืนยัน ~สิ้น ต.ค.) ค่อยเปิดคำถามผลจริงตามมา
   const partBKey = partBKeyOf(field);
-  const myPartB = partBByKey?.[partBKey] ?? null;
+  const expectKey = partBExpectKeyOf(field);
+  const myPartB = (partBByKey?.[partBKey] ?? null) as PartBStatus | null;
+  const myExpect = (partBByKey?.[expectKey] ?? null) as PartBExpect | null;
+
+  // ความมั่นใจก่อนประกาศผล — คนตอบ "ไม่ได้ไปสอบ" บันทึกเป็นผลจริงเลย ไม่ถูกถามซ้ำ
+  if (isMainMember && !partBAnnounced(field)
+    && !partBAnswered(myPartB) && !partBExpectAnswered(myExpect)) {
+    return (
+      <div className="min-h-screen bg-stone-50 font-sans pb-28">
+        <div className="max-w-lg mx-auto px-5 pt-12">
+          <div className="rounded-2xl px-5 py-6 text-center"
+            style={{ backgroundColor: "#EBF5F3", border: "1.5px solid #C3E5DE" }}>
+            <p className="text-[17px] font-bold" style={{ color: "#0B4F48" }}>
+              📝 สอบภาค ข ({FIELD_SHORT[field]}) เสร็จแล้ว — รอประกาศผลอยู่
+            </p>
+            <p className="text-[13px] mt-1.5 mb-5 leading-relaxed" style={{ color: "#0B6E65" }}>
+              ระหว่างรอผล บอกพี่อ้อมหน่อยว่ารู้สึกยังไงกับรอบนี้ —
+              จะได้วางแผนติวภาค ค. ให้พอดีกับจำนวนคนจริง
+            </p>
+            <div className="space-y-2.5">
+              <button onClick={() => savePartB({ [expectKey]: "likely" })} disabled={partBBusy}
+                className="w-full py-3.5 rounded-xl text-[15px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
+                style={{ backgroundColor: BRAND.primary }}>
+                🤞 คิดว่าน่าจะผ่าน ขอซ้อมรอเลย
+              </button>
+              <button onClick={() => savePartB({ [expectKey]: "unsure" })} disabled={partBBusy}
+                className="w-full py-3 rounded-xl text-[14px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
+                style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
+                ยังไม่มั่นใจเลย ขอซ้อมเผื่อไว้ก่อน
+              </button>
+              <button onClick={() => savePartB({ [expectKey]: "absent", [partBKey]: "absent" })}
+                disabled={partBBusy}
+                className="w-full py-3 rounded-xl text-[14px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
+                style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
+                ไม่ได้ไปสอบรอบนี้
+              </button>
+            </div>
+            <p className="text-[11.5px] mt-3" style={{ color: "#0B6E65", opacity: 0.75 }}>
+              ตอบครั้งเดียวเข้าซ้อมได้ตลอดค่ะ — ผลจริงประกาศเมื่อไหร่ พี่อ้อมจะแวะมาถามอีกครั้งนะ
+            </p>
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
+
   if (isMainMember && partBAnnounced(field) && !partBAnswered(myPartB)) {
     return (
       <div className="min-h-screen bg-stone-50 font-sans pb-28">
@@ -136,17 +193,17 @@ export default function InterviewPage() {
               จะได้วางแผนติวภาค ค. ให้ตรงกับจำนวนคนจริง
             </p>
             <div className="space-y-2.5">
-              <button onClick={() => savePartB(partBKey, "passed")} disabled={partBBusy}
+              <button onClick={() => savePartB({ [partBKey]: "passed" })} disabled={partBBusy}
                 className="w-full py-3.5 rounded-xl text-[15px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
                 style={{ backgroundColor: BRAND.primary }}>
                 🎉 ผ่าน — ได้ไปสัมภาษณ์
               </button>
-              <button onClick={() => savePartB(partBKey, "failed")} disabled={partBBusy}
+              <button onClick={() => savePartB({ [partBKey]: "failed" })} disabled={partBBusy}
                 className="w-full py-3 rounded-xl text-[14px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
                 style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
                 ยังไม่ผ่านรอบนี้
               </button>
-              <button onClick={() => savePartB(partBKey, "absent")} disabled={partBBusy}
+              <button onClick={() => savePartB({ [partBKey]: "absent" })} disabled={partBBusy}
                 className="w-full py-3 rounded-xl text-[14px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
                 style={{ backgroundColor: "white", border: "1px solid #E0DFDC", color: "#6B7280" }}>
                 ไม่ได้ไปสอบรอบนี้

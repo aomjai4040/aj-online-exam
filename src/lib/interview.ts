@@ -19,15 +19,26 @@ import type { ExamFieldKey } from "./exam-fields";
 
 /** วันประกาศผู้มีสิทธิสัมภาษณ์ คร. (ตามประกาศกรม) */
 export const DCD_RESULT_AT = "2026-10-05T00:00:00+07:00";
-/** วันเริ่มถามผลภาค ข ฝั่ง สป.สธ. (Aj เปิดประตู 2026-10-17 — ปรับวันได้ถ้าประกาศเลื่อน) */
-export const MOPH_RESULT_AT = "2026-10-17T00:00:00+07:00";
+/** ผลภาค ข สป.สธ. ยังไม่ประกาศ (Aj แก้ 2026-10-18 — เดิมเข้าใจผิดว่าออก 17 ต.ค.)
+ *  คาดราวสิ้นเดือน ต.ค. — **Aj จะมายืนยันวันจริง** แล้วค่อยแก้เป็นวันนั้น
+ *  ระหว่างนี้ประตูฝั่ง สป.สธ. ถาม "ความมั่นใจ" แทนผลจริง (ดู PartBExpect) */
+export const MOPH_RESULT_AT = "2027-01-01T00:00:00+07:00";
 export const DCD_PARTB_KEY = "dcdPartB69";
 export const MOPH_PARTB_KEY = "mophPartB69";
 export type PartBStatus = "passed" | "failed" | "pending" | "absent";
 
+/** ก่อนผลประกาศ (สป.สธ.): ถามความมั่นใจแทน — คิดว่าน่าจะผ่าน / ไม่มั่นใจ / ไม่ได้ไปสอบ */
+export type PartBExpect = "likely" | "unsure" | "absent";
+
 /** ชื่อฟิลด์ใน users/{uid} ที่เก็บผลภาค ข ของสนามนั้น */
 export function partBKeyOf(field: ExamFieldKey): string {
   return field === "dcd" ? DCD_PARTB_KEY : MOPH_PARTB_KEY;
+}
+
+/** ชื่อฟิลด์เก็บคำตอบความมั่นใจก่อนประกาศผล (แยกจากผลจริง —
+ *  ประกาศแล้วจะได้ถามผลจริงซ้ำได้โดยไม่ทับข้อมูลเดิม) */
+export function partBExpectKeyOf(field: ExamFieldKey): string {
+  return `${partBKeyOf(field)}Expect`;
 }
 
 export function partBAnnounced(field: ExamFieldKey, now: Date = new Date()): boolean {
@@ -36,9 +47,13 @@ export function partBAnnounced(field: ExamFieldKey, now: Date = new Date()): boo
 }
 
 /** ตอบแบบไหนถึงถือว่า "ตอบแล้ว" — Aj 2026-10-17: ต้องเลือก ผ่าน/ไม่ผ่าน/ไม่ได้ไปสอบ
- *  เท่านั้นจึงเข้าเมนูซ้อมได้ (ตัดตัวเลือกขอเข้าก่อนออก — ผลประกาศแล้วทุกสนาม) */
+ *  เท่านั้นจึงเข้าเมนูซ้อมได้ (ตัดตัวเลือกขอเข้าก่อนออก) */
 export function partBAnswered(v: PartBStatus | null | undefined): boolean {
   return v === "passed" || v === "failed" || v === "absent";
+}
+
+export function partBExpectAnswered(v: PartBExpect | null | undefined): boolean {
+  return v === "likely" || v === "unsure" || v === "absent";
 }
 
 export function dcdResultAnnounced(now: Date = new Date()): boolean {

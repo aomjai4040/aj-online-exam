@@ -46,20 +46,32 @@ function DcdPartBPanel({ field }: { field: ExamFieldKey }) {
       try {
         const { collection, getDocs, query, where } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
+        const byId = new Map<string, PartBRow>();
+        const read = (d: { id: string; data: () => Record<string, unknown> },
+          statusField: string) => {
+          const x = d.data();
+          const ts = x[`${statusField}At`] as { toDate?: () => Date } | undefined;
+          byId.set(d.id, {
+            email: String(x.email ?? d.id), name: String(x.displayName ?? ""),
+            status: String(x[statusField]),
+            at: ts?.toDate ? fmt(ts.toDate().toISOString()) : "—",
+          });
+        };
+        // สป.สธ. ผลยังไม่ประกาศ — เก็บ "ความมั่นใจ" (Expect) ก่อน แล้วค่อยทับด้วยผลจริง
+        if (field === "moph") {
+          const exp = await getDocs(query(
+            collection(db, "users"),
+            where(`${key}Expect`, "in", ["likely", "unsure"]),
+          ));
+          exp.docs.forEach((d) => read(d, `${key}Expect`));
+        }
         const snap = await getDocs(query(
           collection(db, "users"),
           where(key, "in", ["passed", "failed", "pending", "absent"]),
         ));
+        snap.docs.forEach((d) => read(d, key)); // ผลจริงชนะคำตอบความมั่นใจ
         if (cancelled) return;
-        setRows(snap.docs.map((d) => {
-          const x = d.data();
-          const ts = x[`${key}At`] as { toDate?: () => Date } | undefined;
-          return {
-            email: String(x.email ?? d.id), name: String(x.displayName ?? ""),
-            status: String(x[key]),
-            at: ts?.toDate ? fmt(ts.toDate().toISOString()) : "—",
-          };
-        }));
+        setRows([...byId.values()]);
       } catch { if (!cancelled) setRows([]); }
     })();
     return () => { cancelled = true; };
@@ -70,8 +82,11 @@ function DcdPartBPanel({ field }: { field: ExamFieldKey }) {
   const failed  = rows.filter((r) => r.status === "failed");
   const pending = rows.filter((r) => r.status === "pending");
   const absent  = rows.filter((r) => r.status === "absent");
+  const likely  = rows.filter((r) => r.status === "likely");
+  const unsure  = rows.filter((r) => r.status === "unsure");
   const LABEL: Record<string, string> = {
     passed: "🎉 ผ่าน", failed: "ไม่ผ่าน", pending: "รอเช็คผล", absent: "ไม่ได้สอบ",
+    likely: "🤞 น่าจะผ่าน", unsure: "ไม่มั่นใจ",
   };
 
   return (
@@ -89,6 +104,11 @@ function DcdPartBPanel({ field }: { field: ExamFieldKey }) {
       </div>
       <div className="grid grid-cols-4 gap-3 mt-3">
         {[
+          // ก่อนประกาศผล (สป.สธ.) น้องตอบเป็นความมั่นใจ — สองช่องแรกคือกลุ่มนั้น
+          ...(field === "moph" ? [
+            { l: "🤞 คิดว่าน่าจะผ่าน", v: likely.length, c: "#0B6E65" },
+            { l: "ไม่มั่นใจ", v: unsure.length, c: "#7C3AED" },
+          ] : []),
           { l: "ผ่าน ได้สัมภาษณ์", v: passed.length, c: "#15803D" },
           { l: "ยังไม่ผ่าน", v: failed.length, c: "#DC2626" },
           { l: "ยังไม่ได้เช็ค/รอผล", v: pending.length, c: "#B45309" },
@@ -107,17 +127,18 @@ function DcdPartBPanel({ field }: { field: ExamFieldKey }) {
       )}
       {open && rows.length > 0 && (
         <div className="mt-3 max-h-72 overflow-y-auto rounded-xl" style={{ border: "1px solid #F3F2F0" }}>
-          {[...passed, ...pending, ...failed, ...absent].map((r, i) => (
+          {[...passed, ...likely, ...unsure, ...pending, ...failed, ...absent].map((r, i) => (
             <div key={`${r.email}-${i}`} className="flex items-center gap-2.5 px-3 py-2 text-[12.5px]"
               style={{ borderTop: i > 0 ? "1px solid #F7F6F4" : "none" }}>
               <span className="flex-1 truncate" style={{ color: "#6B7280" }}>
                 {r.name || r.email}{r.name && <span style={{ color: "#C4C4C0" }}> · {r.email}</span>}
               </span>
               <span className="flex-shrink-0" style={{ color: "#A8A8A6" }}>{r.at}</span>
-              <span className="flex-shrink-0 font-semibold w-16 text-right"
+              <span className="flex-shrink-0 font-semibold w-20 text-right"
                 style={{ color: r.status === "passed" ? "#15803D" : r.status === "failed" ? "#DC2626"
-                  : r.status === "absent" ? "#6B7280" : "#B45309" }}>
-                {LABEL[r.status]}
+                  : r.status === "absent" ? "#6B7280" : r.status === "likely" ? "#0B6E65"
+                  : r.status === "unsure" ? "#7C3AED" : "#B45309" }}>
+                {LABEL[r.status] ?? r.status}
               </span>
             </div>
           ))}
