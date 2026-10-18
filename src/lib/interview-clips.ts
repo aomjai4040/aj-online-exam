@@ -12,6 +12,7 @@ import {
   collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import type { ExamFieldKey } from "./exam-fields";
 
 export type ClipStatus = "draft" | "published";
 
@@ -25,6 +26,9 @@ export interface InterviewClip {
   durationSec?: number;
   isFreePreview: boolean;
   status: ClipStatus;
+  /** จำกัดสนามที่คลิปตัวนี้ขึ้น (Aj 2026-10-18: บางคลิปพูดเจาะจงหน่วยงาน) —
+   *  ไม่ระบุ/ว่าง = ขึ้นทุกสนามตามคำถาม */
+  fields?: ExamFieldKey[];
 }
 
 const COL = "interviewClips";
@@ -43,6 +47,9 @@ export async function loadClips(): Promise<Map<string, InterviewClip>> {
       durationSec: typeof x.durationSec === "number" ? x.durationSec : undefined,
       isFreePreview: x.isFreePreview === true,
       status: x.status === "draft" ? "draft" : "published",
+      fields: Array.isArray(x.fields)
+        ? (x.fields.filter((f: unknown) => f === "moph" || f === "dcd") as ExamFieldKey[])
+        : undefined,
     });
   });
   return map;

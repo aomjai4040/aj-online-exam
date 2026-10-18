@@ -16,8 +16,9 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { QUESTIONS, PRESSURE_CLIPS, TUTOR_CLIPS, catOf } from "@/lib/interview";
 import {
-  loadClips, removeClipDoc, saveClip, type InterviewClip,
+  fetchClipUrl, loadClips, removeClipDoc, saveClip, type InterviewClip,
 } from "@/lib/interview-clips";
+import type { ExamFieldKey } from "@/lib/exam-fields";
 import { BRAND } from "@/lib/subjects";
 
 type UpLog = { name: string; msg: string; ok: boolean | null };
@@ -119,6 +120,33 @@ export default function AdminInterviewClipsPage() {
     }
     setBusy(false);
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  // ── ฟังตรวจคลิปรายข้อ (Aj 2026-10-18: เจอคลิปกับการ์ดคำถามไม่ตรง จากตั้งชื่อไฟล์พลาด) ──
+  const [openCode, setOpenCode] = useState<string | null>(null);
+  const [prevMedia, setPrevMedia] = useState<{ videoUrl: string; posterUrl?: string } | null>(null);
+  const [prevErr, setPrevErr] = useState("");
+
+  async function preview(code: string) {
+    if (openCode === code) { setOpenCode(null); setPrevMedia(null); return; }
+    if (!user) return;
+    setOpenCode(code); setPrevMedia(null); setPrevErr("");
+    const token = await user.getIdToken();
+    const m = await fetchClipUrl(code, token);
+    if (!m) { setPrevErr("เปิดคลิปไม่สำเร็จ ลองใหม่อีกครั้ง"); return; }
+    setPrevMedia(m);
+  }
+
+  /** ติ๊กสนามที่คลิปตัวนี้ขึ้น — ไม่ติ๊กเลยไม่ได้ (อย่างน้อย 1 สนาม) */
+  async function toggleClipField(code: string, f: ExamFieldKey) {
+    const c = clips.get(code);
+    if (!c) return;
+    const cur: ExamFieldKey[] = c.fields && c.fields.length > 0 ? c.fields : ["moph", "dcd"];
+    const next = cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f];
+    if (next.length === 0) return;
+    const updated: InterviewClip = { ...c, fields: next };
+    await saveClip(updated);
+    setClips((p) => new Map(p).set(code, updated));
   }
 
   async function toggleFree(code: string) {
@@ -242,8 +270,11 @@ export default function AdminInterviewClipsPage() {
                 <div key={q.code}>
                   {rows.map((r) => {
                     const c = clips.get(r.code);
+                    const tagFields: ExamFieldKey[] =
+                      c?.fields && c.fields.length > 0 ? c.fields : ["moph", "dcd"];
                     return (
-                      <div key={r.code} className="px-4 py-2.5 flex items-center gap-3">
+                      <div key={r.code}>
+                      <div className="px-4 py-2.5 flex items-center gap-3">
                         <span className={`text-[12px] font-mono font-bold flex-shrink-0 w-20 ${r.isVariant ? "pl-3" : ""}`}
                           style={{ color: c?.videoPath ? "#15803D" : "#A8A8A6" }}>
                           {r.isVariant ? `↳ แบบ ${r.code.slice(-1)}` : r.code}
@@ -254,10 +285,22 @@ export default function AdminInterviewClipsPage() {
                             {c?.durationSec ? <span className="text-gray-400"> · {c.durationSec} วิ</span> : null}
                             {c?.posterPath ? <span className="text-gray-400"> · มีปก</span> : null}
                             {c?.status === "draft" ? <span style={{ color: "#B45309" }}> · ร่าง</span> : null}
+                            {c?.videoPath && c.fields && c.fields.length === 1 ? (
+                              <span style={{ color: "#7C3AED" }}>
+                                {" "}· เฉพาะ {c.fields[0] === "dcd" ? "คร." : "สป.สธ."}
+                              </span>
+                            ) : null}
                           </p>
                         </div>
                         {c?.videoPath ? (
                           <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button onClick={() => preview(r.code)}
+                              className="text-[11px] font-semibold px-2 py-1 rounded-lg"
+                              style={openCode === r.code
+                                ? { backgroundColor: "#0B6E65", color: "white" }
+                                : { backgroundColor: "#EBF5F3", color: "#0B6E65", border: "1px solid #C3E5DE" }}>
+                              {openCode === r.code ? "ปิด" : "▶ ฟัง"}
+                            </button>
                             <button onClick={() => toggleFree(r.code)}
                               className="text-[11px] font-semibold px-2 py-1 rounded-lg"
                               style={c.isFreePreview
@@ -279,6 +322,44 @@ export default function AdminInterviewClipsPage() {
                         ) : (
                           <span className="text-[11px] flex-shrink-0 text-gray-300">ยังไม่มีคลิป</span>
                         )}
+                      </div>
+
+                      {/* ฟังตรวจ + ติ๊กสนาม — กางใต้แถวเมื่อกด ▶ ฟัง */}
+                      {openCode === r.code && (
+                        <div className="px-4 pb-3.5">
+                          {prevErr ? (
+                            <p className="text-[12.5px] py-3 text-center" style={{ color: "#DC2626" }}>{prevErr}</p>
+                          ) : !prevMedia ? (
+                            <p className="text-[12.5px] py-3 text-center" style={{ color: "#A8A8A6" }}>กำลังเปิดคลิป…</p>
+                          ) : (
+                            // eslint-disable-next-line jsx-a11y/media-has-caption
+                            <video controls autoPlay playsInline preload="metadata"
+                              src={prevMedia.videoUrl} poster={prevMedia.posterUrl}
+                              className="w-full max-w-md mx-auto rounded-xl bg-black"
+                              style={{ maxHeight: "50vh" }} />
+                          )}
+                          <p className="text-[12px] text-center mt-2 mb-2" style={{ color: "#A8A8A6" }}>
+                            เทียบกับคำถามด้านบน — ถ้าไม่ตรง ลบคลิปนี้แล้วอัปไฟล์ใหม่ชื่อรหัสที่ถูก
+                          </p>
+                          {/^(SPS|DCD)-C-/.test(r.code) && (
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="text-[12px]" style={{ color: "#6B7280" }}>คลิปนี้ขึ้นสนาม:</span>
+                              {(["moph", "dcd"] as ExamFieldKey[]).map((f) => {
+                                const on = tagFields.includes(f);
+                                return (
+                                  <button key={f} onClick={() => toggleClipField(r.code, f)}
+                                    className="text-[12px] font-bold px-3 py-1 rounded-full"
+                                    style={on
+                                      ? { backgroundColor: "#EBF5F3", color: "#0B6E65", border: "1.5px solid #0B6E65" }
+                                      : { backgroundColor: "#F5F5F3", color: "#A8A8A6", border: "1.5px solid #E0DFDC" }}>
+                                    {on ? "✓ " : ""}{f === "dcd" ? "คร." : "สป.สธ."}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       </div>
                     );
                   })}

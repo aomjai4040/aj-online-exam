@@ -43,13 +43,18 @@ const playableClip = (c?: InterviewClip) =>
 // ตัวสุ่มเลือกให้เอง ไม่ซ้ำแบบที่เพิ่งเจอ · เวอร์ชันที่มีบทพูดต่างจากข้อหลัก
 // ใส่ข้อความ/เวลาตอบไว้ใน CLIP_VARIANT_META (lib/interview.ts)
 
-/** ทุกเวอร์ชันที่เล่นได้ของข้อนี้ (freeOnly = เอาเฉพาะข้อ 🎁 สำหรับ guest) */
+/** คลิปตัวนี้ขึ้นสนามนี้ไหม — ไม่ติด tag = ขึ้นทุกสนามตามคำถาม (Aj 2026-10-18) */
+const clipAllowsField = (c: InterviewClip, field: ExamFieldKey) =>
+  !c.fields || c.fields.length === 0 || c.fields.includes(field);
+
+/** ทุกเวอร์ชันที่เล่นได้ของข้อนี้ในสนามนี้ (freeOnly = เอาเฉพาะข้อ 🎁 สำหรับ guest) */
 function clipVariants(
-  clips: Map<string, InterviewClip>, code: string, freeOnly = false,
+  clips: Map<string, InterviewClip>, code: string, field: ExamFieldKey, freeOnly = false,
 ): InterviewClip[] {
   const out: InterviewClip[] = [];
   const keep = (c?: InterviewClip) => {
-    if (playableClip(c) && (!freeOnly || c!.isFreePreview)) out.push(c!);
+    if (playableClip(c) && clipAllowsField(c!, field)
+      && (!freeOnly || c!.isFreePreview)) out.push(c!);
   };
   keep(clips.get(code));
   for (let i = 2; i <= 9; i++) {
@@ -61,9 +66,9 @@ function clipVariants(
 
 /** สุ่มเวอร์ชันมาเล่น — จำแบบล่าสุดไว้ใน localStorage กันสุ่มซ้ำติดกัน */
 function pickClipVariant(
-  clips: Map<string, InterviewClip>, code: string, freeOnly = false,
+  clips: Map<string, InterviewClip>, code: string, field: ExamFieldKey, freeOnly = false,
 ): InterviewClip | undefined {
-  const vs = clipVariants(clips, code, freeOnly);
+  const vs = clipVariants(clips, code, field, freeOnly);
   if (vs.length === 0) return undefined;
   if (vs.length === 1) return vs[0];
   const key = `interview-clip-last-${code}`;
@@ -302,7 +307,7 @@ export function QuestionBank({ ctx }: { ctx: TabCtx }) {
             <div className="space-y-2">
               {list.map((q) => {
                 const open = openIds.has(q.id);
-                const vs = clipVariants(clips, q.code);
+                const vs = clipVariants(clips, q.code, field);
                 const hasClip = vs.length > 0;
                 const free = vs.some((v) => v.isFreePreview);
                 const locked = !isMember && !free;
@@ -415,13 +420,13 @@ function pickPressurePrompt(cat: InterviewCat | null): string {
 /** จี้ด้วยคลิปอวตาร์ (PRS-P-001..005) ถ้ามีคลิปเผยแพร่และเข้ากับหมวดข้อนั้น —
  *  สุ่มไม่ซ้ำตัวล่าสุด · ไม่มีคลิปที่เข้ากัน (หรือโหลดพลาด) ใช้ข้อความจี้แทน */
 function pickPressureJab(
-  clips: Map<string, InterviewClip>, cat: InterviewCat | null,
+  clips: Map<string, InterviewClip>, field: ExamFieldKey, cat: InterviewCat | null,
 ): { clip?: InterviewClip; text: string } {
   const avail: { clip: InterviewClip; text: string }[] = [];
   PRESSURE_CLIPS.forEach((p, i) => {
     if (!jabFitsCat(i, cat)) return; // คลิปจี้ตัวที่ i ใช้บทเดียวกับคำจี้ตัวที่ i
     // เวอร์ชันสำรองของคลิปจี้ (-v2..-v9) ใช้บทพูดเดียวกับตัวหลัก
-    clipVariants(clips, p.code).forEach((c) =>
+    clipVariants(clips, p.code, field).forEach((c) =>
       avail.push({ clip: c, text: PRESSURE_JABS[i]?.text ?? p.label }));
   });
   if (avail.length === 0) return { text: pickPressurePrompt(cat) };
@@ -561,7 +566,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const pool = useMemo(() => {
     const all = questionsForField(field);
     if (isMember) return all;
-    return all.filter((q) => clipVariants(clips, q.code, true).length > 0);
+    return all.filter((q) => clipVariants(clips, q.code, field, true).length > 0);
   }, [field, isMember, clips]);
 
   useEffect(() => {
@@ -638,7 +643,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     answerUsedRef.current = null;
     // สุ่มเวอร์ชันคลิปของข้อนี้ (ข้อที่อัดหลายแบบ เช่น แนะนำตัว จะไม่เจอแบบเดิมซ้ำ)
     // guest เล่นได้เฉพาะเวอร์ชัน 🎁 — ข้อล็อกเป็นการ์ดข้อความตามเดิม
-    const clip = step.q ? pickClipVariant(clips, step.q.code, !isMember) : undefined;
+    const clip = step.q ? pickClipVariant(clips, step.q.code, field, !isMember) : undefined;
     // เวอร์ชันที่บทพูดต่างจากข้อหลัก: ข้อความใต้คลิป + เวลาตอบ เปลี่ยนตามปากกรรมการ
     const meta = clip ? clipVariantMeta(clip.code) : undefined;
     setVariantMeta(meta ?? null);
@@ -658,8 +663,8 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const pickWithClipsFirst = useCallback((n: number, exclude: string[] = []) => {
     const stats = loadPracticeStats(field);
     const ok = (q: InterviewQuestion) => !exclude.includes(q.id);
-    const clipQs = pool.filter((q) => ok(q) && clipVariants(clips, q.code).length > 0);
-    const textQs = pool.filter((q) => ok(q) && clipVariants(clips, q.code).length === 0);
+    const clipQs = pool.filter((q) => ok(q) && clipVariants(clips, q.code, field).length > 0);
+    const textQs = pool.filter((q) => ok(q) && clipVariants(clips, q.code, field).length === 0);
     const picked = pickPracticeSet(field, n, stats, clipQs);
     if (picked.length < n) {
       picked.push(...pickPracticeSet(field, n - picked.length, stats, textQs));
@@ -676,8 +681,8 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       const intro = all.find((q) => q.id === "intro-self");
       const stats = loadPracticeStats(field);
       const pickFrom = (n: number, fromPool: InterviewQuestion[]) => {
-        const clipQs = fromPool.filter((q) => clipVariants(clips, q.code).length > 0);
-        const textQs = fromPool.filter((q) => clipVariants(clips, q.code).length === 0);
+        const clipQs = fromPool.filter((q) => clipVariants(clips, q.code, field).length > 0);
+        const textQs = fromPool.filter((q) => clipVariants(clips, q.code, field).length === 0);
         const out = pickPracticeSet(field, n, stats, clipQs);
         if (out.length < n) out.push(...pickPracticeSet(field, n - out.length, stats, textQs));
         return out;
@@ -778,7 +783,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
       // มีคลิปจี้อวตาร์ → เล่นคลิปก่อน นาฬิกา 30 วิเริ่มเมื่อกรรมการพูดจบ
       // ยังไม่มีคลิป → การ์ดข้อความจี้ นาฬิกาเริ่มทันทีแบบเดิม
       // คำจี้เลือกเฉพาะตัวที่เข้ากับหมวดข้อที่เพิ่งตอบ (แนะนำตัว/อังกฤษ ไม่โดนจี้เรื่องแผนงาน)
-      const jab = pickPressureJab(clips, step.q?.cat ?? null);
+      const jab = pickPressureJab(clips, field, step.q?.cat ?? null);
       setPressureText(jab.text);
       setSecs(CFG.pressureSeconds);
       if (jab.clip) {
@@ -969,7 +974,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const step = steps[idx];
   const q = step.q;
   const cat = q ? catOf(q.cat) : null;
-  const hasClip = q ? clipVariants(clips, q.code, !isMember).length > 0 : false;
+  const hasClip = q ? clipVariants(clips, q.code, field, !isMember).length > 0 : false;
   const overtime = secs < 0;
   const warning = !overtime && secs <= CFG.warnAtSeconds;
 
