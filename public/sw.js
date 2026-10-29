@@ -2,7 +2,7 @@
 // Version: 1.3.0 — bump ล้างแคชเก่า (เครื่อง Aj ค้างหน้า /course/dcd
 // ก่อนปุ่มแพ็กภาค ค 2026-10-18 — เคสเดียวกับ 2026-09-06)
 
-const CACHE_NAME = "aj-exam-shell-v4";
+const CACHE_NAME = "aj-exam-shell-v5"; // v5: หน้าแรกมีทางเข้าห้องซ้อมภาค ค (แพ็ก 159/199)
 
 // Only cache these static shell assets — never cache API/auth/exam routes
 const PRECACHE_URLS = ["/", "/login"];

@@ -18,7 +18,7 @@ import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/lib/auth-context";
 import { BRAND } from "@/lib/subjects";
 import { PRICING } from "@/lib/pricing";
-import { getUserAccess } from "@/lib/access";
+import { getUserAccess, type UserAccess } from "@/lib/access";
 import { daysToExam, COUNTDOWN_LABEL } from "@/lib/exam-config";
 import ExamFieldGrid from "@/components/ExamFieldGrid";
 import { courseHref, effectiveField, ownedFields } from "@/lib/active-field";
@@ -32,19 +32,30 @@ export default function HomePage() {
   const [userCount, setUserCount] = useState<number | null>(null);
   // true = กำลังเช็คว่าต้องเด้งเข้าคอร์สไหม (กันหน้าขายกะพริบก่อน redirect)
   const [deciding, setDeciding] = useState(true);
+  // ใช้โชว์การ์ด "ห้องซ้อมภาค ค ของฉัน" บนหน้าเลือกคอร์ส (คนซื้อแพ็ก 159/199)
+  const [access, setAccess] = useState<UserAccess | null>(null);
 
   // ── สมาชิก → เข้าคอร์สล่าสุดเลย ──
   useEffect(() => {
     if (authLoading) return;
     const pick = new URLSearchParams(window.location.search).get("pick") === "1";
-    if (!user || pick) { setDeciding(false); return; }
+    if (!user) { setDeciding(false); return; }
     let cancelled = false;
     getUserAccess(user.uid)
       .then((a) => {
         if (cancelled) return;
-        if (ownedFields(a).length > 0) {
-          router.replace(courseHref(effectiveField(a)));
-          return; // คง spinner ไว้จนเปลี่ยนหน้า
+        setAccess(a);
+        if (!pick) {
+          if (ownedFields(a).length > 0) {
+            router.replace(courseHref(effectiveField(a)));
+            return; // คง spinner ไว้จนเปลี่ยนหน้า
+          }
+          // ซื้อแพ็กซ้อมภาค ค อย่างเดียว (ไม่มีคอร์สหลัก) — "คอร์ส" ของเขาคือห้องซ้อม
+          // ไม่งั้นเปิดแอปมาเจอแต่หน้าขาย หาทางเข้าไม่เจอ (เคสน้องเงินสด 2026-10-29)
+          if (a.hasPartCMoph || a.hasPartCDcd) {
+            router.replace("/interview");
+            return;
+          }
         }
         setDeciding(false);
       })
@@ -185,6 +196,43 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── ห้องซ้อมภาค ค ที่ซื้อไว้ (แพ็ก 159/199 ไม่มีคอร์สหลัก — การ์ดสนามข้างล่าง
+          ไม่นับเป็นเจ้าของ จึงต้องมีทางเข้าของตัวเองบนหน้าเลือกคอร์ส) ── */}
+      {access && (access.hasPartCMoph || access.hasPartCDcd) && (
+        <section className="max-w-lg md:max-w-4xl mx-auto px-5 pt-5">
+          <Link href="/interview"
+            className="flex items-center gap-3.5 w-full rounded-2xl px-5 py-4
+                       hover:opacity-95 active:scale-[0.98] transition-all duration-150"
+            style={{
+              background: "linear-gradient(135deg, #8B5CF6 0%, #7C3AED 60%, #6D28D9 100%)",
+              boxShadow: "0 4px 16px -4px rgba(124,58,237,0.45)",
+            }}>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/20">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white"
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+                <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                <path d="M19 10v2a7 7 0 01-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold mb-0.5 text-white/70">ที่สมัครไว้</p>
+              <p className="font-bold text-[18px] text-white leading-tight">
+                ห้องซ้อมภาค ค ของฉัน
+                {access.hasPartCMoph && access.hasPartCDcd
+                  ? " · สป.สธ. + คร."
+                  : access.hasPartCMoph ? " · สป.สธ." : " · คร."}
+              </p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="white"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0 opacity-70">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </Link>
+        </section>
+      )}
 
       {/* ── การ์ดสนาม — มีสิทธิ์ = เข้าหน้าคอร์ส · ยังไม่มี = ไปหน้าสมัคร ── */}
       <ExamFieldGrid />
