@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { FIELD_SHORT, type ExamFieldKey } from "@/lib/exam-fields";
+import { partBAnnounced } from "@/lib/interview";
 
 interface Row {
   uid: string; email: string; activatedAt: string | null;
@@ -103,23 +104,39 @@ function DcdPartBPanel({ field }: { field: ExamFieldKey }) {
         )}
       </div>
       <div className="grid grid-cols-4 gap-3 mt-3">
-        {[
-          // ก่อนประกาศผล (สป.สธ.) น้องตอบเป็นความมั่นใจ — สองช่องแรกคือกลุ่มนั้น
-          ...(field === "moph" ? [
-            { l: "🤞 คิดว่าน่าจะผ่าน", v: likely.length, c: "#0B6E65" },
-            { l: "ไม่มั่นใจ", v: unsure.length, c: "#7C3AED" },
-          ] : []),
-          { l: "ผ่าน ได้สัมภาษณ์", v: passed.length, c: "#15803D" },
-          { l: "ยังไม่ผ่าน", v: failed.length, c: "#DC2626" },
-          { l: "ยังไม่ได้เช็ค/รอผล", v: pending.length, c: "#B45309" },
-          { l: "ไม่ได้ไปสอบ", v: absent.length, c: "#6B7280" },
-        ].map((k) => (
+        {(field === "moph" && partBAnnounced(field)
+          // ประกาศผลแล้ว (30 ต.ค.): ผลจริงขึ้นก่อน · คำตอบความมั่นใจช่วงก่อนประกาศ
+          // รวมเป็น "รอแจ้งผลจริง" (ประตูหน้า /interview จะถามซ้ำเองเมื่อน้องเข้าครั้งถัดไป)
+          ? [
+            { l: "🎉 ผ่าน ได้สัมภาษณ์", v: passed.length, c: "#15803D" },
+            { l: "ยังไม่ผ่าน", v: failed.length, c: "#DC2626" },
+            { l: "ไม่ได้ไปสอบ", v: absent.length, c: "#6B7280" },
+            { l: "รอแจ้งผลจริง", v: likely.length + unsure.length + pending.length, c: "#B45309" },
+          ]
+          : [
+            // ก่อนประกาศผล (สป.สธ.) น้องตอบเป็นความมั่นใจ — สองช่องแรกคือกลุ่มนั้น
+            ...(field === "moph" ? [
+              { l: "🤞 คิดว่าน่าจะผ่าน", v: likely.length, c: "#0B6E65" },
+              { l: "ไม่มั่นใจ", v: unsure.length, c: "#7C3AED" },
+            ] : []),
+            { l: "ผ่าน ได้สัมภาษณ์", v: passed.length, c: "#15803D" },
+            { l: "ยังไม่ผ่าน", v: failed.length, c: "#DC2626" },
+            { l: "ยังไม่ได้เช็ค/รอผล", v: pending.length, c: "#B45309" },
+            { l: "ไม่ได้ไปสอบ", v: absent.length, c: "#6B7280" },
+          ]
+        ).map((k) => (
           <div key={k.l}>
             <div className="text-[22px] font-extrabold leading-none" style={{ color: k.c }}>{k.v}</div>
             <div className="text-[11.5px] font-semibold text-gray-500 mt-0.5">{k.l}</div>
           </div>
         ))}
       </div>
+      {field === "moph" && partBAnnounced(field) && likely.length + unsure.length > 0 && (
+        <p className="text-[12px] mt-2.5 leading-relaxed" style={{ color: "#B45309" }}>
+          รอแจ้งผลจริง = น้องที่ตอบช่วงก่อนประกาศ (น่าจะผ่าน {likely.length} · ไม่มั่นใจ {unsure.length})
+          — ระบบจะถามผลจริงอัตโนมัติตอนน้องเข้าเมนูภาค ค ครั้งถัดไป ตัวเลขฝั่งซ้ายจะทยอยขยับเอง
+        </p>
+      )}
       {rows.length === 0 && (
         <p className="text-[12px] mt-2" style={{ color: "#A8A8A6" }}>
           ยังไม่มีใครแจ้งผล — น้องจะเริ่มแจ้งได้ตั้งแต่วันประกาศ 5 ต.ค.
