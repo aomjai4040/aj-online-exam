@@ -63,9 +63,9 @@ export const EXAM_FIELDS: ExamField[] = [
     blurb: "นักวิชาการสาธารณสุขปฏิบัติการ",
     status: "ended",
     accent: "#7C3AED",
-    // ภาค ข ประกาศ 17 ต.ค. · เรียกเอกสารแล้ว (Aj 2026-10-18)
+    // ผลภาค ข ประกาศแล้ว 30 ต.ค. (Aj ยืนยัน 2026-10-30) — MOPH_RESULT_AT ใน lib/interview.ts
     examDate: "2026-10-30",
-    examLabel: "คาดประกาศผู้มีสิทธิสัมภาษณ์ 30 ต.ค. · สัมภาษณ์ราว 1–2 สัปดาห์หลังประกาศ",
+    examLabel: "ประกาศผู้มีสิทธิสัมภาษณ์แล้ว · สัมภาษณ์ราว 1–2 สัปดาห์หลังประกาศ",
     ownPrefixes: ["app-", "review-", "full-", "moph"],
     hrefOwned: "/course/moph",
     hrefBuy:   "/packages",
