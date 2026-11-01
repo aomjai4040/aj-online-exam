@@ -132,7 +132,7 @@ export function JoinCta({ field }: { field: ExamFieldKey }) {
 export function TutorClips({ ctx }: { ctx: TabCtx }) {
   const { field, isMember, clips, getToken } = ctx;
   const [playingCode, setPlayingCode] = useState<string | null>(null);
-  const [media, setMedia] = useState<{ videoUrl: string; posterUrl?: string } | null>(null);
+  const [media, setMedia] = useState<{ videoUrl: string; posterUrl?: string; docUrl?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -157,7 +157,9 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
         </div>
         <div className="min-w-0">
           <p className="text-[15px] font-bold text-gray-900">คลิปติวจากพี่อ้อม</p>
-          <p className="text-[12px]" style={{ color: "#A8A8A6" }}>ดูก่อนเข้าห้องซ้อม จะตอบเป็นระบบขึ้นเยอะ</p>
+          <p className="text-[12px]" style={{ color: "#A8A8A6" }}>
+            ซีรีส์ติวภาค ค 9 EP พร้อมเอกสารประกอบ — ดูก่อนเข้าห้องซ้อม จะตอบเป็นระบบขึ้นเยอะ
+          </p>
         </div>
       </div>
 
@@ -166,8 +168,8 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
         <div className="rounded-xl px-3.5 py-3 mt-2.5"
           style={{ backgroundColor: "#FFFDF5", border: "1px dashed #E8D9B5" }}>
           <p className="text-[13px] leading-relaxed" style={{ color: "#92400E" }}>
-            พี่อ้อมกำลังอัดคลิปติวชุดนี้อยู่ อัปให้เร็ว ๆ นี้ค่ะ —
-            ระหว่างนี้เปิดแนวทางตอบรายข้อในคลังคำถาม แล้วเข้าห้องซ้อมได้เลย ไม่ต้องรอ
+            พี่อ้อมกำลังทยอยอัดซีรีส์ติว 9 EP อยู่ค่ะ อัปให้เร็ว ๆ นี้ —
+            ระหว่างนี้เข้าห้องซ้อมได้เลย ไม่ต้องรอ
           </p>
         </div>
       ) : (
@@ -201,10 +203,20 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
                   <p className="text-[12px] text-center py-2" style={{ color: "#DC2626" }}>{err}</p>
                 )}
                 {active && media && (
-                  <video controls playsInline autoPlay preload="metadata"
-                    poster={media.posterUrl} src={media.videoUrl}
-                    className="w-full rounded-xl bg-black mt-2"
-                    style={{ maxHeight: "60vh" }} />
+                  <>
+                    <video controls playsInline autoPlay preload="metadata"
+                      poster={media.posterUrl} src={media.videoUrl}
+                      className="w-full rounded-xl bg-black mt-2"
+                      style={{ maxHeight: "60vh" }} />
+                    {/* เอกสารประกอบ EP (คู่มือ — Aj 2026-11-01) โผล่เมื่อ EP นั้นมีไฟล์ .pdf */}
+                    {media.docUrl && (
+                      <a href={media.docUrl} target="_blank" rel="noopener noreferrer"
+                        className="block w-full text-center py-2.5 mt-2 rounded-xl text-[13.5px] font-bold"
+                        style={{ border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
+                        📄 โหลดเอกสารประกอบ EP นี้
+                      </a>
+                    )}
+                  </>
                 )}
               </div>
             );

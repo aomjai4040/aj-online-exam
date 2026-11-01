@@ -53,6 +53,14 @@
         "C:/Users/UNS_CT/Desktop/kpt-fund-kit/build/serve.js"
       ],
       "port": 4173
+    },
+    {
+      "name": "saraban-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "G:/My Drive/Claude Project/saraban-app/preview/serve.js"
+      ],
+      "port": 8765
     }
   ]
 }

@@ -19,7 +19,8 @@ import { isAdmin } from "@/lib/admin-config";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const EXT: Record<string, string> = { video: "mp4", poster: "jpg", captions: "vtt" };
+// doc = เอกสารประกอบ EP คลิปติว (คู่มือ 9 EP — Aj 2026-11-01)
+const EXT: Record<string, string> = { video: "mp4", poster: "jpg", captions: "vtt", doc: "pdf" };
 // รหัสคำถาม + เวอร์ชันคลิป: ข้อเดียวอัดหลายแบบได้ เช่น SPS-C-001-V2 (ไฟล์ -v2)
 // รูปแบบเก่า -2..-9 ยังรับ (Aj 2026-10-18)
 const CODE_RE = /^[A-Z]{3}-[A-Z]-\d{3}(-V?[2-9])?$/;
@@ -64,6 +65,7 @@ export async function GET(req: NextRequest) {
   out.posterUrl = await signedRead(
     clip.posterPath ? String(clip.posterPath) : "interview/poster-default.png");
   if (clip.captionsPath) out.captionsUrl = await signedRead(String(clip.captionsPath));
+  if (clip.docPath) out.docUrl = await signedRead(String(clip.docPath));
   return NextResponse.json(out);
 }
 

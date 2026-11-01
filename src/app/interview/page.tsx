@@ -28,7 +28,7 @@ import { BRAND } from "@/lib/subjects";
 import { QuestionBank, PracticeMode, Checklist, JoinCta, TutorClips, type TabCtx } from "@/components/InterviewTabs";
 import BottomNav from "@/components/BottomNav";
 
-type Tab = "bank" | "practice" | "check";
+type Tab = "tutor" | "check" | "practice" | "bank";
 
 export default function InterviewPage() {
   const { user, loading: authLoading } = useAuth();
@@ -37,8 +37,9 @@ export default function InterviewPage() {
   const [urlField, setUrlField] = useState<ExamFieldKey | null>(null);
   // คนที่ซ้อมได้สองสนาม (แพ็กคู่ / มีทั้งสองคอร์ส) กดสลับสนามเองได้
   const [fieldChoice, setFieldChoice] = useState<ExamFieldKey | null>(null);
-  // เปิดหน้าเจอเช็คลิสต์ก่อน (Aj 2026-10-18: ลำดับ เช็คลิสต์ → ซ้อมตอบ → คลังคำถาม)
-  const [tab, setTab] = useState<Tab>("check");
+  // 4 เมนู (Aj 2026-11-01: แยกคลิปติวออกจากเช็คลิสต์ รับซีรีส์ติว 9 EP)
+  // เปิดหน้าเจอคลิปติวก่อน
+  const [tab, setTab] = useState<Tab>("tutor");
   // ผลภาค ข (Aj 2026-10-17): น้องคอร์สหลักต้องตอบก่อนเข้าเมนู —
   // สนามที่ผลยังไม่ประกาศ (สป.สธ. — Aj 2026-10-18) ถาม "ความมั่นใจ" แทนผลจริง
   const [partBByKey, setPartBByKey] = useState<Record<string, string | null> | undefined>(undefined);
@@ -233,6 +234,7 @@ export default function InterviewPage() {
   }
 
   const TABS: { key: Tab; label: string }[] = [
+    { key: "tutor",    label: "คลิปติว" },
     { key: "check",    label: "เช็คลิสต์" },
     { key: "practice", label: "ซ้อมตอบ" },
     { key: "bank",     label: "คลังคำถาม" },
@@ -305,12 +307,16 @@ export default function InterviewPage() {
         {tab === "bank"     && <QuestionBank ctx={ctx} />}
         {tab === "practice" && (
           <PracticeMode ctx={ctx}
-            onExit={() => { setTab("check"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+            onExit={() => { setTab("tutor"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        )}
+        {tab === "tutor"    && (
+          <div className="space-y-4">
+            <TutorClips ctx={ctx} />
+            {!isMember && <JoinCta field={field} />}
+          </div>
         )}
         {tab === "check"    && (
           <div className="space-y-4">
-            {/* คลิปติวจากพี่อ้อมอยู่บนสุดของหน้าแรก (Aj 2026-10-18) */}
-            <TutorClips ctx={ctx} />
             {/* เช็คลิสต์เต็มเป็นของสมาชิก — guest เห็นแค่ว่ามีอะไรรออยู่ (Aj 2026-10-18) */}
             {isMember ? (
               <Checklist field={field} />

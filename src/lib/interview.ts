@@ -1080,16 +1080,22 @@ export function clipVariantMeta(code: string): { q: string; answerSeconds?: numb
   return CLIP_VARIANT_META[code] ?? CLIP_VARIANT_META[code.replace(/-([2-9])$/, "-V$1")];
 }
 
-/** คลิปติวก่อนซ้อม (Aj 2026-10-18) — พี่อ้อมติวหลักการตอบก่อนเข้าห้องซ้อม
+/** คลิปติวภาค ค (Aj 2026-11-01: วางแผนเป็นซีรีส์ 9 EP มีคู่มือประกอบ)
  *  แยกสนาม · อัปไฟล์ชื่อตามรหัส (เช่น SPS-T-001.mp4) ที่หน้า admin เดิม
- *  ยังไม่มีคลิปเผยแพร่ = การ์ด "กำลังอัด อัปให้เร็ว ๆ นี้" โผล่แทน */
+ *  เอกสารประกอบ EP = ไฟล์ .pdf ชื่อเดียวกัน (SPS-T-001.pdf) ปุ่มโหลดโผล่ใต้คลิปเอง
+ *  ยังไม่มีคลิปเผยแพร่ = การ์ด "กำลังอัด อัปให้เร็ว ๆ นี้" โผล่แทน
+ *  ชื่อตอน: Aj ส่งหัวข้อจริงของแต่ละ EP มาเมื่อไหร่ค่อยแก้ตรงนี้ */
 export const TUTOR_CLIPS: { code: string; field: ExamFieldKey; title: string }[] = [
-  { code: "SPS-T-001", field: "moph", title: "ติวก่อนซ้อม ตอนที่ 1 — หลักการตอบสัมภาษณ์" },
-  { code: "SPS-T-002", field: "moph", title: "ติวก่อนซ้อม ตอนที่ 2" },
-  { code: "SPS-T-003", field: "moph", title: "ติวก่อนซ้อม ตอนที่ 3" },
-  { code: "DCD-T-001", field: "dcd",  title: "ติวก่อนซ้อม ตอนที่ 1 — หลักการตอบสัมภาษณ์ (คร.)" },
-  { code: "DCD-T-002", field: "dcd",  title: "ติวก่อนซ้อม ตอนที่ 2" },
-  { code: "DCD-T-003", field: "dcd",  title: "ติวก่อนซ้อม ตอนที่ 3" },
+  ...Array.from({ length: 9 }, (_, i) => ({
+    code: `SPS-T-${String(i + 1).padStart(3, "0")}`,
+    field: "moph" as ExamFieldKey,
+    title: `EP ${i + 1}`,
+  })),
+  ...Array.from({ length: 9 }, (_, i) => ({
+    code: `DCD-T-${String(i + 1).padStart(3, "0")}`,
+    field: "dcd" as ExamFieldKey,
+    title: `EP ${i + 1}`,
+  })),
 ];
 
 /** เวลาแนะนำต่อ 1 คำตอบในโหมดซ้อม (วินาที) — ชี้ไป config กลาง */

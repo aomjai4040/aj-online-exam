@@ -23,11 +23,12 @@ import { BRAND } from "@/lib/subjects";
 
 type UpLog = { name: string; msg: string; ok: boolean | null };
 
-const KIND_OF_EXT: Record<string, "video" | "poster" | "captions"> = {
+const KIND_OF_EXT: Record<string, "video" | "poster" | "captions" | "doc"> = {
   mp4: "video", jpg: "poster", jpeg: "poster", vtt: "captions",
+  pdf: "doc", // เอกสารประกอบ EP คลิปติว (คู่มือ 9 EP — Aj 2026-11-01)
 };
 const CONTENT_TYPE: Record<string, string> = {
-  video: "video/mp4", poster: "image/jpeg", captions: "text/vtt",
+  video: "video/mp4", poster: "image/jpeg", captions: "text/vtt", doc: "application/pdf",
 };
 
 /** อ่านความยาวคลิป (วินาที) จากไฟล์ในเครื่องก่อนอัปโหลด */
@@ -72,7 +73,7 @@ export default function AdminInterviewClipsPage() {
       const code = m[1].toUpperCase();
       const baseCode = code.replace(/-V?[2-9]$/, "");
       const kind = KIND_OF_EXT[m[2].toLowerCase()];
-      if (!kind) { log(file.name, "รองรับเฉพาะ .mp4 (คลิป) .jpg (ปก) .vtt (ซับ)", false); continue; }
+      if (!kind) { log(file.name, "รองรับเฉพาะ .mp4 (คลิป) .jpg (ปก) .vtt (ซับ) .pdf (เอกสาร EP)", false); continue; }
       // รับรหัสคำถาม (SPS-C/DCD-C) คลิปจี้ (PRS-P) และคลิปติวก่อนซ้อม (SPS-T/DCD-T)
       if (!QUESTIONS.some((q) => q.code === baseCode)
         && !PRESSURE_CLIPS.some((p) => p.code === baseCode)
@@ -102,6 +103,7 @@ export default function AdminInterviewClipsPage() {
           videoPath: kind === "video" ? path : existing?.videoPath ?? "",
           posterPath: kind === "poster" ? path : existing?.posterPath,
           captionsPath: kind === "captions" ? path : existing?.captionsPath,
+          docPath: kind === "doc" ? path : existing?.docPath,
           durationSec,
           isFreePreview: existing?.isFreePreview ?? false,
           status: existing?.status ?? "published",
@@ -224,14 +226,14 @@ export default function AdminInterviewClipsPage() {
       {/* อัปโหลด */}
       <label className="block rounded-2xl px-5 py-6 text-center mb-4 cursor-pointer"
         style={{ border: "2px dashed #C3E5DE", backgroundColor: "#F5FAF9" }}>
-        <input ref={fileRef} type="file" multiple accept=".mp4,.jpg,.jpeg,.vtt"
+        <input ref={fileRef} type="file" multiple accept=".mp4,.jpg,.jpeg,.vtt,.pdf"
           className="hidden" disabled={busy}
           onChange={(e) => handleFiles(e.target.files)} />
         <p className="text-[15px] font-bold" style={{ color: BRAND.primary }}>
           {busy ? "กำลังอัปโหลด…" : "📤 แตะเพื่อเลือกไฟล์คลิป (เลือกหลายไฟล์พร้อมกันได้)"}
         </p>
         <p className="text-[12px] text-gray-400 mt-1">
-          .mp4 = คลิป · .jpg = ภาพปก · .vtt = ซับ — ระบบจับคู่กับคำถามจากชื่อไฟล์อัตโนมัติ
+          .mp4 = คลิป · .jpg = ภาพปก · .vtt = ซับ · .pdf = เอกสารประกอบ EP คลิปติว — ระบบจับคู่จากชื่อไฟล์อัตโนมัติ
         </p>
       </label>
 
@@ -284,6 +286,7 @@ export default function AdminInterviewClipsPage() {
                           <p className="text-[11px]" style={{ color: r.subColor }}>{r.sub}
                             {c?.durationSec ? <span className="text-gray-400"> · {c.durationSec} วิ</span> : null}
                             {c?.posterPath ? <span className="text-gray-400"> · มีปก</span> : null}
+                            {c?.docPath ? <span style={{ color: "#0B6E65" }}> · 📄 มีเอกสาร</span> : null}
                             {c?.status === "draft" ? <span style={{ color: "#B45309" }}> · ร่าง</span> : null}
                             {c?.videoPath && c.fields && c.fields.length === 1 ? (
                               <span style={{ color: "#7C3AED" }}>

@@ -24,6 +24,8 @@ export interface InterviewClip {
   posterPath?: string;
   captionsPath?: string;
   durationSec?: number;
+  /** เอกสารประกอบ EP (คู่มือติว 9 EP — Aj 2026-11-01) เช่น interview/SPS-T-001.pdf */
+  docPath?: string;
   isFreePreview: boolean;
   status: ClipStatus;
   /** จำกัดสนามที่คลิปตัวนี้ขึ้น (Aj 2026-10-18: บางคลิปพูดเจาะจงหน่วยงาน) —
@@ -44,6 +46,7 @@ export async function loadClips(): Promise<Map<string, InterviewClip>> {
       videoPath: String(x.videoPath ?? ""),
       posterPath: x.posterPath ? String(x.posterPath) : undefined,
       captionsPath: x.captionsPath ? String(x.captionsPath) : undefined,
+      docPath: x.docPath ? String(x.docPath) : undefined,
       durationSec: typeof x.durationSec === "number" ? x.durationSec : undefined,
       isFreePreview: x.isFreePreview === true,
       status: x.status === "draft" ? "draft" : "published",
@@ -73,7 +76,7 @@ export async function removeClipDoc(code: string): Promise<void> {
  *  ซึ่งได้เฉพาะข้อ free preview) · คืน null ถ้าไม่มีสิทธิ์/ไม่มีคลิป */
 export async function fetchClipUrl(
   code: string, token?: string | null,
-): Promise<{ videoUrl: string; posterUrl?: string; captionsUrl?: string } | null> {
+): Promise<{ videoUrl: string; posterUrl?: string; captionsUrl?: string; docUrl?: string } | null> {
   try {
     const res = await fetch(`/api/interview/clip?code=${encodeURIComponent(code)}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
