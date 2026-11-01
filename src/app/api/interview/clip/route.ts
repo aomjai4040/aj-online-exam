@@ -60,12 +60,22 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const out: Record<string, string> = { videoUrl: await signedRead(String(clip.videoPath)) };
-  // ไม่มีปกของตัวเอง → ใช้ปกกลาง (รูปกรรมการนิ่งก่อนถาม — Aj อัป 2026-10-17)
-  out.posterUrl = await signedRead(
-    clip.posterPath ? String(clip.posterPath) : "interview/poster-default.png");
+  const out: Record<string, string> = {};
+  if (clip.videoPath) {
+    out.videoUrl = await signedRead(String(clip.videoPath));
+    // ไม่มีปกของตัวเอง → ใช้ปกกลาง (รูปกรรมการนิ่งก่อนถาม — Aj อัป 2026-10-17)
+    out.posterUrl = await signedRead(
+      clip.posterPath ? String(clip.posterPath) : "interview/poster-default.png");
+  }
   if (clip.captionsPath) out.captionsUrl = await signedRead(String(clip.captionsPath));
   if (clip.docPath) out.docUrl = await signedRead(String(clip.docPath));
+  // คลิปติวแบบ YouTube — id เก็บลับแยก collection คืนเฉพาะหลังผ่านด่านสิทธิ์ข้างบน
+  if (clip.hasYt === true) {
+    const secret = await adminDb().collection("interviewClipSecrets").doc(code).get();
+    const ytId = secret.exists ? String(secret.data()?.ytId ?? "") : "";
+    if (ytId) out.ytId = ytId;
+  }
+  if (!out.videoUrl && !out.ytId) return NextResponse.json({ error: "no-clip" }, { status: 404 });
   return NextResponse.json(out);
 }
 
@@ -97,6 +107,25 @@ export async function POST(req: NextRequest) {
       await adminMediaBucket().file(`interview/${code}.${ext}`)
         .delete({ ignoreNotFound: true });
     }
+    // ล้าง YouTube id ลับของข้อนี้ด้วย (ถ้ามี)
+    await adminDb().collection("interviewClipSecrets").doc(code).delete().catch(() => {});
+    return NextResponse.json({ ok: true });
+  }
+
+  // คลิปติวแบบวางลิงก์ YouTube แทนอัปไฟล์ (Aj 2026-11-01: ไฟล์ยาวอัปยาก)
+  // id เก็บใน interviewClipSecrets (client อ่านตรงไม่ได้ — rules ไม่เปิด)
+  // ส่วน doc สาธารณะติดแค่ธง hasYt ให้หน้า list รู้ว่าข้อนี้มีคลิป
+  if (body.action === "set-yt") {
+    const ytId = String(body.ytId ?? "").trim();
+    if (!/^[A-Za-z0-9_-]{11}$/.test(ytId)) {
+      return NextResponse.json({ error: "bad-ytid" }, { status: 400 });
+    }
+    await adminDb().collection("interviewClipSecrets").doc(code).set({ ytId });
+    await adminDb().collection("interviewClips").doc(code).set({
+      hasYt: true,
+      status: "published",
+      isFreePreview: false,
+    }, { merge: true });
     return NextResponse.json({ ok: true });
   }
 

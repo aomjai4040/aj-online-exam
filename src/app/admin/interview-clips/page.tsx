@@ -126,7 +126,7 @@ export default function AdminInterviewClipsPage() {
 
   // ── ฟังตรวจคลิปรายข้อ (Aj 2026-10-18: เจอคลิปกับการ์ดคำถามไม่ตรง จากตั้งชื่อไฟล์พลาด) ──
   const [openCode, setOpenCode] = useState<string | null>(null);
-  const [prevMedia, setPrevMedia] = useState<{ videoUrl: string; posterUrl?: string } | null>(null);
+  const [prevMedia, setPrevMedia] = useState<{ videoUrl?: string; posterUrl?: string; ytId?: string } | null>(null);
   const [prevErr, setPrevErr] = useState("");
 
   async function preview(code: string) {
@@ -137,6 +137,39 @@ export default function AdminInterviewClipsPage() {
     const m = await fetchClipUrl(code, token);
     if (!m) { setPrevErr("เปิดคลิปไม่สำเร็จ ลองใหม่อีกครั้ง"); return; }
     setPrevMedia(m);
+  }
+
+  /** คลิปติวแบบวางลิงก์ YouTube (Aj 2026-11-01: ไฟล์ EP ยาว อัปตรงยาก)
+   *  id เก็บลับฝั่ง server — สมาชิกขอผ่าน API เท่านั้น ไม่โผล่ใน Firestore สาธารณะ */
+  async function setYt(code: string) {
+    if (!user) return;
+    const input = window.prompt(
+      `วางลิงก์ YouTube (unlisted) ของ ${code}\nเช่น https://youtu.be/XXXXXXXXXXX`);
+    if (!input) return;
+    const m = input.trim().match(
+      /^([A-Za-z0-9_-]{11})$|(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);
+    const ytId = m ? (m[1] || m[2]) : null;
+    if (!ytId) { alert("อ่านลิงก์ไม่ออก ลองก๊อปลิงก์จากปุ่มแชร์ของ YouTube อีกครั้งนะคะ"); return; }
+    const token = await user.getIdToken();
+    const res = await fetch("/api/interview/clip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: "set-yt", code, ytId }),
+    });
+    if (!res.ok) { alert("บันทึกลิงก์ไม่สำเร็จ ลองใหม่อีกครั้ง"); return; }
+    const existing = clips.get(code);
+    const next: InterviewClip = {
+      code,
+      videoPath: existing?.videoPath ?? "",
+      posterPath: existing?.posterPath,
+      captionsPath: existing?.captionsPath,
+      docPath: existing?.docPath,
+      durationSec: existing?.durationSec,
+      hasYt: true,
+      isFreePreview: false,
+      status: "published",
+    };
+    setClips((p) => new Map(p).set(code, next));
   }
 
   /** ติ๊กสนามที่คลิปตัวนี้ขึ้น — ไม่ติ๊กเลยไม่ได้ (อย่างน้อย 1 สนาม) */
@@ -278,7 +311,7 @@ export default function AdminInterviewClipsPage() {
                       <div key={r.code}>
                       <div className="px-4 py-2.5 flex items-center gap-3">
                         <span className={`text-[12px] font-mono font-bold flex-shrink-0 w-20 ${r.isVariant ? "pl-3" : ""}`}
-                          style={{ color: c?.videoPath ? "#15803D" : "#A8A8A6" }}>
+                          style={{ color: c?.videoPath || c?.hasYt ? "#15803D" : "#A8A8A6" }}>
                           {r.isVariant ? `↳ แบบ ${r.code.slice(-1)}` : r.code}
                         </span>
                         <div className="flex-1 min-w-0">
@@ -287,6 +320,7 @@ export default function AdminInterviewClipsPage() {
                             {c?.durationSec ? <span className="text-gray-400"> · {c.durationSec} วิ</span> : null}
                             {c?.posterPath ? <span className="text-gray-400"> · มีปก</span> : null}
                             {c?.docPath ? <span style={{ color: "#0B6E65" }}> · 📄 มีเอกสาร</span> : null}
+                            {c?.hasYt ? <span style={{ color: "#DC2626" }}> · 📺 YouTube</span> : null}
                             {c?.status === "draft" ? <span style={{ color: "#B45309" }}> · ร่าง</span> : null}
                             {c?.videoPath && c.fields && c.fields.length === 1 ? (
                               <span style={{ color: "#7C3AED" }}>
@@ -295,7 +329,7 @@ export default function AdminInterviewClipsPage() {
                             ) : null}
                           </p>
                         </div>
-                        {c?.videoPath ? (
+                        {c?.videoPath || c?.hasYt ? (
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             <button onClick={() => preview(r.code)}
                               className="text-[11px] font-semibold px-2 py-1 rounded-lg"
@@ -304,6 +338,14 @@ export default function AdminInterviewClipsPage() {
                                 : { backgroundColor: "#EBF5F3", color: "#0B6E65", border: "1px solid #C3E5DE" }}>
                               {openCode === r.code ? "ปิด" : "▶ ฟัง"}
                             </button>
+                            {/* EP คลิปติว — เปลี่ยนลิงก์ YouTube ได้ตลอด */}
+                            {/-T-/.test(r.code) && (
+                              <button onClick={() => setYt(r.code)}
+                                className="text-[11px] font-semibold px-2 py-1 rounded-lg"
+                                style={{ backgroundColor: "#F5F5F3", color: "#6B7280", border: "1px solid #E0DFDC" }}>
+                                📺
+                              </button>
+                            )}
                             {/* คลิปติว (T) เป็นของสมาชิกเสมอ — ไม่มีปุ่มเปิดฟรี */}
                             {!/-T-/.test(r.code) && (
                               <button onClick={() => toggleFree(r.code)}
@@ -325,6 +367,13 @@ export default function AdminInterviewClipsPage() {
                               ลบ
                             </button>
                           </div>
+                        ) : /-T-/.test(r.code) ? (
+                          // EP คลิปติว — วางลิงก์ YouTube แทนอัปไฟล์ได้ (ไฟล์ยาวอัปยาก)
+                          <button onClick={() => setYt(r.code)}
+                            className="text-[11px] font-semibold px-2 py-1 rounded-lg flex-shrink-0"
+                            style={{ backgroundColor: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA" }}>
+                            📺 วางลิงก์ YouTube
+                          </button>
                         ) : (
                           <span className="text-[11px] flex-shrink-0 text-gray-300">ยังไม่มีคลิป</span>
                         )}
@@ -337,6 +386,13 @@ export default function AdminInterviewClipsPage() {
                             <p className="text-[12.5px] py-3 text-center" style={{ color: "#DC2626" }}>{prevErr}</p>
                           ) : !prevMedia ? (
                             <p className="text-[12.5px] py-3 text-center" style={{ color: "#A8A8A6" }}>กำลังเปิดคลิป…</p>
+                          ) : prevMedia.ytId ? (
+                            <iframe
+                              src={`https://www.youtube-nocookie.com/embed/${prevMedia.ytId}`}
+                              allow="autoplay; encrypted-media; picture-in-picture"
+                              allowFullScreen
+                              className="w-full max-w-md mx-auto rounded-xl bg-black aspect-video block"
+                              title={`ตรวจคลิป ${r.code}`} />
                           ) : (
                             // eslint-disable-next-line jsx-a11y/media-has-caption
                             <video controls autoPlay playsInline preload="metadata"

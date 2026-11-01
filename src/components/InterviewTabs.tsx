@@ -24,6 +24,8 @@ import {
   type InterviewCat, type InterviewQuestion, type PracticeRating,
 } from "@/lib/interview";
 import { fetchClipUrl, type InterviewClip } from "@/lib/interview-clips";
+import { useAuth } from "@/lib/auth-context";
+import CourseVideoPlayer from "@/components/CourseVideoPlayer";
 
 /** ของที่ทุกแท็บใช้ร่วม — หน้า /interview โหลดคลิปครั้งเดียวแล้วส่งลงมา */
 export interface TabCtx {
@@ -34,7 +36,7 @@ export interface TabCtx {
 }
 
 const playableClip = (c?: InterviewClip) =>
-  Boolean(c && c.videoPath && c.status === "published");
+  Boolean(c && (c.videoPath || c.hasYt) && c.status === "published");
 
 // ── คลิปหลายเวอร์ชันต่อข้อ (Aj 2026-10-17: ข้อแนะนำตัวอัดหลายแบบ
 //    กันน้องซ้อมหลายรอบเจอคลิปเดิมทุกครั้ง) ──
@@ -131,8 +133,11 @@ export function JoinCta({ field }: { field: ExamFieldKey }) {
 
 export function TutorClips({ ctx }: { ctx: TabCtx }) {
   const { field, isMember, clips, getToken } = ctx;
+  const { user } = useAuth(); // ลายน้ำบน player YouTube (กันแคปแชร์)
   const [playingCode, setPlayingCode] = useState<string | null>(null);
-  const [media, setMedia] = useState<{ videoUrl: string; posterUrl?: string; docUrl?: string } | null>(null);
+  const [media, setMedia] = useState<{
+    videoUrl?: string; posterUrl?: string; docUrl?: string; ytId?: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -213,10 +218,18 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
                 )}
                 {active && media && (
                   <>
-                    <video controls playsInline autoPlay preload="metadata"
-                      poster={media.posterUrl} src={media.videoUrl}
-                      className="w-full rounded-xl bg-black mt-2"
-                      style={{ maxHeight: "60vh" }} />
+                    {media.ytId ? (
+                      // EP แบบวางลิงก์ YouTube — ใช้ player คอร์สวิดีโอ (ลายน้ำ + ไม่มีปุ่มดูบน YouTube)
+                      <div className="mt-2">
+                        <CourseVideoPlayer ytId={media.ytId} userLabel={user?.email ?? ""}
+                          hasNext={false} onNext={() => {}} />
+                      </div>
+                    ) : media.videoUrl ? (
+                      <video controls playsInline autoPlay preload="metadata"
+                        poster={media.posterUrl} src={media.videoUrl}
+                        className="w-full rounded-xl bg-black mt-2"
+                        style={{ maxHeight: "60vh" }} />
+                    ) : null}
                     {/* เอกสารประกอบ EP (คู่มือ — Aj 2026-11-01) โผล่เมื่อ EP นั้นมีไฟล์ .pdf */}
                     {media.docUrl && (
                       <a href={media.docUrl} target="_blank" rel="noopener noreferrer"
@@ -513,7 +526,7 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
   const [ratings, setRatings]   = useState<(Rating | null)[]>([]);
   const [used, setUsed]         = useState<number[]>([]); // วินาทีที่ใช้จริงต่อขั้น
   const [progress, setProgress] = useState<{ seen: number; total: number } | null>(null);
-  const [clipMedia, setClipMedia] = useState<{ videoUrl: string; posterUrl?: string; captionsUrl?: string } | null>(null);
+  const [clipMedia, setClipMedia] = useState<{ videoUrl?: string; posterUrl?: string; captionsUrl?: string } | null>(null);
   const [clipLoading, setClipLoading] = useState(false);
   // หน่วง 3 วิ ก่อนคลิปเล่น — เว้นจังหวะให้ตั้งสติเหมือนห้องจริง (Aj 2026-10-17)
   const [preCount, setPreCount] = useState<number | null>(null);
@@ -665,7 +678,8 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     const media = await fetchClipUrl(clipCode, await getToken());
     if (clipReqRef.current !== req) return; // ข้ามไปขั้นอื่นแล้ว — ทิ้งผลรอบเก่า
     setClipLoading(false);
-    if (!media) { setSub("answer"); return; } // โหลดคลิปไม่ได้ → ใช้การ์ดข้อความ ไม่พัง flow
+    // โหลดคลิปไม่ได้ (หรือไม่มีไฟล์วิดีโอ) → ใช้การ์ดข้อความ ไม่พัง flow
+    if (!media?.videoUrl) { setSub("answer"); return; }
     setClipMedia(media);
     setClipPaused(true);
     setClipEnded(false);
@@ -681,7 +695,8 @@ export function PracticeMode({ ctx, onExit }: { ctx: TabCtx; onExit?: () => void
     const media = await fetchClipUrl(clipCode, await getToken());
     if (clipReqRef.current !== req) return; // เปลี่ยนขั้นไปแล้ว — ทิ้งผลรอบเก่า
     setClipLoading(false);
-    if (!media) { setSub("pressure"); return; } // โหลดพลาด → จี้ด้วยข้อความ นาฬิกาเริ่มเลย
+    // โหลดพลาด (หรือไม่มีไฟล์วิดีโอ) → จี้ด้วยข้อความ นาฬิกาเริ่มเลย
+    if (!media?.videoUrl) { setSub("pressure"); return; }
     setClipMedia(media);
     setClipPaused(true);
     setClipEnded(false);
