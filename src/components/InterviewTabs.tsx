@@ -26,6 +26,8 @@ import {
 import { fetchClipUrl, type InterviewClip } from "@/lib/interview-clips";
 import { useAuth } from "@/lib/auth-context";
 import CourseVideoPlayer from "@/components/CourseVideoPlayer";
+import { doc, increment, serverTimestamp, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 /** ของที่ทุกแท็บใช้ร่วม — หน้า /interview โหลดคลิปครั้งเดียวแล้วส่งลงมา */
 export interface TabCtx {
@@ -151,6 +153,17 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
     setBusy(false);
     if (!m) { setErr("เปิดคลิปไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"); return; }
     setMedia(m);
+    // จดว่าใครเข้าเรียน EP ไหน — Aj ดูยอด+อีเมลรายตอนที่ /admin/interview-clips
+    if (user) {
+      setDoc(doc(db, "tutorViews", `${code}_${user.uid}`), {
+        code,
+        uid: user.uid,
+        email: user.email ?? "",
+        displayName: user.displayName ?? "",
+        lastAt: serverTimestamp(),
+        plays: increment(1),
+      }, { merge: true }).catch(() => {});
+    }
   }
 
   return (

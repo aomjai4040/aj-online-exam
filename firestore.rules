@@ -176,6 +176,15 @@ service cloud.firestore {
       allow create, update: if isSignedIn() && request.auth.uid == userId;
     }
 
+    // ผู้เข้าเรียนคลิปติวราย EP (Aj 2026-11-01: อยากเห็นอีเมลคนเรียนแต่ละตอน)
+    // doc id = {code}_{uid} เขียนได้เฉพาะของตัวเอง — Aj ดูรวมที่ /admin/interview-clips
+    match /tutorViews/{docId} {
+      allow read: if isAdmin();
+      allow create, update: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && docId == request.resource.data.code + '_' + request.auth.uid;
+    }
+
     // ฉบับแก้ของโจทย์ในลิสต์ตั้งต้น — Aj แก้โจทย์/เติมช้อยจาก /admin/recall
     // (ลิสต์อยู่ในโค้ด เก็บ override ที่นี่) อ่านได้ทุกคนที่ login เผื่อหน้า
     // /recall ใช้ฉบับแก้ในอนาคต

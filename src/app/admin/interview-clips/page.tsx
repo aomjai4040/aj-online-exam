@@ -57,6 +57,32 @@ export default function AdminInterviewClipsPage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  // ผู้เข้าเรียนคลิปติวราย EP (tutorViews — admin อ่านได้ตาม rules)
+  const [epViews, setEpViews] = useState<Map<string, { email: string; name: string }[]>>(new Map());
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, getDocs } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase");
+        const snap = await getDocs(collection(db, "tutorViews"));
+        if (cancelled) return;
+        const m = new Map<string, { email: string; name: string }[]>();
+        snap.forEach((d) => {
+          const x = d.data();
+          const code = String(x.code ?? "");
+          if (!code) return;
+          const arr = m.get(code) ?? [];
+          arr.push({ email: String(x.email ?? ""), name: String(x.displayName ?? "") });
+          m.set(code, arr);
+        });
+        setEpViews(m);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const log = (name: string, msg: string, ok: boolean | null) =>
     setLogs((p) => [...p.filter((l) => l.name !== name), { name, msg, ok }]);
 
@@ -321,6 +347,11 @@ export default function AdminInterviewClipsPage() {
                             {c?.posterPath ? <span className="text-gray-400"> · มีปก</span> : null}
                             {c?.docPath ? <span style={{ color: "#0B6E65" }}> · 📄 มีเอกสาร</span> : null}
                             {c?.hasYt ? <span style={{ color: "#DC2626" }}> · 📺 YouTube</span> : null}
+                            {/-T-/.test(r.code) ? (
+                              <span style={{ color: "#7C3AED" }}>
+                                {" "}· 👥 เข้าเรียน {epViews.get(r.code)?.length ?? 0} คน
+                              </span>
+                            ) : null}
                             {c?.status === "draft" ? <span style={{ color: "#B45309" }}> · ร่าง</span> : null}
                             {c?.videoPath && c.fields && c.fields.length === 1 ? (
                               <span style={{ color: "#7C3AED" }}>
@@ -403,6 +434,24 @@ export default function AdminInterviewClipsPage() {
                           <p className="text-[12px] text-center mt-2 mb-2" style={{ color: "#A8A8A6" }}>
                             เทียบกับคำถามด้านบน — ถ้าไม่ตรง ลบคลิปนี้แล้วอัปไฟล์ใหม่ชื่อรหัสที่ถูก
                           </p>
+                          {/* รายชื่อผู้เข้าเรียน EP (Aj 2026-11-01) */}
+                          {/-T-/.test(r.code) && (epViews.get(r.code)?.length ?? 0) > 0 && (
+                            <div className="mt-1 mb-2 max-w-md mx-auto">
+                              <p className="text-[12px] font-bold text-gray-600 mb-1">
+                                👥 ผู้เข้าเรียน EP นี้ ({epViews.get(r.code)!.length} คน)
+                              </p>
+                              <div className="max-h-48 overflow-y-auto rounded-xl"
+                                style={{ border: "1px solid #F3F2F0" }}>
+                                {epViews.get(r.code)!.map((v, i) => (
+                                  <p key={`${v.email}-${i}`} className="px-3 py-1.5 text-[12.5px] text-gray-600"
+                                    style={{ borderTop: i > 0 ? "1px solid #F7F6F4" : "none" }}>
+                                    {v.name || v.email}
+                                    {v.name && <span style={{ color: "#C4C4C0" }}> · {v.email}</span>}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           {/^(SPS|DCD)-C-/.test(r.code) && (
                             <div className="flex items-center justify-center gap-2">
                               <span className="text-[12px]" style={{ color: "#6B7280" }}>คลิปนี้ขึ้นสนาม:</span>
