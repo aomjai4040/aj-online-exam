@@ -20,7 +20,7 @@ import {
   INTERVIEW_CATS, catOf, questionsForField, pickPracticeSet,
   loadPracticeStats, recordPracticeRating, practiceProgress,
   ANSWER_PRINCIPLES, INTERVIEW_CHECKLIST, PRACTICE_CONFIG,
-  PRESSURE_JABS, PRESSURE_CLIPS, clipVariantMeta, TUTOR_CLIPS,
+  PRESSURE_JABS, PRESSURE_CLIPS, clipVariantMeta, TUTOR_CLIPS, PART_C_MANUAL_URL,
   type InterviewCat, type InterviewQuestion, type PracticeRating,
 } from "@/lib/interview";
 import { fetchClipUrl, type InterviewClip } from "@/lib/interview-clips";
@@ -162,6 +162,15 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
           </p>
         </div>
       </div>
+
+      {/* คู่มือติวฉบับเต็ม — ของสมาชิก (Aj ส่งลิงก์ 2026-11-01) */}
+      {isMember && (
+        <a href={PART_C_MANUAL_URL} target="_blank" rel="noopener noreferrer"
+          className="block w-full text-center py-3 mt-2.5 rounded-xl text-[14px] font-bold text-white active:scale-[0.98] transition-transform"
+          style={{ backgroundColor: BRAND.primary }}>
+          📘 เปิดคู่มือติวภาค ค ฉบับเต็ม
+        </a>
+      )}
 
       {avail.length === 0 ? (
         // ยังไม่มีคลิป — บอกน้องตรง ๆ ว่ากำลังมา (Aj สั่ง 2026-10-18)

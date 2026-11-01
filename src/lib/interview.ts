@@ -1080,21 +1080,36 @@ export function clipVariantMeta(code: string): { q: string; answerSeconds?: numb
   return CLIP_VARIANT_META[code] ?? CLIP_VARIANT_META[code.replace(/-([2-9])$/, "-V$1")];
 }
 
-/** คลิปติวภาค ค (Aj 2026-11-01: วางแผนเป็นซีรีส์ 9 EP มีคู่มือประกอบ)
+/** คลิปติวภาค ค (Aj 2026-11-01: ซีรีส์ 9 EP ตามสารบัญคู่มือ)
  *  แยกสนาม · อัปไฟล์ชื่อตามรหัส (เช่น SPS-T-001.mp4) ที่หน้า admin เดิม
  *  เอกสารประกอบ EP = ไฟล์ .pdf ชื่อเดียวกัน (SPS-T-001.pdf) ปุ่มโหลดโผล่ใต้คลิปเอง
- *  ยังไม่มีคลิปเผยแพร่ = การ์ด "กำลังอัด อัปให้เร็ว ๆ นี้" โผล่แทน
- *  ชื่อตอน: Aj ส่งหัวข้อจริงของแต่ละ EP มาเมื่อไหร่ค่อยแก้ตรงนี้ */
+ *  ยังไม่มีคลิปเผยแพร่ = การ์ด "กำลังอัด อัปให้เร็ว ๆ นี้" โผล่แทน */
+const TUTOR_EP_TITLES = [
+  "ถอดรหัสประกาศ ภาค ค.",
+  "แต่งกายและบุคลิกภาพ",
+  "แนะนำตัว",
+  "เล่าประสบการณ์และผลงาน",
+  "รู้จักตำแหน่งและหน่วยงาน",
+  "ทำไมรับราชการ / พร้อมไปไหม",
+  "จุดแข็ง จุดอ่อน ทัศนคติ",
+  "กึ๋นการทำงาน สถานการณ์และจริยธรรม",
+  "ความรู้ร้อน + ซ้อมสัมภาษณ์",
+];
+
+/** คู่มือติวภาค ค ฉบับเต็ม (Google Drive — Aj ส่งลิงก์ 2026-11-01) โชว์เฉพาะสมาชิก */
+export const PART_C_MANUAL_URL =
+  "https://drive.google.com/file/d/1gXJL2J1I77ju0kZmQ8hwTiNxx4YGgyYB/view?usp=sharing";
+
 export const TUTOR_CLIPS: { code: string; field: ExamFieldKey; title: string }[] = [
-  ...Array.from({ length: 9 }, (_, i) => ({
+  ...TUTOR_EP_TITLES.map((t, i) => ({
     code: `SPS-T-${String(i + 1).padStart(3, "0")}`,
     field: "moph" as ExamFieldKey,
-    title: `EP ${i + 1}`,
+    title: `EP ${i + 1} ${t}`,
   })),
-  ...Array.from({ length: 9 }, (_, i) => ({
+  ...TUTOR_EP_TITLES.map((t, i) => ({
     code: `DCD-T-${String(i + 1).padStart(3, "0")}`,
     field: "dcd" as ExamFieldKey,
-    title: `EP ${i + 1}`,
+    title: `EP ${i + 1} ${t}`,
   })),
 ];
 
