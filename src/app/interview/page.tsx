@@ -309,12 +309,12 @@ export default function InterviewPage() {
           <PracticeMode ctx={ctx}
             onExit={() => { setTab("tutor"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
         )}
-        {tab === "tutor"    && (
-          <div className="space-y-4">
-            <TutorClips ctx={ctx} />
-            {!isMember && <JoinCta field={field} />}
-          </div>
-        )}
+        {/* คลิปติว mount ค้างเสมอ — ไปแท็บอื่นคลิปย่อเป็นจอเล็กลอย ฟังต่อได้
+            (น้องขอ 2026-11-03) · เข้าห้องซ้อม = ปิดคลิปให้ เสียงจะได้ไม่ตีกัน */}
+        <TutorClips ctx={ctx}
+          mode={tab === "tutor" ? "inline" : tab === "practice" ? "off" : "mini"}
+          onExpand={() => { setTab("tutor"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        {tab === "tutor" && !isMember && <JoinCta field={field} />}
         {tab === "check"    && (
           <div className="space-y-4">
             {/* เช็คลิสต์เต็มเป็นของสมาชิก — guest เห็นแค่ว่ามีอะไรรออยู่ (Aj 2026-10-18) */}

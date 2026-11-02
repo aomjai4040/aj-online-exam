@@ -133,7 +133,14 @@ export function JoinCta({ field }: { field: ExamFieldKey }) {
 // ยังไม่มีคลิปเผยแพร่ของสนามนั้น = การ์ด "กำลังอัด อัปให้เร็ว ๆ นี้"
 // คลิปติวยาว ใช้ controls ของเบราว์เซอร์ได้ (ต้องเลื่อนดูย้อนได้ ไม่เหมือนคลิปคำถาม)
 
-export function TutorClips({ ctx }: { ctx: TabCtx }) {
+export function TutorClips({ ctx, mode = "inline", onExpand }: {
+  ctx: TabCtx;
+  /** inline = อยู่แท็บคลิปติว · mini = อยู่แท็บอื่น (คลิปย่อเป็นจอเล็กลอย ฟังต่อได้ —
+   *  น้องขอ 2026-11-03) · off = อยู่ห้องซ้อม (ปิดคลิปให้ เสียงจะได้ไม่ตีกัน)
+   *  component นี้ mount ค้างเสมอ — ย่อ/ขยายด้วย CSS ล้วน player ไม่โหลดคลิปใหม่ */
+  mode?: "inline" | "mini" | "off";
+  onExpand?: () => void;
+}) {
   const { field, isMember, clips, getToken } = ctx;
   const { user } = useAuth(); // ลายน้ำบน player YouTube (กันแคปแชร์)
   const [playingCode, setPlayingCode] = useState<string | null>(null);
@@ -142,9 +149,15 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const close = useCallback(() => { setPlayingCode(null); setMedia(null); }, []);
+  useEffect(() => { if (mode === "off") close(); }, [mode, close]);
 
   const slots = TUTOR_CLIPS.filter((t) => t.field === field);
   const avail = slots.filter((t) => playableClip(clips.get(t.code)));
+  const playingTitle = slots.find((t) => t.code === playingCode)?.title ?? "";
+  const mini = mode === "mini";
 
   async function open(code: string) {
     if (busy) return;
@@ -153,6 +166,9 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
     setBusy(false);
     if (!m) { setErr("เปิดคลิปไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"); return; }
     setMedia(m);
+    // แผงกำลังเล่นอยู่เหนือรายการ EP — เลื่อนขึ้นไปให้เห็นเอง
+    requestAnimationFrame(() =>
+      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
     // จดว่าใครเข้าเรียน EP ไหน — Aj ดูยอด+อีเมลรายตอนที่ /admin/interview-clips
     if (user) {
       setDoc(doc(db, "tutorViews", `${code}_${user.uid}`), {
@@ -167,7 +183,63 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
   }
 
   return (
-    <div className="card-elev px-4 py-4">
+    <>
+    {/* แผงกำลังเล่น — อยู่นอกการ์ด (ตำแหน่ง React คงที่): แท็บอื่นการ์ดซ่อน
+        แต่แผงนี้สลับเป็นจอเล็กลอยมุมขวาล่างแทน คลิปเล่นต่อไม่สะดุด */}
+    {playingCode && media && (
+      <div ref={panelRef}
+        className={mini
+          ? "fixed right-3 z-[60] w-[216px] rounded-xl overflow-hidden shadow-2xl bg-black"
+          : "card-elev px-3 py-3 mb-4 relative"}
+        style={mini ? { bottom: "calc(76px + env(safe-area-inset-bottom, 0px))" } : undefined}>
+        {!mini && (
+          <p className="text-[13px] font-bold text-gray-900 mb-2 pr-8">▶ {playingTitle}</p>
+        )}
+        <div className={mini ? "" : "rounded-xl overflow-hidden"}>
+          {media.ytId ? (
+            // EP แบบวางลิงก์ YouTube — ใช้ player คอร์สวิดีโอ (ลายน้ำ + ไม่มีปุ่มดูบน YouTube)
+            <CourseVideoPlayer ytId={media.ytId} userLabel={user?.email ?? ""}
+              hasNext={false} onNext={() => {}} />
+          ) : media.videoUrl ? (
+            <video controls playsInline autoPlay preload="metadata"
+              poster={media.posterUrl} src={media.videoUrl}
+              className="w-full bg-black"
+              style={mini ? undefined : { maxHeight: "60vh" }} />
+          ) : null}
+        </div>
+        {/* ปุ่มบนจอเล็ก: ขยายกลับแท็บคลิปติว / ปิดคลิป */}
+        {mini && (
+          <div className="absolute top-1 left-1 right-1 z-40 flex justify-between">
+            <button type="button" onClick={onExpand} aria-label="ขยายคลิป"
+              className="w-7 h-7 rounded-full text-white text-[13px] leading-none"
+              style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>⤢</button>
+            <button type="button" onClick={close} aria-label="ปิดคลิป"
+              className="w-7 h-7 rounded-full text-white text-[13px] leading-none"
+              style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>✕</button>
+          </div>
+        )}
+        {!mini && (
+          <button type="button" onClick={close} aria-label="ปิดคลิป"
+            className="absolute top-2 right-2.5 w-7 h-7 rounded-full text-[13px] leading-none"
+            style={{ backgroundColor: "#F4F4F2", color: "#7A7A78" }}>✕</button>
+        )}
+        {/* เอกสารประกอบ EP (คู่มือ — Aj 2026-11-01) โผล่เมื่อ EP นั้นมีไฟล์ .pdf */}
+        {!mini && media.docUrl && (
+          <a href={media.docUrl} target="_blank" rel="noopener noreferrer"
+            className="block w-full text-center py-2.5 mt-2 rounded-xl text-[13.5px] font-bold"
+            style={{ border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
+            📄 โหลดเอกสารประกอบ EP นี้
+          </a>
+        )}
+        {!mini && (
+          <p className="text-[11px] mt-1.5" style={{ color: "#A8A8A6" }}>
+            สลับไปแท็บอื่นได้เลยนะคะ คลิปจะย่อเป็นจอเล็กเล่นต่อให้เอง
+          </p>
+        )}
+      </div>
+    )}
+
+    <div className={mode === "inline" ? "card-elev px-4 py-4 mb-4" : "hidden"}>
       <div className="flex items-center gap-2.5 mb-1">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-[17px]"
           style={{ background: "linear-gradient(135deg, #10857A, #0B6E65)" }}>
@@ -229,30 +301,6 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
                 {active && err && (
                   <p className="text-[12px] text-center py-2" style={{ color: "#DC2626" }}>{err}</p>
                 )}
-                {active && media && (
-                  <>
-                    {media.ytId ? (
-                      // EP แบบวางลิงก์ YouTube — ใช้ player คอร์สวิดีโอ (ลายน้ำ + ไม่มีปุ่มดูบน YouTube)
-                      <div className="mt-2">
-                        <CourseVideoPlayer ytId={media.ytId} userLabel={user?.email ?? ""}
-                          hasNext={false} onNext={() => {}} />
-                      </div>
-                    ) : media.videoUrl ? (
-                      <video controls playsInline autoPlay preload="metadata"
-                        poster={media.posterUrl} src={media.videoUrl}
-                        className="w-full rounded-xl bg-black mt-2"
-                        style={{ maxHeight: "60vh" }} />
-                    ) : null}
-                    {/* เอกสารประกอบ EP (คู่มือ — Aj 2026-11-01) โผล่เมื่อ EP นั้นมีไฟล์ .pdf */}
-                    {media.docUrl && (
-                      <a href={media.docUrl} target="_blank" rel="noopener noreferrer"
-                        className="block w-full text-center py-2.5 mt-2 rounded-xl text-[13.5px] font-bold"
-                        style={{ border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
-                        📄 โหลดเอกสารประกอบ EP นี้
-                      </a>
-                    )}
-                  </>
-                )}
               </div>
             );
           })}
@@ -264,6 +312,7 @@ export function TutorClips({ ctx }: { ctx: TabCtx }) {
         </div>
       )}
     </div>
+    </>
   );
 }
 
