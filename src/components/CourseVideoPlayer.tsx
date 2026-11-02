@@ -152,8 +152,8 @@ export default function CourseVideoPlayer({
   //    แตะป้ายเหลือง = ทำลาย player แล้วสร้างใหม่ตรงวินาทีเดิม → YT เลือกความชัดใหม่ ──
   const [hdNonce, setHdNonce]  = useState(0);
   const resumeAtRef = useRef<number | null>(null);
-  const lowSinceRef    = useRef<number | null>(null); // เวลาเริ่มเห็นความชัดต่ำต่อเนื่อง
-  const autoRetriedRef = useRef(false);               // ดันอัตโนมัติไปแล้ว (1 ครั้ง/คลิป)
+  const lowSinceRef     = useRef<number | null>(null); // เวลาเริ่มเห็นความชัดต่ำต่อเนื่อง
+  const autoRetryCntRef = useRef(0);                   // จำนวนครั้งที่ดันอัตโนมัติไปแล้ว/คลิป
   function hdRetry() {
     resumeAtRef.current = Math.floor(timeRef.current);
     try { playerRef.current?.destroy?.(); } catch {}
@@ -345,7 +345,7 @@ export default function CourseVideoPlayer({
     setPlaying(false); setEnded(false); setTime(0); setDuration(0);
 
     // เปลี่ยน "คลิป" จริง (ไม่ใช่แค่ดันชัด) → เปิดสิทธิ์ดันอัตโนมัติรอบใหม่
-    if (activeYtIdRef.current !== ytId) autoRetriedRef.current = false;
+    if (activeYtIdRef.current !== ytId) autoRetryCntRef.current = 0;
     lowSinceRef.current = null;
 
     activeYtIdRef.current = ytId;
@@ -443,16 +443,20 @@ export default function CourseVideoPlayer({
       try { q = String(p.getPlaybackQuality?.() ?? ""); } catch {}
       setQLabel(QUALITY_LABEL[q] ?? "");
 
-      // ── ดันชัดอัตโนมัติ (Aj 2026-09-07): ความชัด ≤480p ต่อเนื่อง 20 วิขณะเล่น
-      //    และแอปมองเห็นอยู่ → รีเซ็ตเซสชันเอง 1 ครั้ง/คลิป (YT ชอบปักเซสชันไว้ต่ำ)
-      //    ดันแล้วยังต่ำ = เน็ตช้าจริง ไม่ยุ่งซ้ำ (ป้ายเหลืองยังแตะดันเองได้) ──
-      const lowQ = ["large", "medium", "small", "tiny"].includes(q);
+      // ── ดันชัดอัตโนมัติ (Aj 2026-09-07 · ปรับ 2026-11-02): YT ชอบปักเซสชันไว้ต่ำ
+      //    360/480p ต่อเนื่อง 20 วิ → ดันเอง 1 ครั้ง/คลิป (เดิม — เน็ตช้าจริงไม่ยุ่งซ้ำ)
+      //    ≤240p = ต่ำผิดปกติ แทบไม่ใช่เรื่องเน็ต (เคสน้องดู EP ติวค้าง 240p ทั้งที่ HD
+      //    พร้อม) → ดันไวขึ้น (8 วิ) และดันซ้ำได้ถึง 2 ครั้ง · ป้ายเหลืองยังแตะดันเองได้ ──
+      const veryLowQ = ["small", "tiny"].includes(q);              // ≤240p
+      const lowQ = veryLowQ || ["large", "medium"].includes(q);    // ≤480p
       if (!lowQ || state !== 1 || document.visibilityState === "hidden") {
         lowSinceRef.current = null;
       } else {
         lowSinceRef.current ??= Date.now();
-        if (Date.now() - lowSinceRef.current > 20_000 && !autoRetriedRef.current) {
-          autoRetriedRef.current = true;
+        const maxTries = veryLowQ ? 2 : 1;
+        const waitMs   = veryLowQ ? 8_000 : 20_000;
+        if (Date.now() - lowSinceRef.current > waitMs && autoRetryCntRef.current < maxTries) {
+          autoRetryCntRef.current += 1;
           lowSinceRef.current = null;
           hdRetry();
           return; // player กำลังถูกสร้างใหม่ — จบรอบ poll นี้
