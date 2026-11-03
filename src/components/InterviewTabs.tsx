@@ -223,12 +223,13 @@ export function TutorClips({ ctx, mode = "inline", onExpand }: {
             className="absolute top-2 right-2.5 w-7 h-7 rounded-full text-[13px] leading-none"
             style={{ backgroundColor: "#F4F4F2", color: "#7A7A78" }}>✕</button>
         )}
-        {/* เอกสารประกอบ EP (คู่มือ — Aj 2026-11-01) โผล่เมื่อ EP นั้นมีไฟล์ .pdf */}
-        {!mini && media.docUrl && (
-          <a href={media.docUrl} target="_blank" rel="noopener noreferrer"
+        {/* เอกสารประกอบใต้คลิป — EP ไหนมีไฟล์ .pdf ของตัวเองใช้ไฟล์นั้น
+            ไม่มีก็เปิดคู่มือติวฉบับเต็มบน Drive แทน (Aj 2026-11-03) */}
+        {!mini && (
+          <a href={media.docUrl ?? PART_C_MANUAL_URL} target="_blank" rel="noopener noreferrer"
             className="block w-full text-center py-2.5 mt-2 rounded-xl text-[13.5px] font-bold"
             style={{ border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
-            📄 โหลดเอกสารประกอบ EP นี้
+            {media.docUrl ? "📄 โหลดเอกสารประกอบ EP นี้" : "📄 เปิดคู่มือประกอบ EP นี้"}
           </a>
         )}
         {!mini && (
