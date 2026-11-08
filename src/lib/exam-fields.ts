@@ -39,6 +39,8 @@ export interface ExamField {
   /** ปลายทางเมื่อ "ยังไม่มีสิทธิ์" — ไม่มี = ยังขายไม่ได้ */
   hrefBuy?:    string;
   price?:      number;
+  /** ราคาปกติ (ป้ายขีดฆ่า) — มีเมื่อ price เป็นราคาโปร */
+  compareAt?:  number;
 }
 
 export const EXAM_FIELDS: ExamField[] = [
@@ -84,10 +86,14 @@ export const EXAM_FIELDS: ExamField[] = [
     id: "local", code: "อปท.",
     name:  "องค์กรปกครองส่วนท้องถิ่น",
     blurb: "สายงานสาธารณสุขและสิ่งแวดล้อม",
-    // เปิดขาย 2026-10-04 (Aj): ฿499 ขายผ่านโค้ด Activate ทางแชท — ยังไม่มี checkout
+    // เปิดขาย 2026-10-04 (Aj): ขายผ่านโค้ด Activate ทางแชท — ยังไม่มี checkout
     // hrefBuy ชี้ /activate (หน้า "ล็อก" ของคอร์สนี้มีปุ่มทักไลน์ + กรอกโค้ดแยกเอง)
+    // 2026-11-08 (Aj): รับสมัครเตรียมสอบรอบหน้า — ปกติ 699 โปรสมัครก่อนเริ่มติวใหม่ 499
+    // สมัครวันนี้ได้คลิปสอน+แนวข้อสอบรอบปี 68 เรียนพลาง + เข้ากลุ่มติวรอบใหม่เมื่อเริ่มสอน
     status: "open", accent: "#EF4444",
+    examLabel: "เตรียมสอบรอบหน้า · สมัครวันนี้เรียนเนื้อหารอบ 68 ได้เลย",
     price: 499,
+    compareAt: 699,
     ownPrefixes: ["local-"],
     hrefOwned: "/course/local",
     hrefBuy:   "/activate",

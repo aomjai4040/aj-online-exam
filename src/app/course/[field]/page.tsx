@@ -193,7 +193,7 @@ export default function CoursePage() {
                   </p>
                   <p className="text-[13px] mt-1 leading-relaxed" style={{ color: "#6B7280" }}>
                     {field === "local"
-                      ? "คลังข้อสอบพร้อมเฉลยละเอียด · Mock Exam · Daily Quiz เจาะจุดอ่อน ของสนาม อปท. "
+                      ? "สมัครวันนี้เรียนได้ทันที — คลิปสอน + แนวข้อสอบครบขอบเขตจากรอบปี 68 · คลังข้อสอบพร้อมเฉลยละเอียด · Mock Exam · Daily Quiz เจาะจุดอ่อน และได้เข้ากลุ่มติวรอบใหม่เมื่อพี่อ้อมเริ่มสอน — ทั้งหมดนี้"
                       : `คลังข้อสอบ · Mock Exam · คลิปติว · กลุ่ม LINE ของสนาม ${meta.code} `}
                     เปิดให้เฉพาะผู้ที่สมัครคอร์ส{meta.name}
                     {other.length > 0 && ` — คอร์สที่คุณมีอยู่คือ ${other.map((f) => FIELD_SHORT[f]).join(", ")} ถ้ากดมาผิด กลับไปคอร์สของคุณได้เลย`}
@@ -241,7 +241,16 @@ export default function CoursePage() {
               )}
               {field === "local" && meta.status === "open" ? (
                 // อปท. ขายผ่านโค้ด Activate ทางแชท (Aj 2026-10-04) — ยังไม่มี checkout
+                // โปรรับสมัครก่อนเปิดติวรอบใหม่ (Aj 2026-11-08): ปกติ 699 → 499
                 <>
+                  {meta.compareAt && (
+                    <p className="text-[13px] font-bold text-center mb-2 rounded-xl py-2"
+                      style={{ backgroundColor: "#FFFBEB", color: "#B45309" }}>
+                      🔥 สมัครก่อนเปิดติวรอบใหม่ — ปกติ{" "}
+                      <span className="line-through" style={{ color: "#C4C4C0" }}>฿{meta.compareAt}</span>{" "}
+                      เหลือ ฿{price}
+                    </p>
+                  )}
                   <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer"
                     className="block w-full text-center py-3.5 rounded-2xl text-[15px] font-bold text-white active:scale-[0.98] transition-transform"
                     style={{ backgroundColor: "#07C160" }}>

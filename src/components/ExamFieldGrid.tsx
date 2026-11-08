@@ -90,6 +90,8 @@ function FieldCard({ field, access }: { field: ExamField; access: UserAccess }) 
               <span className="text-[17px] font-extrabold text-white flex-shrink-0">
                 {field.id === "dcd" ? (
                   <><span className="text-[12px] font-semibold opacity-80">เริ่ม </span>฿{PRICING.dcdApp.price}</>
+                ) : field.compareAt ? (
+                  <><span className="text-[12px] font-semibold line-through opacity-60">฿{field.compareAt}</span> ฿{price}</>
                 ) : (
                   <>฿{price}</>
                 )}
