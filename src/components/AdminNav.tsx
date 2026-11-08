@@ -26,6 +26,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/admin/progress",   label: "ความคืบหน้าผู้เรียน" },
       { href: "/admin/feedback",   label: "ผลประเมิน" },
       { href: "/admin/dcd-intake", label: "แบบสอบถาม" },
+      { href: "/admin/waitlist",   label: "คิวรอคอร์ส" },
     ],
   },
   {
