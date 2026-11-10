@@ -224,8 +224,8 @@ export function TutorClips({ ctx, mode = "inline", onExpand }: {
             style={{ backgroundColor: "#F4F4F2", color: "#7A7A78" }}>✕</button>
         )}
         {/* เอกสารประกอบใต้คลิป — EP ไหนมีไฟล์ .pdf ของตัวเองใช้ไฟล์นั้น
-            ไม่มีก็เปิดคู่มือติวฉบับเต็มบน Drive แทน (Aj 2026-11-03) */}
-        {!mini && (
+            ไม่มีก็เปิดคู่มือติวฉบับเต็มแทน (เฉพาะมุมมอง สป.สธ. — คู่มือเป็นของสนามนั้น) */}
+        {!mini && (media.docUrl || field === "moph") && (
           <a href={media.docUrl ?? PART_C_MANUAL_URL} target="_blank" rel="noopener noreferrer"
             className="block w-full text-center py-2.5 mt-2 rounded-xl text-[13.5px] font-bold"
             style={{ border: `1.5px solid ${BRAND.primary}`, color: BRAND.primary }}>
@@ -254,8 +254,9 @@ export function TutorClips({ ctx, mode = "inline", onExpand }: {
         </div>
       </div>
 
-      {/* คู่มือติวฉบับเต็ม — ของสมาชิก (Aj ส่งลิงก์ 2026-11-01) */}
-      {isMember && (
+      {/* คู่มือติวฉบับเต็ม — เป็นคู่มือ "สป.สธ. 69" โชว์เฉพาะสมาชิกฝั่ง สป.สธ. ในมุมมอง สป.สธ.
+          (บั๊กเดิม: เช็คแค่ isMember → น้อง คร. เห็นคู่มือ สป.สธ. ทั้งที่ไม่ได้สมัคร — Aj 2026-11-09) */}
+      {isMember && field === "moph" && (
         <a href={PART_C_MANUAL_URL} target="_blank" rel="noopener noreferrer"
           className="block w-full text-center py-3 mt-2.5 rounded-xl text-[14px] font-bold text-white active:scale-[0.98] transition-transform"
           style={{ backgroundColor: BRAND.primary }}>
