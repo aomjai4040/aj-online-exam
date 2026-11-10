@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -21,8 +21,9 @@ const ERROR_MSG: Record<ActivationError, string> = {
 
 // ─── Success state ────────────────────────────────────────────────────────────
 
-function SuccessView({ courseName }: { courseName: string }) {
+function SuccessView({ courseId, courseName }: { courseId: string; courseName: string }) {
   const router = useRouter();
+  const isPartC = courseId.toLowerCase().startsWith("partc-");
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-5 py-16 text-center">
       {/* Checkmark */}
@@ -46,11 +47,11 @@ function SuccessView({ courseName }: { courseName: string }) {
 
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <button
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push(isPartC ? "/interview" : "/dashboard")}
           className="w-full py-3 rounded-2xl font-semibold text-[14px] text-white"
           style={{ backgroundColor: "#0B6E65" }}
         >
-          ไปที่ Dashboard
+          {isPartC ? "เข้าเมนูภาค ค สัมภาษณ์" : "ไปที่ Dashboard"}
         </button>
         <Link
           href="/exams"
@@ -73,6 +74,12 @@ export default function ActivatePage() {
   const [status,  setStatus]  = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error,   setError]   = useState<ActivationError | null>(null);
   const [success, setSuccess] = useState<{ courseId: string; courseName: string } | null>(null);
+
+  // /activate?code=XXX (ปุ่มจากหน้าจ่ายเงิน เมื่อน้องกรอกโค้ดปลดล็อกผิดช่อง) → เติมให้เลย
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get("code");
+    if (c) setCode(c.trim().toUpperCase());
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,7 +107,7 @@ export default function ActivatePage() {
       {/* Main */}
       <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
         {status === "success" && success ? (
-          <SuccessView courseName={success.courseName} />
+          <SuccessView courseId={success.courseId} courseName={success.courseName} />
         ) : (
           <div className="px-5 pt-10 pb-6">
 

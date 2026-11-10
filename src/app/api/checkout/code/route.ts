@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(await applyDiscount(user.uid, orderId, code));
   } catch (e) {
     if (e instanceof CheckoutError) {
-      return NextResponse.json({ error: e.message }, { status: 409 });
+      return NextResponse.json({ error: e.message, activation: e.activation ?? false }, { status: 409 });
     }
     console.error("[checkout code]", e);
     return NextResponse.json({ error: "ใช้โค้ดไม่สำเร็จ ลองใหม่อีกครั้ง" }, { status: 500 });

@@ -57,7 +57,10 @@ async function serverAccess(uid: string): Promise<{
   };
 }
 
-export class CheckoutError extends Error {}
+export class CheckoutError extends Error {
+  /** true = โค้ดที่กรอกเป็นโค้ดปลดล็อก (activationCodes) ไม่ใช่โค้ดส่วนลด → พาไปหน้า /activate */
+  activation?: boolean;
+}
 
 /** ออเดอร์ที่ค้างอยู่ของ tier นี้ (ยังไม่จ่าย) — ใช้ "ต่อของเดิม" ไม่สร้างใหม่
  *
@@ -255,7 +258,16 @@ export async function checkDiscountCode(
 
   const db   = adminDb();
   const snap = await db.collection("discountCodes").doc(code).get();
-  if (!snap.exists) throw new CheckoutError("ไม่พบโค้ดนี้ — ลองตรวจตัวสะกดอีกครั้ง");
+  if (!snap.exists) {
+    // น้องเอาโค้ดปลดล็อกที่ Aj ส่งให้มากรอกช่องส่วนลด (เคสจริง 2026-11-10)
+    const act = await db.collection("activationCodes").where("code", "==", code).limit(1).get();
+    if (!act.empty) {
+      const err = new CheckoutError("โค้ดนี้เป็นโค้ดปลดล็อกคอร์ส ไม่ต้องจ่ายเงินค่ะ กดปุ่มด้านล่างเพื่อเปิดใช้ได้เลย");
+      err.activation = true;
+      throw err;
+    }
+    throw new CheckoutError("ไม่พบโค้ดนี้ — ลองตรวจตัวสะกดอีกครั้ง");
+  }
 
   const d = snap.data()!;
 

@@ -49,6 +49,7 @@ export default function CheckoutPage() {
   const [codeInput, setCodeInput] = useState("");
   const [codeBusy,  setCodeBusy]  = useState(false);
   const [codeErr,   setCodeErr]   = useState("");
+  const [activateCode, setActivateCode] = useState(""); // โค้ดปลดล็อกที่กรอกผิดช่อง
 
   const validTier = TIERS.includes(tier as OrderTier);
   const plan = validTier ? tierPlan(tier as OrderTier) : null;
@@ -109,7 +110,7 @@ export default function CheckoutPage() {
   /** ใส่โค้ด → ยอดใหม่ + QR ใหม่ (ยอดฝังใน QR ต้องตรงกับยอดที่ต้องโอน) */
   async function applyCode() {
     if (!user || !order || codeBusy || !codeInput.trim()) return;
-    setCodeBusy(true); setCodeErr("");
+    setCodeBusy(true); setCodeErr(""); setActivateCode("");
     try {
       const token = await user.getIdToken();
       const res = await fetch("/api/checkout/code", {
@@ -118,7 +119,11 @@ export default function CheckoutPage() {
         body: JSON.stringify({ orderId: order.orderId, code: codeInput }),
       });
       const d = await res.json();
-      if (!res.ok) { setCodeErr(d.error ?? "ใช้โค้ดไม่สำเร็จ"); return; }
+      if (!res.ok) {
+        setCodeErr(d.error ?? "ใช้โค้ดไม่สำเร็จ");
+        if (d.activation) setActivateCode(codeInput.trim().toUpperCase());
+        return;
+      }
       setOrder({ ...order, amount: d.amount, qr: d.qr,
         fullAmount: d.fullAmount, discountAmount: d.discountAmount, discountCode: d.code });
       setCodeInput("");
@@ -522,7 +527,15 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                   {codeErr && (
-                    <p className="text-[12.5px] mt-2" style={{ color: "#DC2626" }}>{codeErr}</p>
+                    <p className="text-[12.5px] mt-2"
+                      style={{ color: activateCode ? "#0B6E65" : "#DC2626" }}>{codeErr}</p>
+                  )}
+                  {activateCode && (
+                    <a href={`/activate?code=${encodeURIComponent(activateCode)}`}
+                      className="block w-full text-center py-3 mt-2.5 rounded-xl text-[14px] font-bold text-white"
+                      style={{ backgroundColor: "#0B6E65" }}>
+                      เปิดใช้โค้ด {activateCode}
+                    </a>
                   )}
                   <p className="text-[12px] mt-2" style={{ color: "#A8A8A6" }}>
                     โค้ดจากการทำแบบประเมิน ดูได้ที่หน้า{" "}
