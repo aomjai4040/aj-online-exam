@@ -154,6 +154,14 @@ export default function CourseVideoPlayer({
   const resumeAtRef = useRef<number | null>(null);
   const lowSinceRef     = useRef<number | null>(null); // เวลาเริ่มเห็นความชัดต่ำต่อเนื่อง
   const autoRetryCntRef = useRef(0);                   // จำนวนครั้งที่ดันอัตโนมัติไปแล้ว/คลิป
+  // จอสัมผัส (มือถือ/แท็บเล็ต) ห้ามดันชัดอัตโนมัติ — การดันคือทำลาย player แล้วสร้างใหม่
+  // ซึ่ง iOS บล็อก autoplay ของ iframe ใหม่ที่ไม่ได้มาจากการแตะ → คลิปเด้งกลับหน้าปก
+  // แล้วหยุดเฉย ๆ (น้อง iPad เน็ตช้าเจอ "เด้ง ดูไม่ได้" 2026-11-16) · ปุ่มเหลือง
+  // "แตะดันชัด" ยังใช้ได้เพราะเป็น gesture จริงของผู้ใช้
+  const coarseRef = useRef(false);
+  useEffect(() => {
+    try { coarseRef.current = window.matchMedia("(pointer: coarse)").matches; } catch {}
+  }, []);
   function hdRetry() {
     resumeAtRef.current = Math.floor(timeRef.current);
     try { playerRef.current?.destroy?.(); } catch {}
@@ -449,7 +457,7 @@ export default function CourseVideoPlayer({
       //    พร้อม) → ดันไวขึ้น (8 วิ) และดันซ้ำได้ถึง 2 ครั้ง · ป้ายเหลืองยังแตะดันเองได้ ──
       const veryLowQ = ["small", "tiny"].includes(q);              // ≤240p
       const lowQ = veryLowQ || ["large", "medium"].includes(q);    // ≤480p
-      if (!lowQ || state !== 1 || document.visibilityState === "hidden") {
+      if (!lowQ || state !== 1 || document.visibilityState === "hidden" || coarseRef.current) {
         lowSinceRef.current = null;
       } else {
         lowSinceRef.current ??= Date.now();
